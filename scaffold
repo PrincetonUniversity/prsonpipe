@@ -1,0 +1,106 @@
+#!/bin/bash
+#
+# scaffold sets up the scaffolding for a new subject.
+# Copyright (C) 2010 mason simon (mgsimon@princeton.edu)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+set -e # stop immediately when an error occurs
+
+source globals.sh
+
+# set global variables
+TEMPLATE_DIR=prototype
+LINK_DIR=$TEMPLATE_DIR/link
+COPY_DIR=$TEMPLATE_DIR/copy
+SUBJ_ID_PATTERN='<<SUBJECT_ID>>'
+
+
+# display usage instructions if this script was run improperly
+if [ $# -ne 1 ]; then
+  echo "
+usage: `basename $0` subject_id
+
+sets up the directory structure and default files (scaffolding) for the subject
+with given ID, based on the template in $TEMPLATE_DIR.
+if scaffold has already been called for that subject, the subject's directory
+will be updated with any files and folders added to the template since the
+subject was last scaffolded
+  "
+  exit
+fi
+
+# stick parameters into the right variables
+subj=$1
+subj_dir=$SUBJECTS_DIR/$subj
+
+if [ ! -d "$SUBJECTS_DIR" ]; then
+echo "if this is your first time setting up a subject with NeuroPipe,"
+echo "read README.txt in the subject's directory (just created)"
+fi
+
+mkdir -p $subj_dir
+
+# link in each file in LINK_DIR, making their parent directories as needed. to
+# keep things portable, the code makes relative links, which complicates the
+# logic. see the notes within this loop for more explanation
+for path in $(find $LINK_DIR/*); do
+  rel_path=${path##$LINK_DIR/}   # removes $LINK_DIR from front of path
+  rel_dir=$(dirname $rel_path)
+
+  if [ -d "$path" ]; then
+    mkdir -p $subj_dir/$rel_path
+    continue
+  fi
+
+  # because we're recursing into LINK_DIR, we have to build up a prefix of
+  # ../'s that gets one longer for each directory we dive into. that's what the
+  # following hunk of code does
+  p=$path
+  prefix=''
+  while [ "$(dirname $p)" != '.' ]; do
+    prefix="$prefix../"
+    p=$(dirname $p)
+  done
+  
+  ln -s -f ${prefix}$path $subj_dir/$rel_path
+done
+
+# copy in each file in COPY_DIR, making their parent directories as needed, and
+# replacing all instances of $SUBJ_ID_PATTERN with the subject's ID
+for path in $(find $COPY_DIR/*); do
+  rel_path=${path##$COPY_DIR/}
+  rel_dir=$(dirname $rel_path)
+  mkdir -p $rel_dir
+
+  if [ -d $path ]; then
+    mkdir -p $subj_dir/$rel_path
+    continue
+  fi
+
+  tmp=$(mktemp -t tmp.XXXXXX)
+  cat $path | sed "s:$SUBJ_ID_PATTERN:$subj:g" > $tmp;
+  if [ -e "$subj_dir/$rel_path" ] && [ -n "$(diff $tmp $subj_dir/$rel_path)" ]; then
+    echo "WARNING: $rel_path has been modified. not updating it" > /dev/stderr
+    rm -f $tmp
+    continue
+  fi
+
+  mv $tmp $subj_dir/$rel_path
+done
+
+echo "created subject directory '$subj_dir'"
+
+
