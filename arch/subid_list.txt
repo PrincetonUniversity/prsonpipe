@@ -1,0 +1,4 @@
+01feb13aa, s01, parrec
+01feb13bb, s02, parrec
+02feb13cc, s03, nifti
+
