@@ -1,4 +1,6 @@
-raw directory
+7/25/16 MEW
+
+notes directory
 ===========================================
 
-all subjects' raw dcm.gz data files will be copied here with full name
+not sure what goes here...
