@@ -13,7 +13,9 @@ set -e # stop immediately when an error occurs
 #source subid_list.txt  # MUST INTERPRET
 SUBJ=$1
 
-PROJ_DIR=../	# SET INDEPENDENT PROJECT DIRECTORY NAME
+source ../notes/study_info.sh
+
+PROJ_DIR=$PROJECT_DIR	# SET INDEPENDENT PROJECT DIRECTORY NAME
 #SUBJECT_DIR=$PROJ_DIR/subjects/$SUBJ
 
 RUNORDER_FILE=$PROJ_DIR/arch/subpars/runorders/$SUBJ*
