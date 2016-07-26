@@ -5,6 +5,7 @@
 #
 #
 
-STUDY_NAME=study		# ENTER THE PARENT FOLDER NAME HERE. This should be the same name as your project folder in /fastscratch/ and in /tamir/
-EMAIL=prsonlab@gmail.com	# ENTER YOUR EMAIL HERE.  This email address will be used to send you updates on jobs you run on spock.
+STUDY_NAME=ms					# ENTER THE STUDY NAME HERE. This should be the same name as your project folder in /fastscratch/ and in /tamir/
+PROJECT_FOLDER=/jukebox/fastscratch/miriamw/ms	# ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
+EMAIL=miriamw@princeton.edu			# ENTER YOUR EMAIL HERE.  This email address will be used to send you updates on jobs you run on spock.
 
