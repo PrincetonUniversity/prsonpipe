@@ -1,0 +1,10 @@
+# study_info
+# author: Miriam Weaverdyck 7/26/2016
+# Change the variables below to match your study
+# Write in the comments below a description of your data collection protocol. It should contain all the info someone else would need to understand how to use your data. 
+#
+#
+
+STUDY_NAME=study		# ENTER THE PARENT FOLDER NAME HERE. This should be the same name as your project folder in /fastscratch/ and in /tamir/
+EMAIL=prsonlab@gmail.com	# ENTER YOUR EMAIL HERE.  This email address will be used to send you updates on jobs you run on spock.
+
