@@ -1,6 +1,7 @@
 #!/bin/bash
 # author: mgsimon@princeton.edu
 # this script sets up global variables for the analysis of the current subject
+# edited 7/26/16 MEW
 
 set -e # stop immediately when an error occurs
 
@@ -12,19 +13,22 @@ set -e # stop immediately when an error occurs
 #source subid_list.txt  # MUST INTERPRET
 SUBJ=$1
 
-PROJ_DIR=../
+PROJ_DIR=../	# SET INDEPENDENT PROJECT DIRECTORY NAME
 #SUBJECT_DIR=$PROJ_DIR/subjects/$SUBJ
 
-RUNORDER_FILE=./subject_pars/run-order.txt
+RUNORDER_FILE=$PROJ_DIR/arch/subpars/runorders/$SUBJ*
 
-RAW_DIR=$PROJ_DIR/raw 	# replaced DATA_DIR
+RAW_DIR=$PROJ_DIR/raw 	
+PREP_DIR=$PROJ_DIR/prep
+NIFTI_DIR=$SUBJ # s000 folder within raw, prep, or other directory, which stores niftis at that level for that subject
+#NIFTI_DIR=data/nifti
 #DATA_DIR=data
 
-SCRIPT_DIR=./scripts
+SCRIPT_DIR=$PROJ_DIR/arch/scripts
 #FSF_DIR=fsf
 DICOM_ARCHIVE=$PROJ_DIR/arch/nifti/raw.tar.gz
-#NIFTI_DIR=data/nifti
-NIFTI_DIR=$RAW_DIR/$SUBJ
+
+
 QA_DIR=$PROJ_DIR/qa
 #BEHAVIORAL_DATA_DIR=behav
 #FIRSTLEVEL_DIR=analysis/firstlevel

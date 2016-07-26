@@ -3,6 +3,7 @@
 # analyze.sh runs the analysis of a subject
 # original author: mason simon (mgsimon@princeton.edu)
 # this script was provided by NeuroPipe. modify it to suit your needs
+# edited 7/25/16 MEW
 
 set -e # stop immediately when an error occurs
 

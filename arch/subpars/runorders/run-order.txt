@@ -1,0 +1,54 @@
+# 7/25/16 MEW
+#
+# run-order.txt describes the your fMRI scanning protocol
+# original author: mason simon (mgsimon@princeton.edu)
+# this script was provided by NeuroPipe. modify it to suit your needs
+# 
+#
+# this file should contain 1 line per pulse sequence (run) in a scan session. on
+# each line, put the name of the pulse sequence, optionally followed by a space
+# and then the number of TRs collected in that sequence
+#
+# NeuroPipe will take your raw DICOM data and convert it to Gzipped NifTi files,
+# named according to the pulse sequence names you give in this file. if you gave
+# the number of TRs for a sequence, it will also check that the corresponding
+# data file has that number of TRs, which can catch (rare) errors due to data
+# mis-transferring from your scanner
+#
+# if you collected any runs of data that you don't care to analyze, put the text
+# "ERROR_RUN", without quotes, at the start of the corresponding line. this is
+# useful if you had to abort and restart a run for some reason
+#
+# lines beginning with a # are treated as comments, and NeuroPipe ignores them.
+# if your run order deviated from the ideal for any of your subjects, write
+# comments to remind yourself why
+#
+# GOTCHAS:
+# - circle localizers from allegra transfer as 3 separate runs, so for each circle
+#   localizer you ran, you must include 3 lines in this file 
+# - localizers from skyra transfer as 3 separate runs, but scouts transfer as 11 
+# - fieldmaps transfer as 2 separate runs, so include 2 lines in this file for
+#   each fieldmap you ran
+# - dti scans transfer as 6 separate runs, so include 6 lines in this file for
+#   each dti scan. you may not need all of them, depending on how your own
+#   pre-processing is structured, so you might want to use ERROR_RUN for some of
+#   the unnecessary runs (usually the last 5) 
+#
+# EDIT by Judith Mildner:
+# Tamir Lab naming conventions: add your task runs with suffix _epi and resting state with _rest at the end.
+# for spin echo scans: {corresponding run}_SE_{direction}, e.g. epi_SE_AP or rest_SE_PA
+# PREPROCESSING SCRIPTS WILL NOT FIND YOUR EPIs IF THEY DO NOT START WITH epi_
+#
+ERROR_RUN #localizer, don't need for analysis (comes out as 3 runs)
+ERROR_RUN
+ERROR_RUN
+epi_OTHER_r01 130
+epi_OTHER_r02 133
+epi_r01 209
+epi_r02 209
+epi_r03 209
+rest 275
+anat
+epi_SE_AP 3
+epi_SE_PA 3
+
