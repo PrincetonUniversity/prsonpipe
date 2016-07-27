@@ -2,8 +2,16 @@
 # author: mgsimon@princeton.edu
 # this script sets up global variables for the analysis of the current subject
 # edited 7/26/16 MEW
+# 26 July 2016, Judith Mildner (JNM) added vars for retrieve-data-labvol.sh script
 
 set -e # stop immediately when an error occurs
+
+source ../notes/study_info.sh
+
+####retrieve script uses these#### edited to source from study_info
+RUNORDER_FILE=$PROJECT_DIR/arch/subpars/runorders/$SUBJ*
+###################################
+
 
 # add necessary directories to the system path
 #export BXH_DIR=/jukebox/tamir/pkg/bxh_xcede_tools*/bin
@@ -13,12 +21,10 @@ set -e # stop immediately when an error occurs
 #source subid_list.txt  # MUST INTERPRET
 SUBJ=$1
 
-source ../notes/study_info.sh
 
-PROJ_DIR=$PROJECT_DIR	# SET INDEPENDENT PROJECT DIRECTORY NAME
+#PROJ_DIR=$PROJECT_DIR	# SET INDEPENDENT PROJECT DIRECTORY NAME #we don't need this? -JNM
 #SUBJECT_DIR=$PROJ_DIR/subjects/$SUBJ
 
-RUNORDER_FILE=$PROJ_DIR/arch/subpars/runorders/$SUBJ*
 
 RAW_DIR=$PROJ_DIR/raw 	
 PREP_DIR=$PROJ_DIR/prep
