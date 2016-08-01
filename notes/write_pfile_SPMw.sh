@@ -5,41 +5,41 @@
 # (a matlab file to be read by SPM12w)
 
 source pars.sh
-source globals.sh
+source ../arch/globals.sh
 
 SAVE_DIR=$PROJ_DIR/$SCRIPT_DIR_SPMw
 
 if [ $SLICE_TIME == 'SPM' ]; then
-	$SLICE_TIME=1
+	SLICE_TIME=1
 else
-	$SLICE_TIME=0
+	SLICE_TIME=0
 fi
 
 if [ $REALIGN == 'SPM' ]; then
-	$REALIGN=1
+	REALIGN=1
 else
-	$REALIGN=0
+	REALIGN=0
 fi
 
 if [ $UNWARP == 'SPM' ]; then
-	$UNWARP=1
+	UNWARP=1
 else
-	$UNWARP=0
+	UNWARP=0
 fi
 
 if [ $SMOOTH_SOFT == 'SPM' ]; then
-	$SMOOTHING=$SMOOTH
+	SMOOTHING=$SMOOTH
 else
-	$SMOOTHING=0
+	SMOOTHING=0
 fi
 
 if [ $SNR == 'SPM' ]; then
-	$SNR=1
+	SNR=1
 else
-	$SNR=0
+	SNR=0
 fi
 
-cat <<EOT > $SAVE_DIR/p_study.m
+cat <<EOT > $SAVE_DIR/p_$(PROJECT_NAME).m
 % spm12w r6225
 % Parameters file for fMRI preprocessing
 % Last updated: October, 2014
