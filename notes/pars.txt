@@ -1,3 +1,0 @@
-out="<?= $OUTPUT_DIR ?>"
-mni="<?= $STANDARD_BRAIN ?>"
-
