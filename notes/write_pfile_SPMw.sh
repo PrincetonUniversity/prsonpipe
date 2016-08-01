@@ -46,7 +46,7 @@ else
 	SLICES=0
 fi
 
-cat <<EOT > $SAVE_DIR/p_study.m
+cat <<EOT > $SAVE_DIR/p_$PROJECT_NAME.m
 % spm12w r6225
 % Parameters file for fMRI preprocessing
 % Last updated: October, 2014
