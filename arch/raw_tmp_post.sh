@@ -5,4 +5,5 @@
 
 source globals.sh
 
+rm $RAW_DIR/$SUBJ/*
 mv $temp_raw_dir/* $RAW_DIR/$SUBJ/
