@@ -1,0 +1,161 @@
+#!/bin/bash
+# author: vej@princeton.edu
+# adapted from "retrieve_data_from_sun" by mgsimon@princeton.edu and atompary@gmail.com
+# downloads raw DICOM data for the specified subject from dicom and compresses it
+# into a gzipped tar file at the file path specified by output_path
+# Oct 18 2012
+#
+# Feb 18, 2015, Nate Wilson, nmwilson@princeton.edu - updated script to include prisma and remove allegra compatibility
+# this included changing the basic help prompt, the scanner directory path setting code, and allowing errors during the 
+# segment of this script that removes .dcm because of an error that can be ignored.
+#
+# March 15, 2016 Judith Mildner (JNM) - Changed DICOM_DIR variable to Tamir lab volume name to get data from lab volume instead of conquest
+# July 26, 2016 Judith Mildner - Adapt for new prsonpipe filestructure, and require user input of subject ID.
+# August 1 , 2016 JNM - Cleaning up paths and putting them in variables
+
+set -e # fail immediately on error
+
+#####################################
+#####################################
+
+source globals.sh
+
+tmp_dir_zip="$(mktemp -d)"
+# add necessary names (no longer in globals.sh) -JNM
+DICOM_DIR="/jukebox/${LAB_NAME}/${PROJECT_NAME}/raw/"
+RUNORDER_PATH="${PROJECT_DIR}/arch/subpars/runorders"
+RUNORDER_TEMPLATE="run-order.txt"
+DATA_DIR="${PROJECT_DIR}/arch/dicom"
+SUBJ=$1
+echo "Retrieving $SUBJ"
+#####################################
+#####################################
+#check if subject has already been imported -JNM
+output_file="raw_${SUBJ}.tar.gz"
+output_dir=$DATA_DIR
+
+if [ -e "${output_dir}/${output_file}" ]; then
+	echo "Subject ${SUBJ} already exists"
+	exit 0
+fi
+
+
+#####################################
+#####################################
+
+# Make sure that there is a directory there for that name, and make sure there is not more than one directory for that subject. 
+
+SUBJFILES=$(ls -d /$DICOM_DIR/$SUBJ* 2> /dev/null | wc -l)
+
+
+#####################################
+#####################################
+# Copy over the dicom files 
+
+if [ "$SUBJFILES" -gt 1 ]; then
+	cp -r $DICOM_DIR/$CHOSEN_SUBJ/dcm/* $tmp_dir_zip/
+elif [ "$SUBJFILES" -eq 1 ]; then
+	cp -r $DICOM_DIR/$SUBJ*/dcm/* $tmp_dir_zip/
+fi
+
+tmp_dir="$(mktemp -d)"
+mkdir $tmp_dir/$SUBJ/
+
+
+pushd $tmp_dir_zip/ > /dev/null
+
+#####################################
+#####################################
+
+#Unzip the files
+
+for f in *.gz; do
+	STEM=$(basename "${f}" .gz) 
+	gunzip -c "${f}" > $tmp_dir/$SUBJ/"${STEM}"
+done
+
+popd > /dev/null
+
+rm -rf $tmp_dir_zip
+
+#####################################
+#####################################
+#remove the .dcm ending, reformat: 
+
+pushd $tmp_dir/$SUBJ > /dev/null
+
+set +e # allowing errors temporarily, because prisma has phoenix report files, 99*unknown.dcm.gz which will throw errors
+
+for f in * ;
+do
+	FILENAME=$(basename "$f")
+	FILENAME="${FILENAME%.*}"
+	mv $f $FILENAME;
+done
+
+for file in * ;
+do
+	temp_file_decomp=(`echo $file | tr "-" "\n"`)
+	temp_series=`printf "%03d" ${temp_file_decomp[0]}`
+	temp_imagenum=`printf "%04d" ${temp_file_decomp[1]}`
+	temp_TE=`printf "%03d" ${temp_file_decomp[2]} 2> /dev/null`
+	temp_name=$temp_series'_'$temp_imagenum'_'$temp_TE
+	mv $file $temp_name;
+done
+
+set -e # returning to setting that fails upon error 
+
+ for file in * ; 
+ do 
+
+    mv $file $SUBJ$file; 
+ done
+
+
+#mkdir $SUBJ
+#data_dir_temp=$tmp_dir/$SUBJ
+#echo $data_dir_temp
+
+popd > /dev/null
+
+
+pushd $tmp_dir/$SUBJ > /dev/null
+tar --create --gzip --file=$output_file *
+popd > /dev/null
+mv $tmp_dir/$SUBJ/$output_file $output_dir
+
+rm -rf $tmp_dir
+
+################################################
+################################################
+#Check id subid_list.txt file exists, then add subject to subid_list.txt if it's not already there -JM
+subid_list="${PROJECT_DIR}/arch/subid_list.txt"
+
+if [ ! -e ${subid_list} ]; then
+	cat > ${subid_list}
+fi
+
+newline="${SUBJ} s${SUBJ:(-3)} dicom"
+if grep -q "$SUBJ" "$subid_list"; then
+	echo "${SUBJ} is already in subid_list.txt. Keeping existing entry. Please check if it's correct:"
+	grep "$SUBJ" "$subid_list"
+fi
+grep -q -F  "$SUBJ" "$subid_list" || echo "$newline" >> $subid_list
+
+##############################################
+##############################################
+#Run order file -JM
+
+if [ ! -e ${RUNORDER_PATH}/${SUBJ}.txt ]; then
+	echo "Creating run order file for ${SUBJ}"
+	cp ${RUNORDER_PATH}/${RUNORDER_TEMPLATE} ${RUNORDER_PATH}/${SUBJ}.txt
+else
+	echo "Run order file for ${SUBJ} already exists"
+fi
+
+echo "Run order is:"
+cat ${RUNORDER_PATH}/${SUBJ}.txt | grep "^[^#;]"
+echo "###################################################"
+echo "Please check the run order for this subject. Edit ${RUNORDER_PATH}/${SUBJ}.txt if incorrect."
+
+echo "Finished retrieving ${SUBJ} data from $DICOM_DIR"
