@@ -1,7 +1,8 @@
 #!/bin/bash
 # author: mgsimon@princeton.edu
+# ------------------------------------------------------------------------------
 # this script sets up global variables for the analysis of the current subject
-# edited 7/26/16 MEW
+# edited 8/1/16 MEW added SCRIPT_DIR* vars for write_pfile scripts
 # 26 July 2016, Judith Mildner (JNM) added vars for retrieve-data-labvol.sh script
 
 set -e # stop immediately when an error occurs
@@ -12,6 +13,11 @@ source ../notes/study_info.sh
 RUNORDER_FILE=$PROJECT_DIR/arch/subpars/runorders/$SUBJ*
 ###################################
 
+SCRIPT_DIR=scripts
+SCRIPT_DIR_FSL=$SCRIPT_DIR/FSL
+SCRIPT_DIR_SPM8=$SCRIPT_DIR/SPM8
+SCRIPT_DIR_SPM=$SCRIPT_DIR/SPM12
+SCRIPT_DIR_SPMw=$SCRIPT_DIR/SPM12w
 
 # add necessary directories to the system path
 #export BXH_DIR=/jukebox/tamir/pkg/bxh_xcede_tools*/bin
@@ -19,7 +25,7 @@ RUNORDER_FILE=$PROJECT_DIR/arch/subpars/runorders/$SUBJ*
 #export BIAC_HOME=/jukebox/ntb/packages/BIAC_matlab/mr
 
 #source subid_list.txt  # MUST INTERPRET
-SUBJ=$1
+#SUBJ=$1
 
 
 #PROJ_DIR=$PROJECT_DIR	# SET INDEPENDENT PROJECT DIRECTORY NAME #we don't need this? -JNM
