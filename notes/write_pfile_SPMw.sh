@@ -5,6 +5,7 @@
 # (a matlab file to be read by SPM12w)
 
 source pars.sh
+source study_info.sh
 source ../arch/globals.sh
 
 SAVE_DIR=$PROJ_DIR/$SCRIPT_DIR_SPMw
