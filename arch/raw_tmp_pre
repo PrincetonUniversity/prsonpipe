@@ -4,12 +4,12 @@
 # This script copies raw/ to a temporary directory, replaces the nii in raw/ 
 # with the most preprocessed nii from FSL, DARTEL, or SPM to be read by SPMw
 
-source globals.sh
+source globals.par
 
 temp_raw_dir=$(mktemp -d -t tmp.XXXXXX)
 mv $RAW_DIR/$SUBJ/* $temp_raw_dir
 
-copy_dir=$PREP_DIR/$last_prep*/$SUBJ
+copy_dir=$PREP_DIR/wd/$SUBJ
 # if [ $last == 'FSL' ]; then
 # 	copy_dir=$PREP_DIR/FSL_prep/$SUBJ
 # elif [ $last == 'DARTEL' ]; then

@@ -18,7 +18,7 @@ set -e # fail immediately on error
 #####################################
 #####################################
 
-source globals.sh
+source globals.par
 
 tmp_dir_zip="$(mktemp -d)"
 # add necessary names (no longer in globals.sh) -JNM

@@ -9,10 +9,10 @@ QA='BXH'
 # Slice time correction: 'FSL', 'SPM', 'none'
 SLICE_TIME='SPM'
 
-# Realignment/Motion Correction: 'FSL', 'SPM', 'none'
+# Realignment/Motion Correction: 'FSL', 'SPM', 'DARTEL' (must use DARTEL for normalization too), 'none'
 REALIGN='SPM'
 
-# Unwarping: 'topup' (must ahve spin echos), 'SPM', 'none'
+# Unwarping: 'topup' (FSL; must have spin echos), 'SPM', 'none'
 UNWARP='SPM'
 
 # Smoothing: 'FSL', 'SPM', 'DARTEL' (must use DARTEL for normalization too), 'none'; size of smoothing kernel in FWHM
@@ -26,9 +26,6 @@ SNR='SPM'
 SLICES=0
 
 # === Not used in SPM ===
-
-# Topup (FSL): yes=1, no=0
-TOPUP=1
 
 # Normalization (includes registration to MNI space, unwarping in DARTEL): 'FSL', 'DARTEL', 'none'
 NORM='DARTEL'

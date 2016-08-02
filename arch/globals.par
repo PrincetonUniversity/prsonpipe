@@ -7,7 +7,7 @@
 
 set -e # stop immediately when an error occurs
 
-source ../notes/study_info.sh
+source ../notes/study_info.par
 
 ####retrieve script uses these#### edited to source from study_info
 RUNORDER_FILE=$PROJECT_DIR/arch/subpars/runorders/$SUBJ*

@@ -6,7 +6,7 @@
 # edited MEW 8/1/16: added conditional statements based on args and added subject loop
 
 set -e # stop immediately when an error occurs
-source globals.sh   # load settings
+source globals.par   # load settings
 
 if [[ $# -eq 0 ]]; then
 	# no input means run all NEW subjects

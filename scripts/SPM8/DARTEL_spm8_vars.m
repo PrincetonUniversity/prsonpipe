@@ -267,101 +267,105 @@ for s = 1:length(dosubs)
 
     % =====================================
    
-% EITHER RUN THIS SECTION OR THE NEXT
-%   RUN THIS SECTION IF YOU ALREADY RAN MOTION CORRECTION IN
-%   PREPROCESSESING (DEFAULT)
-    
-% Create a mean image
+   if p.REALIGN == 0
 
-    for i = 1:numruns
+    % EITHER RUN THIS SECTION OR THE NEXT
+    %   RUN THIS SECTION IF YOU ALREADY RAN MOTION CORRECTION IN
+    %   PREPROCESSESING (DEFAULT)
         
-         fname = filenames_orig{i}{1}(1:end-4);
-         
-         curfunc = load_untouch_nii(fname);
-         
-         if i == 1 
+    % Create a mean image
+
+        for i = 1:numruns
+            
+             fname = filenames_orig{i}{1}(1:end-4);
+             
+             curfunc = load_untouch_nii(fname);
+             
+             if i == 1 
+                  
+                 vsize = size(curfunc.img);
+                 
+                 mfuncs = NaN([vsize(1:3) numruns]);
+                 
+             end
+             
+             mfuncs(:,:,:,i) = mean(curfunc.img,4); 
               
-             vsize = size(curfunc.img);
+             disp(['Loaded functional ' num2str(i) ' for mean']);
              
-             mfuncs = NaN([vsize(1:3) numruns]);
-             
-         end
+        end
          
-         mfuncs(:,:,:,i) = mean(curfunc.img,4); 
-          
-         disp(['Loaded functional ' num2str(i) ' for mean']);
+        mmfunc = mean(mfuncs,4);
          
+        outnii = curfunc;
+         
+        outnii.img = mmfunc;
+         
+        outnii.hdr.dime.dim(1) = 3;
+        
+        outnii.hdr.dime.dim(5) = 1;
+         
+        outname = strsplit(fname,'/');
+         
+        outname = ['mean' outname{end}];
+         
+        save_untouch_nii(outnii,outname);
+         
+    else
+    % EITHER RUN THIS SECTION OR THE PREVIOUS
+    % DON'T RUN THIS SECTION UNLESS YOU DIDN'T RUN MOTION CORRECTION IN PREPROCESSESING
+    % AND NEED TO RUN IT HERE
+
+        % Realignment of functionals
+
+        % -------------------------------------------------
+
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.quality = 0.9;         % higher quality
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.sep = 4;               % default is 4
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.fwhm = 5;              % default
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.rtm = 1;               % changed from 0 (=realign to first) to 1 (realign to mean) for
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.interp = 4;            % default
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.wrap = [0 0 0];        % default
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.weight = {};           % don't weight
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.roptions.which  = [0 1];        % create mean image only when reslicing
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.roptions.interp = 4;            % default
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.roptions.wrap   = [0 0 0];      % no wrap (default)
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.roptions.mask   = 1;            % enable masking (default)
+
+        matlabbatch{2}.spm.spatial.realign.estwrite.roptions.prefix = 'r';
+
+        
+
+        Co-register mprage to MEAN FUNCTIONAL
+
+        -------------------------------------------------
+
+        matlabbatch{3}.spm.spatial.coreg.estimate.ref = mean_func;
+
+        matlabbatch{3}.spm.spatial.coreg.estimate.source = cellstr(mprage);   
+
+        matlabbatch{3}.spm.spatial.coreg.estimate.other{1} = '';
+
+        matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
+
+        matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
+
+        matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
+
+        matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
+                  
     end
-     
-    mmfunc = mean(mfuncs,4);
-     
-    outnii = curfunc;
-     
-    outnii.img = mmfunc;
-     
-    outnii.hdr.dime.dim(1) = 3;
-    
-    outnii.hdr.dime.dim(5) = 1;
-     
-    outname = strsplit(fname,'/');
-     
-    outname = ['mean' outname{end}];
-     
-    save_untouch_nii(outnii,outname);
-     
-     
-% EITHER RUN THIS SECTION OR THE PREVIOUS
-%   DON'T RUN THIS SECTION UNLESS YOU DON'T RUN MOTION CORRECTION IN PREPROCESSESING
-
-%     % Realignment of functionals
-% 
-%     % -------------------------------------------------
-% 
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.quality = 0.9;         % higher quality
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.sep = 4;               % default is 4
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.fwhm = 5;              % default
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.rtm = 1;               % changed from 0 (=realign to first) to 1 (realign to mean) for
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.interp = 4;            % default
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.wrap = [0 0 0];        % default
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.weight = {};           % don't weight
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.roptions.which  = [0 1];        % create mean image only when reslicing
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.roptions.interp = 4;            % default
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.roptions.wrap   = [0 0 0];      % no wrap (default)
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.roptions.mask   = 1;            % enable masking (default)
-% 
-%     matlabbatch{2}.spm.spatial.realign.estwrite.roptions.prefix = 'r';
-% 
-%     
-
-    % Co-register mprage to MEAN FUNCTIONAL
-
-    % -------------------------------------------------
-% 
-%     matlabbatch{3}.spm.spatial.coreg.estimate.ref = mean_func;
-% 
-%     matlabbatch{3}.spm.spatial.coreg.estimate.source = cellstr(mprage);   
-% 
-%     matlabbatch{3}.spm.spatial.coreg.estimate.other{1} = '';
-% 
-%     matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
-% 
-%     matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
-% 
-%     matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
-% 
-%     matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
-%
 
 
     matlabbatch{1}.spm.spatial.coreg.estimate.ref = mean_func;

@@ -6,7 +6,7 @@
 
 set -e
 
-source globals.sh
+source globals.par
 
 bash scripts/convert-and-wrap-raw-data.sh $DICOM_ARCHIVE $NIFTI_DIR $SUBJ $RUNORDER_FILE
 bash scripts/qa-wrapped-data.sh $NIFTI_DIR $QA_DIR

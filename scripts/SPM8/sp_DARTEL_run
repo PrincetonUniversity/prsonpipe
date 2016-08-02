@@ -9,7 +9,7 @@
 #SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
 
 # write out parameters file for DARTEL
-bash ../../notes/write_pfile_DARTEL.sh
+bash ../../notes/write_pfile_DARTEL
 
 # get subjects to run from first argument
 subs="$1"
@@ -22,15 +22,16 @@ module load matlab/R2015b
 matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
 
 # move files to DARTEL_prep
-for d in $(ls -d $PREP_DIR/$last_prep*/ | xargs -n 1 basename); do
-	s=$PREP_DIR/DARTEL_prep/$d/
+for d in $(ls -d $PREP_DIR/wd/ | xargs -n 1 basename); do
+	s=$PREP_DIR/DARTEL/$d/
 	mkdir $s
 	mv mean* $s
 	mv r* $s
 	mv u* $s
 	mv w* $s
 	mv y* $s
-	mv Template* $s
+	mv *_set8.mat $s
+	mv Template* $PREP_DIR/DARTEL/Templates
 done
 
 echo "Finished DARTEL analysis of subject(s) $subs at $(date)"

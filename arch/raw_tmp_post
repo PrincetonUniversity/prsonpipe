@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------------
 # This script replaces raw/ again with the original nii from the temp directory
 
-source globals.sh
+source globals.par
 
 rm $RAW_DIR/$SUBJ/*
 mv $temp_raw_dir/* $RAW_DIR/$SUBJ/
