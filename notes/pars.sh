@@ -9,13 +9,13 @@ QA='BXH'
 # Slice time correction: 'FSL', 'SPM', 'none'
 SLICE_TIME='SPM'
 
-# Realignment: 'FSL', 'SPM', 'none'
+# Realignment/Motion Correction: 'FSL', 'SPM', 'none'
 REALIGN='SPM'
 
 # Unwarping: 'FSL', 'SPM', 'none'
 UNWARP='SPM'
 
-# Smoothing: 'FSL', 'SPM', 'none'; size of smoothing kernel in FWHM
+# Smoothing: 'FSL', 'SPM', 'DARTEL', none'; size of smoothing kernel in FWHM
 SMOOTH_SOFT='SPM'
 SMOOTH=8
 
@@ -25,8 +25,22 @@ SNR='SPM'
 # Slices from SPMw
 SLICES='SPM'
 
-# Normalization: 'FSL', 'DARTEL', 'none'
+# === Not used in SPM ===
+
+# Topup (FSL): yes=1, no=0
+TOPUP=1
+
+# Normalization (includes registration to MNI space): 'FSL', 'DARTEL', 'none'
 NORM='DARTEL'
 
 # voxel size at which to re-sample functionals (isotropic)
 VOX_SIZE=2.0
+
+# TR (sec)
+TR=2.25
+
+# Number of TRs per Run
+nTR=209
+
+# Number of Runs
+RUNS=12

@@ -1,83 +1,63 @@
+function DARTEL_spm8_vars(subs)
 % MUST CHANGE THE USER DEFINED SECTION TO MATCH YOUR PROJECT DIRECTORY!
 % DOES NOT READ IN FROM GLOBALS.SH
 
 %=====================================================================%
 
 %   DARTEL_spm8.m 
-
 %
-
-%   April 7, 2016 -- Modified for PSNL by Miriam Weaverdyck
+%   August 2, 2016 -- Modified for PSNL pipeline by Miriam Weaverdyck
 %                    (Created by Bob Spunt May 11, 2012)
 
 %=====================================================================%
 
-clear all; home; 
-run p_DARTEL
+% get parameters
+run p_DARTEL						
+
+% load packages
 addpath(p.spm8_dir)
 addpath(p.NIfTI_dir)
+addpath(p.scripts_dir)
 spm('defaults','fmri'); spm_jobman('initcfg');              
 
-          
+%================================================%
 
 % User Defined 
 
 %================================================%
 
 
-% execute the job immediately? (0 = no, 1 = yes)
+execTAG = p.execTAG;				% execute the job immediately? (0 = no, 1 = yes)
 
-execTAG = p.execTAG;
-
-
+% do which subjects? ('all' to do all, subIDs in vector form, e.g. [1:4 101:103], to do a subset)
+subTAG=subs;    
 
 % customizable preprocessing parameters
-
-vox_size=p.vox_size;               % voxel size at which to re-sample functionals (isotropic)
-
-smooth_FWHM=p.smooth;              % smoothing kernel (isotropic)
-
-
+vox_size=p.vox_size;				% voxel size at which to re-sample functionals (isotropic)
+smooth_FWHM=p.smooth;				% smoothing kernel (isotropic)
 
 % folder/directory information
-
-owd = p.proj_dir;                     % study directory
-
-output=p.output;     % dir in which to save dartel output
-
+owd = p.proj_dir;				 	% study directory
+output=p.output;					% dir in which to save dartel output
 % % if this is the first time you are running DARTEL and output folder does not exist, create it
 % outputEx=exist(output);  
 % if outputEx ~= 7
 %     mkdir(output);
 % end
 
-subdirID=p.subdir;                   % subjects directory containing subject folders
-
-%niiDir=p.niiDir;    % folder where subject data are (from preprocessing pipeline)
-
-subID=p.subID;                         % pattern for finding subject folders (use wildcards)
-
-subTAG = p.subTAG;                     % do which subjects? ('all' to do all, position vector, e.g. 1:4, to do a subset)
-
-runID=p.runID;                     % pattern for finding functional run files (use wildcards)
-
+subdirID=p.subdir;					% subjects directory containing subject folderss
+subID=p.subID;   					% pattern for finding subject folders (use wildcards)
+runID=p.runID; 						% pattern for finding functional run files (use wildcards)
 
 % image information
-
-funcFormat=p.funcFormat;       % format of your raw functional images (1=img/hdr, 2=4D nii)
-
-mprageID = p.mprageID;   % pattern for finding matched-bandwidth image (use wildcards)
-
+funcFormat=p.funcFormat;            % format of your raw functional images (1=img/hdr, 2=4D nii)
+mprageID = p.mprageID;              % pattern for finding matched-bandwidth image (use wildcards)
 
 % did you want to normalise only a subset of subjects? (leave empty for all)
-
 donormsubs = {};
 
-
 % path for tissue probability maps (in spm8/tpm) for 'new segment'
-
 TPMimg= p.TPMimg;
-
 
 %================================================%
 
@@ -87,33 +67,33 @@ TPMimg= p.TPMimg;
 %
 
 % move into outer working directory (i.e. project directory)
-
 cd(owd)
 
 % find subject directories
-
 cd(subdirID)
-
 d=dir(subID);
 
+% make list of all subjects found in directory
 for i=1:length(d)
-
     subnam{i}=d(i).name;
-
-    fprintf('Adding %s to subject list\n',subnam{i})
-
+    fprintf('Adding %s to found subject list\n',subnam{i})
+    snam=char(subnam{i});
+    snum=str2num(snam(2:end));
+    snums(i)=snum;
+    fprintf('Adding %d to found subject numbers\n',snums(i))
 end
 
+% number of subjects found
 subnum = length(subnam);
 
+% make list of subjects to run based on indices of all subjects
 if strcmp(subTAG,'all')
-
     dosubs = 1:subnum;
-
 else
-
-    dosubs = subTAG;
-
+    for s = 1:length(subTAG)
+        dosubs(s)=find(snums==subTAG(s));
+        fprintf('Adding %d to run subject numbers\n',dosubs(s))
+    end
 end
 
 
@@ -128,7 +108,7 @@ for s = 1:length(dosubs)
 
     sub = dosubs(s);
 
-    f = find(subnum==sub);
+    f = find(subnum==sub); % UNUSED?
 
     cbusub = sprintf('%s',subnam{sub});
 
@@ -645,4 +625,4 @@ if execTAG==1
 
 end
 
-
+return
