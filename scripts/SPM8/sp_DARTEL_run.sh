@@ -11,10 +11,11 @@
 #SBATCH --mail-user=prsonlab@gmail.com		# Set user email for notifications
 #SBATCH --mail-type=ALL				# Set notification type
 
-#unzip the files we will be using
-bash ./unzip_runs_anat.sh
+##unzip the files we will be using
+#bash ./unzip_runs_anat.sh
 
 #run matlab from the command line as part of a submit job
 module load matlab/R2015b
 # run script
-matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8; catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars; catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+#matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8; catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"

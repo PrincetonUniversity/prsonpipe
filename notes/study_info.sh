@@ -6,10 +6,12 @@
 #26 July 2016, Judith Mildner (JNM) Change variable names for consistency with globals.sh
 
 
-PROJECT_NAME=ms					# ENTER THE STUDY NAME HERE. This should be the same name as your project folder in /fastscratch/ and in /tamir/
-PROJECT_DIR=/fastscratch/miriamw/ms		# ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
-USER_EMAIL=miriamw@princeton.edu		# ENTER YOUR EMAIL HERE.  This email address will be used to send you updates on jobs you run on spock.
-LAB_NAME=tamir 					# set name of lab volume on jukebox -JNM
+PROJECT_NAME=testpipe							# ENTER THE STUDY NAME HERE. This should be the same name as your project folder in /fastscratch/ and in /tamir/
+PROJECT_DIR=/jukebox/tamir/miriamw/testpipe		# ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
+USERNAME=miriamw								# ENTER YOUR PNI USERNAME HERE.
+USER_EMAIL=miriamw@princeton.edu				# ENTER YOUR EMAIL HERE.  This email address will be used to send you updates on jobs you run on spock.
+LAB_NAME=tamir 									# set name of lab volume on jukebox -JNM
+PKG_DIR=/jukebox/tamir/pkg 						# ENTER DIRECTORY OF PACKAGES
 
 
 

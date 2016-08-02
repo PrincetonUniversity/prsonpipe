@@ -8,7 +8,7 @@ source pars.sh
 source study_info.sh
 source ../arch/globals.sh
 
-SAVE_DIR=$PROJ_DIR/$SCRIPT_DIR_SPMw
+SAVE_DIR=$PROJECT_DIR/$SCRIPT_DIR_SPMw
 
 if [ $SLICE_TIME == 'SPM' ]; then
 	SLICE_TIME=1
@@ -40,7 +40,13 @@ else
 	SNR=0
 fi
 
-cat <<EOT > $SAVE_DIR/p_$(PROJECT_NAME).m
+if [ $SLICES == 'SPM' ]; then
+	SLICES=1
+else
+	SLICES=0
+fi
+
+cat <<EOT > $SAVE_DIR/p_$PROJECT_NAME.m
 % spm12w r6225
 % Parameters file for fMRI preprocessing
 % Last updated: October, 2014
@@ -50,7 +56,7 @@ cat <<EOT > $SAVE_DIR/p_$(PROJECT_NAME).m
 p.username = '$USERNAME'
 
 % Paths and names
-p.study_dir = '$PROJ_DIR';
+p.study_dir = '$PROJECT_DIR';
 p.prep_name = 'SPM_prep';
 
 % Preprocessing Routines - 1=yes 0=no

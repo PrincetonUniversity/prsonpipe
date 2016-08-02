@@ -22,5 +22,11 @@ SMOOTH=8
 # Signal to Noise Ratio output: 'FSL', 'SPM'
 SNR='SPM'
 
+# Slices from SPMw
+SLICES='SPM'
+
 # Normalization: 'FSL', 'DARTEL', 'none'
 NORM='DARTEL'
+
+# voxel size at which to re-sample functionals (isotropic)
+VOX_SIZE=2.0
