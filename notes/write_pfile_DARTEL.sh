@@ -19,7 +19,11 @@ else
 	SMOOTHING=0
 fi
 
-SUB_DIR=prep/SPM_prep
+# Check if $last_prep is empty. If so, assign it SPM by default
+if [ -z "$last_prep" ]; then 
+echo "WARNING: Variable 'last_prep' is unset.  Setting it to SPM as default."; SUB_DIR=prep/SPM*;
+else SUB_DIR=prep/$last_prep*;
+fi
 
 cat <<EOT > $SAVE_DIR/p_DARTEL.m
 % Parameters file for SPM8 DARTEL normalization
@@ -29,6 +33,7 @@ cat <<EOT > $SAVE_DIR/p_DARTEL.m
 % SPM packages to load
 p.spm8_dir      = '$spm8_dir';
 p.NIfTI_dir     = '$NIfTI_dir';
+p.scripts_dir   = '$SCRIPT_DIR_SPM8';
 
 % study directory
 p.proj_dir      = '$PROJECT_DIR';
@@ -46,7 +51,7 @@ p.subdir        = '$SUB_DIR';
 % pattern for finding subject folders (use wildcards)
 p.subID         = 's*';
 % do which subjects? ('all' to do all, position vector, e.g. 1:4, to do a subset)
-p.subTAG        = 'all';
+%p.subTAG        = 'all';
 % pattern for finding functional run files (use wildcards)
 p.runID         = 'epi*_r*';
 % pattern for finding matched-bandwidth image (use wildcards)
@@ -59,3 +64,4 @@ p.funcFormat    = 2;
 p.TPMimg        = '$spm8_dir/toolbox/Seg/TPM.nii';
 
 EOT
+echo "Parameters file $SAVE_DIR/p_DARTEL.m written and saved."

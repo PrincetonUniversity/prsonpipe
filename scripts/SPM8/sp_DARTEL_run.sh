@@ -1,21 +1,36 @@
 #!/usr/bin/env bash
-# type: sbatch -J name script.sh
+# type: sbatch -J name script.sh "subs"
+# subs should either be a vector ([1:4 5:6]) or 'all'
 # Keep lines starting with #SBATCH together and at top of script! Modify settings as appropriate.
 
 #SBATCH -J dartel				# Job name
-#SBATCH -o ../../output/dartel-%j.out		# Output file name
-#SBATCH -p all					# Set partition to 'all' (don't change)
-#SBATCH --workdir=./				# Set working directory
-#SBATCH -t 24:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
+#SBATCH --workdir=./			# Set working directory
+#SBATCH -t 01:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
 #SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
-#SBATCH --mail-user=prsonlab@gmail.com		# Set user email for notifications
-#SBATCH --mail-type=ALL				# Set notification type
 
-##unzip the files we will be using
-#bash ./unzip_runs_anat.sh
+# write out parameters file for DARTEL
+bash ../../notes/write_pfile_DARTEL.sh
 
-#run matlab from the command line as part of a submit job
+# get subjects to run from first argument
+subs="$1"
+
+echo "Beginning DARTEL analysis of subject(s) $subs at $(date)"
+
+# run matlab from the command line as part of a submit job
 module load matlab/R2015b
 # run script
-matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars; catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
-#matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8; catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+
+# move files to DARTEL_prep
+for d in $(ls -d $PREP_DIR/$last_prep*/ | xargs -n 1 basename); do
+	s=$PREP_DIR/DARTEL_prep/$d/
+	mkdir $s
+	mv mean* $s
+	mv r* $s
+	mv u* $s
+	mv w* $s
+	mv y* $s
+	mv Template* $s
+done
+
+echo "Finished DARTEL analysis of subject(s) $subs at $(date)"

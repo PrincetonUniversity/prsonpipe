@@ -34,7 +34,7 @@ NIFTI_DIR=$SUBJ # s000 folder within raw, prep, or other directory, which stores
 #NIFTI_DIR=data/nifti
 #DATA_DIR=data
 
-SCRIPT_DIR=$PROJECT_DIR/arch/scripts
+SCRIPT_DIR_FULL=$PROJECT_DIR/scripts 	# edited to this from $PROJECT_DIR/arch/scripts (MEW 8/2/16)
 SCRIPT_DIR=scripts
 SCRIPT_DIR_FSL=$SCRIPT_DIR/FSL
 SCRIPT_DIR_SPM8=$SCRIPT_DIR/SPM8
