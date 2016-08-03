@@ -1,0 +1,42 @@
+#!/bin/bash
+# num2subID function
+# author: Miriam Weaverdyck August 3, 2016
+# This function takes in an array of numbers and returns an array of subject IDs.  
+#
+# Outputs: SUBIDS (array of subjects in form s000)
+# ------------------------------------------------------------------------------
+
+function num_subID {
+	unset SUBIDS
+	re_num='^[0-9]+$'
+
+	declare -a snums=("${!1}")
+	i=0
+	for snum in "${snums[@]}"; do
+		# check current format
+		if [[ "${snum:0:1}" == s ]] && [[ "${#snum}" -eq 4 ]] && [[ ${snum: -3} =~ $re_num ]]; then
+			#correct format (s000)
+			SUBIDS[$i]="${snums[$i]}"
+		elif [[ $snum =~ $re_num ]]; then
+			# is number
+			# convert to form s000
+			if [[ "${#snum}" -eq 3 ]]; then
+				# 3-digit number
+				SUBIDS[$i]=s"${snums[$i]}"
+			elif [[ "${#snum}" -eq 2 ]]; then
+				# 2-digit number
+				SUBIDS[$i]=s0"${snums[$i]}"
+			elif [[ "${#snum}" -eq 1 ]]; then
+				# 1-digit number
+				SUBIDS[$i]=s00"${snums[$i]}"
+			fi
+		else
+			echo "Unrecognized subject ID format: ${snum}"
+			echo "Please enter in one of the following formats:"
+			echo "'s001' or '1' such that the array looks like (s001 s002 ...)."
+			exit
+		fi
+		i=$i+1
+	done
+	echo "Subject list: ${SUBIDS[@]}"
+}

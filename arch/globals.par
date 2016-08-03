@@ -35,6 +35,7 @@ SCRIPT_DIR_SPMw=$SCRIPT_DIR/SPM12w
 
 RAW_DIR=$PROJECT_DIR/raw 	
 PREP_DIR=$PROJECT_DIR/prep
+PREP_DIR_WD=$PREP_DIR/wd
 NIFTI_DIR=$SUBJ # s000 folder within raw, prep, or other directory, which stores niftis at that level for that subject
 #NIFTI_DIR=data/nifti
 #DATA_DIR=data
