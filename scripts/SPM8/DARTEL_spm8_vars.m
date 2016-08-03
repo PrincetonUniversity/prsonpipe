@@ -1,10 +1,8 @@
 function DARTEL_spm8_vars(subs)
-% MUST CHANGE THE USER DEFINED SECTION TO MATCH YOUR PROJECT DIRECTORY!
-% DOES NOT READ IN FROM GLOBALS.SH
 
 %=====================================================================%
 
-%   DARTEL_spm8.m 
+%   DARTEL_spm8_vars.m 
 %
 %   August 2, 2016 -- Modified for PSNL pipeline by Miriam Weaverdyck
 %                    (Created by Bob Spunt May 11, 2012)
@@ -37,27 +35,23 @@ vox_size=p.vox_size;				% voxel size at which to re-sample functionals (isotropi
 smooth_FWHM=p.smooth;				% smoothing kernel (isotropic)
 
 % folder/directory information
-owd = p.proj_dir;				 	% study directory
+owd=p.proj_dir;				        % study directory
 output=p.output;					% dir in which to save dartel output
-% % if this is the first time you are running DARTEL and output folder does not exist, create it
-% outputEx=exist(output);  
-% if outputEx ~= 7
-%     mkdir(output);
-% end
-
 subdirID=p.subdir;					% subjects directory containing subject folderss
+
+% pattern for finding subject folders and run files
 subID=p.subID;   					% pattern for finding subject folders (use wildcards)
 runID=p.runID; 						% pattern for finding functional run files (use wildcards)
 
 % image information
 funcFormat=p.funcFormat;            % format of your raw functional images (1=img/hdr, 2=4D nii)
-mprageID = p.mprageID;              % pattern for finding matched-bandwidth image (use wildcards)
+mprageID=p.mprageID;                % pattern for finding matched-bandwidth image (use wildcards)
 
 % did you want to normalise only a subset of subjects? (leave empty for all)
-donormsubs = {};
+donormsubs={};
 
 % path for tissue probability maps (in spm8/tpm) for 'new segment'
-TPMimg= p.TPMimg;
+TPMimg=p.TPMimg;
 
 %================================================%
 

@@ -25,7 +25,7 @@ SNR='SPM'
 # Slices (SPM): yes=1, no=0
 SLICES=0
 
-# === Not used in SPM ===
+# === DARTEL settings (also read by write_pfile_GLM-MVPA) ===
 
 # Normalization (includes registration to MNI space, unwarping in DARTEL): 'FSL', 'DARTEL', 'none'
 NORM='DARTEL'
@@ -33,13 +33,26 @@ NORM='DARTEL'
 # voxel size at which to re-sample functionals (isotropic)
 VOX_SIZE=2.0
 
-# === Not used for anything yet ===
+# === SPMw GLM-MVPA Settings ===
 
+# --GLM Onset File Specifications--
+# Seperate GLM per run: yes=1, no=0
+RUNSPLIT=0
+# Include outlier as nuissance in GLM
+OUTLIERS=0
+# Event/Block Duration (same units as TIME) (dur files will override)
+DURATION=0
+
+# --GLM Conditions--
+# Number of conditions
+NUM_EVENTS=4
+# Conditions: wrap the all in double quotes ("..."), each condition in single quotes ('.'), and separate with a comma
+EVENTS="'human','animal','vegetable','mineral'"
+
+# --BOLD stats --
 # TR (sec)
 TR=2.25
-
 # Number of TRs per Run
-nTR=209
-
+NTR=209
 # Number of Runs
 RUNS=12

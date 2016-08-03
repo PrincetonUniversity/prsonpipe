@@ -30,8 +30,9 @@ for d in $(ls -d $PREP_DIR/wd/ | xargs -n 1 basename); do
 	mv u* $s
 	mv w* $s
 	mv y* $s
+	mv s* $s
 	mv *_set8.mat $s
-	mv Template* $PREP_DIR/DARTEL/Templates
+	mv Template* $PREP_DIR/DARTEL/Templates/
 done
 
 echo "Finished DARTEL analysis of subject(s) $subs at $(date)"
