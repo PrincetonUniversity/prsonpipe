@@ -6,7 +6,7 @@
 # Outputs: SUBIDS (array of subjects in form s000)
 # ------------------------------------------------------------------------------
 
-function num_subID {
+function num2subID {
 	unset SUBIDS
 	re_num='^[0-9]+$'
 

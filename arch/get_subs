@@ -14,7 +14,7 @@
 function get_subs {
 	unset SUBS
 	source globals.par  
-	source num_subID
+	source num2subID
 
 	if [[ $# -eq 0 ]]; then
 		# NEW SUBJECTS: no input means run all new subjects only, based on raw/
@@ -66,7 +66,7 @@ function get_subs {
 		# RUN SELECT SUBJECTS: run only the subjects inputted, even if already preprocessed
 		declare -a subs_array=("${!1}")
 		# convert subject numbers to form (s000)
-		num_subID subs_array[@]
+		num2subID subs_array[@]
 		SUBS="${SUBIDS[@]}"
 
 		echo 'Selecting these subjects only:'
