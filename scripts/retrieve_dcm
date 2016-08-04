@@ -12,6 +12,11 @@
 # March 15, 2016 Judith Mildner (JNM) - Changed DICOM_DIR variable to Tamir lab volume name to get data from lab volume instead of conquest
 # July 26, 2016 Judith Mildner - Adapt for new prsonpipe filestructure, and require user input of subject ID.
 # August 1 , 2016 JNM - Cleaning up paths and putting them in variables
+########################################################
+#Arguments
+#  full subject ID (e.g 160108_tamir_socdep_004)
+########################################################
+
 
 set -e # fail immediately on error
 
@@ -33,6 +38,8 @@ echo "Retrieving $SUBJ"
 #check if subject has already been imported -JNM
 output_file="raw_${SUBJ}.tar.gz"
 output_dir=$DATA_DIR
+
+if [ ! -e $DATA_DIR ]; then mkdir $DATA_DIR; fi
 
 if [ -e "${output_dir}/${output_file}" ]; then
 	echo "Subject ${SUBJ} already exists"
