@@ -1,0 +1,123 @@
+#!/bin/bash
+# This script converts raw data from tarballed dicom to nifti
+# Based on neuropipe convert-and-wrap-raw-data.sh by mgsimon@princeton.edu
+# 28 July 2016 Judith Mildner (JNM) edits to turn this into prsonpipe script (spock compatible)
+###################################################
+# Packages used:
+#    FSL
+#    MicroGL (dcm2niix)
+#    
+#
+
+set -e  # fail immediately on error
+
+module load mricrogl # Make sure all necessary packages are available (spock) -JNM
+module load bxh
+module load fsl
+
+source globals.par
+SUBID_LIST=/fastscratch/jmildner/test_dir/socdep/arch/subid_list.txt
+ERROR_FLAG=ERROR_RUN
+PREFIX=scan
+
+echo
+
+exec 9<> $SUBID_LIST #open file descriptor for subid_list.txt file -JNM
+while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, assign them to variables, and loop through subid_list
+  echo [CONVERT]
+  if [[ $imgtype != 'dicom' ]]; then #test if imagetype in subid_list is dicom. Could support other types in the future
+    echo "[CONVERT] No dicom data available for subject $full_subj" 
+    continue; 
+  fi 
+  if [[ $full_subj = '' ]]; then continue; fi
+  output_prefix=$subj  
+  # set necessary variables and check if prerequisites exist. -JNM
+  dicom_archive="${PROJECT_DIR}/arch/dicom/raw_${full_subj}.tar.gz"
+  if [[ ! -f $dicom_archive ]]; then echo "[CONVERT] ${dicom_archive} does not exist. Skipping $full_subj."; continue; fi
+  output_dir="${PROJECT_DIR}/raw/${subj}"
+  if [[ ! -d $output_dir ]]; then echo "[CONVERT] Creating $output_dir."; mkdir $output_dir; else echo "[CONVERT] $subj already converted. Skipping $full_subj"; continue; fi
+  run_order_file="${PROJECT_DIR}/arch/subpars/runorders/${full_subj}.txt"
+  if [[ ! -f $run_order_file ]]; then echo "[CONVERT] ${run_order_file} does not exist. Skipping $full_subj."; continue; fi
+
+  echo "[CONVERT] Unpacking $subj at $(date)"
+  #unpack and convert data to nifti
+  temp_dicom_dir=$(mktemp -d -t tmp.XXXXXX)
+  temp_output_dir=$(mktemp -d -t tmp.XXXXXX)
+  tar --extract --gunzip --file=$dicom_archive --directory=$temp_dicom_dir
+  echo "[CONVERT] Converting to nifti at $(date)"
+  dcm2niix -z n -o $temp_output_dir -f ${PREFIX}_%2s $temp_dicom_dir 1>/dev/null
+  
+  #make sure naming scheme does not output too many leading zeros (bug in dcm2niix)
+  for filename in $temp_output_dir/*.nii; do
+    file_suf=$(echo $filename | egrep -o '\_.*\.' | tr -d \._)
+    if [ ${#file_suf} -le 3 ]; then continue; fi 
+    newname="${temp_output_dir}/${PREFIX}_${file_suf:(-2)}.nii"
+    if [ "$filename" != "newname" ] && [ -e $newname ]; then
+     mv $filename ${newname%.nii}x.nii      
+    elif [ "$filename" != "$newname" ] && [ ! -e $newname ]; then
+      mv $filename $newname; 
+    fi
+  done
+  
+  echo "[CONVERT] Converting to 32-bit and renaming at $(date)"
+  
+  FSLOUTPUTTYPE=NIFTI #Convert 16-bit scans to FLOAT32 data type to retain UINT16 range
+  for nifti in $(ls -1 $temp_output_dir); do
+     fslmaths $temp_output_dir/$nifti $temp_output_dir/$nifti -odt float
+  done
+
+
+    # strip blank lines and comments from run order file
+    stripped_run_order_file=$(mktemp -t tmp.XXXXX)
+    sed '/^$/d;/^#/d;s/#.*//' $run_order_file > $stripped_run_order_file
+
+    # check that the actual number of scans retrieved matches what's expected, and
+    # exit with an error if not.
+    num_actual_scans=$(find $temp_output_dir/*.nii -maxdepth 1 -type f | wc -l)
+    num_expected_scans=$(wc -l < $stripped_run_order_file)
+   if [ $num_actual_scans != $num_expected_scans ]; then
+      echo "found $num_actual_scans scans, but $num_expected_scans were described in $run_order_file. check that you're listing enough scans for your circle localizer, etc... because those may convert as more than one scan." >/dev/stderr
+      exit $UNEXPECTED_NUMBER_OF_SCANS
+    fi
+
+
+    # convert all scans to gzipped nifti format, and if the run order file indicates
+    # how many TRs are expected in a particular scan, check that there are actually
+    # that many TRs, and exit with an error if not.
+    number=0
+  file_array=(${temp_output_dir}/*.nii)
+
+    # the sed magic here strips out comments
+  cat $stripped_run_order_file | while read name num_expected_trs; do
+    if [ $name == $ERROR_FLAG ]; then
+     let "number += 1"
+     continue
+    fi
+    # convert the scan
+    niigz_file_prefix="${temp_output_dir}/${name}"
+    mv "${file_array[$number]}" ${niigz_file_prefix}.nii
+    #  analyze2bxh --analyzetypes --niigz --niftihdr -s "${temp_output_dir}/${PREFIX}-$number.bxh" $niigz_file_prefix 1>/dev/null 2>/dev/null
+
+      if [ -n "$num_expected_trs" ]; then
+        num_actual_trs=$(fslnvols ${niigz_file_prefix}.nii)
+        if [ $num_expected_trs -ne $num_actual_trs ]; then
+          echo "$name has $num_actual_trs TRs--expected $num_expected_trs" >/dev/stderr
+          exit $UNEXPECTED_NUMBER_OF_TRS
+        fi
+      fi
+       let "number += 1"
+    done
+
+    rm -f $temp_output_dir/${PREFIX}*
+    rm -f $stripped_run_order_file
+    mv $temp_output_dir/* $output_dir
+    
+    echo "[CONVERT] $subj done at $(date)"
+
+done
+
+echo [CONVERT]
+echo "[CONVERT] Conversion complete"
+echo
+
+exec 9>&- #close subid_list.txt. file -JNM
