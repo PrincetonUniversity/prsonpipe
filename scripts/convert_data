@@ -16,7 +16,7 @@ module load bxh
 module load fsl
 
 source globals.par
-SUBID_LIST=/fastscratch/jmildner/test_dir/socdep/arch/subid_list.txt
+SUBID_LIST=$PROJECT_DIR/arch/subid_list.txt
 ERROR_FLAG=ERROR_RUN
 PREFIX=scan
 
