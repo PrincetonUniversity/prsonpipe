@@ -13,7 +13,7 @@ USER_EMAIL=prsonlab@gmail.com 					# ENTER YOUR EMAIL HERE.  This email address 
 LAB_NAME=tamir 									# set name of lab volume on jukebox -JNM
 PKG_DIR=/jukebox/tamir/pkg 						# ENTER DIRECTORY OF PACKAGES
 
-
+NUM_TASKS=1				# ENTER THE NUMBER OF DIFFERENT TASKS (not conditions)
 
 ######################ENTER STUDY DESCRIPTION HERE##########################
 #
