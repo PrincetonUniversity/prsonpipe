@@ -4,10 +4,13 @@
 # this script sets up global variables for the analysis of the current subject
 # edited 8/1/16 MEW added SCRIPT_DIR* vars for write_pfile scripts
 # 26 July 2016, Judith Mildner (JNM) added vars for retrieve-data-labvol.sh script
+# 8/8/16, MEW, added vars for setup_backup_dirs
 
 set -e # stop immediately when an error occurs
 
 source ../notes/study_info.par
+
+BACKUP_DIR=/jukebox/$LAB_NAME/$PROJECT_NAME
 
 ####retrieve script uses these#### edited to source from study_info
 RUNORDER_FILE=$PROJECT_DIR/arch/subpars/runorders/$SUBJ*

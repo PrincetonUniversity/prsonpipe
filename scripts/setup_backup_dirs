@@ -1,0 +1,15 @@
+#!/bin/bash
+# This script creates folders in /jukebox/<lab>/<study> to store your final results and backups
+# author: Miriam Weaverdyck 8/8/16
+
+source globals.par
+
+if [[ -d $BACKUP_DIR ]]; then echo "${BACKUP_DIR} already exists. Checking subfolders."; else mkdir $BACKUP_DIR; echo "${BACKUP_DIR} created."; fi
+d=$BACKUP_DIR/raw
+if [[ -d $d ]]; then echo "${d} already exists. Skipping."; else mkdir $d; echo "${d} created."; fi
+d=$BACKUP_DIR/prep
+if [[ -d $d ]]; then echo "${d} already exists. Skipping."; else mkdir $d; echo "${d} created."; fi
+d=$BACKUP_DIR/analysis
+if [[ -d $d ]]; then echo "${d} already exists. Skipping."; else mkdir $d; echo "${d} created."; fi
+d=$BACKUP_DIR/scripts
+if [[ -d $d ]]; then echo "${d} already exists. Skipping."; else mkdir $d; echo "${d} created."; fi
