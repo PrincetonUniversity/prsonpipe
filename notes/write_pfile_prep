@@ -6,7 +6,7 @@
 
 source pars.par
 source study_info.par
-source ../arch/globals.par
+source ../scripts/globals.par
 
 SAVE_DIR=$PROJECT_DIR/$SCRIPT_DIR_SPMw
 

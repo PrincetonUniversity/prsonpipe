@@ -6,7 +6,7 @@
 
 set -e # stop immediately when an error occurs
 source pars.par
-source ../arch/globals.par
+source ../scripts/globals.par
 
 SAVE_DIR=$PROJECT_DIR/$SCRIPT_DIR_SPMw
 SAVE_FILE=p_glm_mvpa

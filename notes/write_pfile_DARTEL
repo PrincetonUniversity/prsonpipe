@@ -6,7 +6,7 @@
 
 set -e # stop immediately when an error occurs
 source pars.par
-source ../arch/globals.par
+source ../scripts/globals.par
 
 if [ $NORM != 'DARTEL' ]; then
 	echo "ABORTING: DARTEL was not chosen for normalization in /notes/pars.par."
@@ -18,6 +18,12 @@ SAVE_DIR=$PROJECT_DIR/$SCRIPT_DIR_SPM8
 spm8_dir=$PKG_DIR/SPM8
 NIfTI_dir=$PKG_DIR/NIfTI
 
+if [[ $NORM == 'DARTEL' ]]; then
+	NORMALIZE=1;
+else
+	NORMALIZE=0;
+fi
+
 if [ $SMOOTH_SOFT == 'DARTEL' ]; then
 	SMOOTHING=$SMOOTH
 else
@@ -25,9 +31,9 @@ else
 fi
 
 if [ $REALIGN == 'DARTEL' ]; then 
-	REALIGN=1;
+	REAL=1;
 else 
-	REALIGN=0;
+	REAL=0;
 fi
 
 SUB_DIR=prep/wd
@@ -52,6 +58,8 @@ p.execTAG       = 1;
 % customizable preprocessing parameters
 p.vox_size      = $VOX_SIZE;
 p.smooth        = $SMOOTHING;
+p.normalize	= $NORMALIZE;
+p.realign	= $REAL;
 
 % subjects directory containing subject folders
 p.subdir        = '$SUB_DIR';
@@ -60,17 +68,15 @@ p.subID         = 's*';
 % do which subjects? ('all' to do all, position vector, e.g. 1:4, to do a subset)
 %p.subTAG        = 'all';
 % pattern for finding functional run files (use wildcards)
-p.runID         = 'epi*_r*';
+p.runID         = 'epi_r*';
 % pattern for finding matched-bandwidth image (use wildcards)
-p.mprageID      = '*anat.nii';
+p.mprageID      = 'anat.nii';
 
 % format of your raw functional images (1=img/hdr, 2=4D nii)
 p.funcFormat    = 2;
 
 % path for tissue probability maps (in spm8/tpm) for 'new segment'
 p.TPMimg        = '$spm8_dir/toolbox/Seg/TPM.nii';
-
-p.REALIGN		= $REALIGN
 
 EOT
 echo "Parameters file $SAVE_DIR/p_DARTEL.m written and saved."

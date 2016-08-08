@@ -33,6 +33,8 @@ subTAG=subs;
 % customizable preprocessing parameters
 vox_size=p.vox_size;				% voxel size at which to re-sample functionals (isotropic)
 smooth_FWHM=p.smooth;				% smoothing kernel (isotropic)
+normalize=p.normalize;				% run normalization?
+realign=p.realign;				% run motion correction?
 
 % folder/directory information
 owd=p.proj_dir;				        % study directory
@@ -261,7 +263,7 @@ for s = 1:length(dosubs)
 
     % =====================================
    
-   if p.REALIGN == 0
+   if realign == 0
 
     % EITHER RUN THIS SECTION OR THE NEXT
     %   RUN THIS SECTION IF YOU ALREADY RAN MOTION CORRECTION IN
@@ -543,6 +545,9 @@ matlabbatch{2}.spm.tools.dartel.warp.settings.optim.its = 3;
 
 % -------------------------------------------------
 
+if normalize == 1
+
+
 matlabbatch{3}.spm.tools.dartel.mni_norm.template{1} = dartel_template;
 
 
@@ -603,7 +608,7 @@ matlabbatch{4}.spm.tools.dartel.mni_norm.preserve = 0;
 
 matlabbatch{4}.spm.tools.dartel.mni_norm.fwhm = [0 0 0];
 
-
+end
 
 % SAVE/RUN 
 
