@@ -1,0 +1,39 @@
+#!/bin/bash
+#This script runs QA on converted data in raw and puts it in qa. 
+#Standard version only runs SFNR and masked center of mass on epi's (excluding spin echos'). See below for other QA options
+# August 5, 2016 Judith Mildner
+###########################################
+# Packages used:
+#  BXH
+# Arguments:
+#  None
+#
+###########################################
+
+
+set -e
+
+source globals.par
+
+module load bxh
+GLOBIGNORE=*_SE_* #exclude spin echo's from search for epi's. BXH tools will throw an error if you try to QA these
+
+echo
+for rawpath in ${PROJECT_DIR}/raw/*; do
+  subject=${rawpath#${PROJECT_DIR}/raw/}
+  if [ -e ${PROJECT_DIR}/qa/${subject} ]; then
+    echo "[QA] QA already exists for ${subject}. Skipping ${subject}."
+    continue
+  fi
+  echo [QA]
+  for scan in $rawpath/epi*.nii; do
+    echo "[QA] Creating BXH header for $scan" 
+    analyze2bxh ${scan} ${scan%.nii}.bxh #create bxh header for the first scan
+  done
+  echo "[QA] Starting QA for $subject"
+  fmriqa_generate.pl --calc meanstddevsfnr,maskedcmass ${rawpath}/*.bxh ${PROJECT_DIR}/qa/${subject}
+  # To run all QA options, remove --calc meanstddevsfnr,maskedcmass. Load bxh module and run fmriqa_generate.pl without arguments for more details.
+done
+
+echo "[QA] Done."
+echo
