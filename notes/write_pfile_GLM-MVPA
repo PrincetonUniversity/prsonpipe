@@ -19,8 +19,8 @@ spm12w_dir=$PKG_DIR/spm12w
 # DEPENDS!!!!!!!!!!!!!!!!!!!
 SUB_DIR=prep/wd
 
-if [ $NORM == 'DARTEL' ]; then PREP_NAME='DARTEL'; else PREP_NAME='wd'; fi
-if [ $SMOOTH_SOFT != 'none' ]; then USE_SMOOTH=1; else USE_SMOOTH=0; fi
+if [ $NORM == 'DARTEL' ]; then prep_name='DARTEL'; else prep_name='wd'; fi
+if [ $SMOOTH_SOFT != 'none' ]; then use_smooth=1; else use_smooth=0; fi
 
 cat <<EOT > $SAVE_DIR/$SAVE_FILE.m
 % spm12w r6225
@@ -30,12 +30,12 @@ cat <<EOT > $SAVE_DIR/$SAVE_FILE.m
 
 % User name
 global realigns;
-glm.username = '$USERNAME';
+glm.username = '$USER';
 
 % Paths and names
 %global owd;
 glm.study_dir = '$PROJECT_DIR';
-glm.prep_name = '$PREP_NAME';
+glm.prep_name = '$prep_name';
 glm.glm_name = '$SAVE_FILE';
 glm.ons_dir  = 'MVPA';
 
@@ -64,7 +64,7 @@ glm.parametrics = {};
 
 % GLM Model Inclusions - 1=yes 0=no
 glm.include_run = 1:glm.nses; 			% Specify run to model: 'all' or runs (e.g. [1,3])
-glm.use_smooth  = $USE_SMOOTH;     		% Run GLM on: 1 = smoothed, 2 = unsmoothed
+glm.use_smooth  = $use_smooth;     		% Run GLM on: 1 = smoothed, 2 = unsmoothed
 glm.cleanupzip = 0;
 
 % GLM Contrasts - Numeric contrasts should sum to zero unless vs. baseline
