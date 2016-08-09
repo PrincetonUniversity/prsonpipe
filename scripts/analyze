@@ -5,6 +5,10 @@
 # this script was provided by NeuroPipe. modify it to suit your needs
 # edited MEW 8/1/16: added conditional statements based on args and added subject loop
 # ------------------------------------------------------------------------------
+#
+# SBATCH -J analyze-%j
+# SBATCH -t 00:01:00						# hh:mm:ss
+# SBATCH -o ../output/analyze-%j.out
 
 set -e # stop immediately when an error occurs
 
@@ -14,32 +18,26 @@ source get_subs
 #source num_subID
 
 # Run conversion and QA'ing. These scripts just run on data that has not been done yet, so no need for subids
-#run this script and store the job ID output returned by SLURM. Time set for 240 minutes (time limit for short jobs)
+# run this script and store the job ID output returned by SLURM. Time set for 240 minutes (time limit for short jobs)
+echo "---Converting dcm to nii---"
 convert_jobid=$(sbatch -t 240  convert_data | grep -o '[0-9]*')
 
+echo "---Running QA---"
 sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa 
 #runtime set to 48 hours (2880 minutes; max for long job) change this number if necessary
 
-# call get_subs function based on argument
-#unset SUBS
-#declare -a subs_array=("${!1}")
-#get_subs subs_array[@]
+# call get_subs function based on input argument to get array SUBS of all subject IDs that will be run
+unset SUBS
+if [[ -z "$1" ]]; then get_subs; else declare -a subs_array=("${!1}"); get_subs subs_array[@]; fi
 
-# CD to 
-#cd $PREP_DIR_WD
+
 # Run each subject, one at a time
-#for s in "${SUBS[@]}"; do
-#	SUBJ=$s
+for s in "${SUBS[@]}"; do
+	SUBJ=$s
 	#pushd $(dirname $0) > /dev/null   # move into the subject's directory, quietly
 
-	# here, we call scripts to make a webpage describing this subject's analysis,
-	# prepare the subject's data, and then run analyses on it. put in a call to each
-	# of your high-level analysis scripts (behavioral.sh, fir.sh, ...) where
-	# indicated, below
+	echo "== beginning analysis of $SUBJ at $(date) =="
 
-#	echo "== beginning analysis of $SUBJ at $(date) =="
-	# Convert to nii and QA
-#	bash prep.sh
 	# Slice time correction
 #	bash scripts/time_fsl.sh
 	# Motion correction/Realignment
@@ -54,7 +52,7 @@ sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa
 #	echo "== finished analysis of $SUBJ at $(date) =="
 
 	#popd > /dev/null   # return to the directory this script was run from, quietly
-#done
+done
 
 # Normalization and Registration (DARTEL)
 

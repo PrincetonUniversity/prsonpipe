@@ -24,17 +24,19 @@ module load matlab/R2015b
 matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
 
 # move files to DARTEL_prep
-for d in $(ls -d $PREP_DIR/wd/*/ | xargs -n 1 basename); do
-	s=$PREP_DIR_FULL/DARTEL/$d/
-	mkdir $s
-	mv mean* $s
-	mv r* $s
-	mv u* $s
-	mv w* $s
-	mv y* $s
-	mv s* $s
-	mv *_set8.mat $s
-	mv Template* $PREP_DIR_FULL/DARTEL/Templates
+pushd $PREP_DIR_WD/ > /dev/null   # move into the working directory, quietly
+for d in $(ls -d ./*/ | xargs -n 1 basename); do
+	s=$PREP_DIR/DARTEL/$d/
+	if ! [[ -d $s ]]; then mkdir $s; fi
+	if [[ -e "$d/mean*" ]]; then mv $d/mean* $s; fi
+	if [[ -e "$d/r*" ]]; then mv $d/r* $s; fi
+	if [[ -e "$d/u*" ]]; then mv $d/u* $s; fi
+	if [[ -e "$d/w*" ]]; then mv $d/w* $s; fi
+	if [[ -e "$d/y*" ]]; then mv $d/y* $s; fi
+	if [[ -e "$d/s*" ]]; then mv $d/s* $s; fi
+	if [[ -e "$d/*_seg8.mat" ]]; then mv $d/*_seg8.mat $s; fi
+	if [[ -e "$d/Template*" ]]; then mv $d/Template* $PREP_DIR/DARTEL/Templates/; fi
 done
+popd > /dev/null   # return to the directory this script was run from, quietly
 
 echo "Finished DARTEL analysis of subject(s) $subs at $(date)"

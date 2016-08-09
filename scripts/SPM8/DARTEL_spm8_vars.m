@@ -112,7 +112,7 @@ for s = 1:length(dosubs)
 
     swd = [owd filesep subdirID filesep cbusub];    % subject working directory (cbusub = sub name)
 
-    fprintf('Subject working directory is %s\n',swd)
+    fprintf('Subject files found in %s\n',swd)
 
     base_dir = swd;
 
