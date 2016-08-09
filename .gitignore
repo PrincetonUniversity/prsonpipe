@@ -1,0 +1,11 @@
+#Data
+*.nii
+*.mat
+*.out
+
+#packages
+*.gz
+
+#OS
+.DS_Store
+.DS_Store?
