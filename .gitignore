@@ -10,7 +10,7 @@ analysis/*
 output/*
 arch/runorders/*
 arch/subid_list.txt
-
+notes/study_info.par
 
 #packages
 *.gz
