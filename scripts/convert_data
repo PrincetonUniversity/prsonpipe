@@ -6,17 +6,16 @@
 # Packages used:
 #    FSL
 #    MicroGL (dcm2niix)
-#    
-#
+# Arguments:    
+#   None
 
 set -e  # fail immediately on error
 
 module load mricrogl # Make sure all necessary packages are available (spock) -JNM
-module load bxh
 module load fsl
 
 source globals.par
-SUBID_LIST=$PROJECT_DIR/arch/subid_list.txt
+SUBID_LIST=${PROJECT_DIR}/arch/subid_list.txt
 ERROR_FLAG=ERROR_RUN
 PREFIX=scan
 
@@ -96,7 +95,7 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
     # convert the scan
     niigz_file_prefix="${temp_output_dir}/${name}"
     mv "${file_array[$number]}" ${niigz_file_prefix}.nii
-    #  analyze2bxh --analyzetypes --niigz --niftihdr -s "${temp_output_dir}/${PREFIX}-$number.bxh" $niigz_file_prefix 1>/dev/null 2>/dev/null
+    
 
       if [ -n "$num_expected_trs" ]; then
         num_actual_trs=$(fslnvols ${niigz_file_prefix}.nii)

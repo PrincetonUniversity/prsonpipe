@@ -9,7 +9,7 @@ source globals.par
 temp_raw_dir=$(mktemp -d -t tmp.XXXXXX)
 mv $RAW_DIR/$SUBJ/* $temp_raw_dir
 
-copy_dir=$PREP_DIR/wd/$SUBJ
+copy_dir=$PREP_DIR_FULL/wd/$SUBJ
 # if [ $last == 'FSL' ]; then
 # 	copy_dir=$PREP_DIR/FSL_prep/$SUBJ
 # elif [ $last == 'DARTEL' ]; then

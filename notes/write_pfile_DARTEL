@@ -8,7 +8,7 @@ set -e # stop immediately when an error occurs
 source pars.par
 source ../scripts/globals.par
 
-if [ $NORM != 'DARTEL' ]; then
+if [[ $NORM != 'DARTEL' ]]; then
 	echo "ABORTING: DARTEL was not chosen for normalization in /notes/pars.par."
 	exit 0
 fi
@@ -18,25 +18,13 @@ SAVE_DIR=$PROJECT_DIR/$SCRIPT_DIR_SPM8
 spm8_dir=$PKG_DIR/SPM8
 NIfTI_dir=$PKG_DIR/NIfTI
 
-if [[ $NORM == 'DARTEL' ]]; then
-	NORMALIZE=1;
-else
-	NORMALIZE=0;
-fi
+if [[ $NORM == 'DARTEL' ]]; then norm=1; else norm=0; fi
 
-if [ $SMOOTH_SOFT == 'DARTEL' ]; then
-	SMOOTHING=$SMOOTH
-else
-	SMOOTHING=0
-fi
+if [[ $SMOOTH_SOFT == 'DARTEL' ]]; then	smooth=$SMOOTH; else smooth=0; fi
 
-if [ $REALIGN == 'DARTEL' ]; then 
-	REAL=1;
-else 
-	REAL=0;
-fi
+if [[ $REALIGN == 'DARTEL' ]]; then realign=1; else realign=0; fi
 
-SUB_DIR=prep/wd
+sub_dir=prep/wd
 
 cat <<EOT > $SAVE_DIR/p_DARTEL.m
 % Parameters file for SPM8 DARTEL normalization
@@ -57,12 +45,12 @@ p.execTAG       = 1;
 
 % customizable preprocessing parameters
 p.vox_size      = $VOX_SIZE;
-p.smooth        = $SMOOTHING;
-p.normalize	= $NORMALIZE;
-p.realign	= $REAL;
+p.smooth        = $smooth;
+p.normalize	= $norm;
+p.realign	= $realign;
 
 % subjects directory containing subject folders
-p.subdir        = '$SUB_DIR';
+p.subdir        = '$sub_dir';
 % pattern for finding subject folders (use wildcards)
 p.subID         = 's*';
 % do which subjects? ('all' to do all, position vector, e.g. 1:4, to do a subset)

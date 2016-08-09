@@ -25,19 +25,19 @@ spm('defaults','fmri'); spm_jobman('initcfg');
 %================================================%
 
 
-execTAG = p.execTAG;				% execute the job immediately? (0 = no, 1 = yes)
+execTAG = p.execTAG;					% execute the job immediately? (0 = no, 1 = yes)
 
 % do which subjects? ('all' to do all, subIDs in vector form, e.g. [1:4 101:103], to do a subset)
 subTAG=subs;    
 
 % customizable preprocessing parameters
-vox_size=p.vox_size;				% voxel size at which to re-sample functionals (isotropic)
-smooth_FWHM=p.smooth;				% smoothing kernel (isotropic)
-normalize=p.normalize;				% run normalization?
-realign=p.realign;				% run motion correction?
+vox_size=p.vox_size;					% voxel size at which to re-sample functionals (isotropic)
+smooth_FWHM=p.smooth;					% smoothing kernel (isotropic)
+normalize=p.normalize;					% run normalization?
+realign=p.realign;					% run motion correction?
 
 % folder/directory information
-owd=p.proj_dir;				        % study directory
+owd=p.proj_dir;				        	% study directory
 output=p.output;					% dir in which to save dartel output
 subdirID=p.subdir;					% subjects directory containing subject folderss
 
@@ -46,8 +46,8 @@ subID=p.subID;   					% pattern for finding subject folders (use wildcards)
 runID=p.runID; 						% pattern for finding functional run files (use wildcards)
 
 % image information
-funcFormat=p.funcFormat;            % format of your raw functional images (1=img/hdr, 2=4D nii)
-mprageID=p.mprageID;                % pattern for finding matched-bandwidth image (use wildcards)
+funcFormat=p.funcFormat;	            		% format of your raw functional images (1=img/hdr, 2=4D nii)
+mprageID=p.mprageID;            	    		% pattern for finding matched-bandwidth image (use wildcards)
 
 % did you want to normalise only a subset of subjects? (leave empty for all)
 donormsubs={};
