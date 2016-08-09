@@ -24,7 +24,7 @@ module load matlab/R2015b
 matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
 
 # move files to DARTEL_prep
-for d in $(ls -d $PREP_DIR/wd/ | xargs -n 1 basename); do
+for d in $(ls -d $PREP_DIR/wd/*/ | xargs -n 1 basename); do
 	s=$PREP_DIR_FULL/DARTEL/$d/
 	mkdir $s
 	mv mean* $s

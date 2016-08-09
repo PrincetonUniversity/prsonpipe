@@ -72,11 +72,11 @@ d=dir(subID);
 % make list of all subjects found in directory
 for i=1:length(d)
     subnam{i}=d(i).name;
-    fprintf('Adding %s to found subject list\n',subnam{i})
+%    fprintf('Adding %s to found subject list\n',subnam{i})
     snam=char(subnam{i});
     snum=str2num(snam(2:end));
     snums(i)=snum;
-    fprintf('Adding %d to found subject numbers\n',snums(i))
+    fprintf('Adding %s to found subject list and %d to found subject numbers\n',subnam{i},snums(i))
 end
 
 % number of subjects found
@@ -88,7 +88,7 @@ if strcmp(subTAG,'all')
 else
     for s = 1:length(subTAG)
         dosubs(s)=find(snums==subTAG(s));
-        fprintf('Adding %d to run subject numbers\n',dosubs(s))
+        fprintf('Adding %d to run subject numbers\n',subTAG(s))
     end
 end
 
@@ -112,14 +112,12 @@ for s = 1:length(dosubs)
 
     swd = [owd filesep subdirID filesep cbusub];    % subject working directory (cbusub = sub name)
 
-    fprintf('Subject directory is %s\n',swd)
+    fprintf('Subject working directory is %s\n',swd)
 
     base_dir = swd;
 
     cd(base_dir)
                                   
-    fprintf('Subject data directory is %s\n',base_dir)
-
 
 
     % Find run directories
@@ -267,6 +265,8 @@ for s = 1:length(dosubs)
     % motion correction already run on images in earlier preprocessing steps       
     % Create a mean image
 
+    fprintf('Skipping motion correction. Creating mean image...\n')
+    
         for i = 1:numruns
             
              fname = filenames_orig{i}{1}(1:end-4);
@@ -306,6 +306,7 @@ for s = 1:length(dosubs)
     else
     % run motion correction here
 
+    fprintf('Running motion correction...\n')
         % Realignment of functionals
 
         % -------------------------------------------------
