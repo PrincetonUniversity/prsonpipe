@@ -8,6 +8,9 @@ raw/*
 prep/*
 analysis/*
 output/*
+arch/runorders/*
+arch/subid_list.txt
+
 
 #packages
 *.gz
