@@ -9,6 +9,10 @@
 #  None
 #
 ###########################################
+#SBATCH -J "bxh_qa"
+#SBATCH -o ../output/bxh_qa_%j.out
+#SBATCH -p all
+#SBATCH --mail-type=FAIL
 
 
 set -e
@@ -27,13 +31,13 @@ for rawpath in ${PROJECT_DIR}/raw/*; do
   fi
   echo [QA]
   for scan in $rawpath/epi*.nii; do
-    echo "[QA] Creating BXH header for $scan" 
+    echo "[QA] Creating BXH header for $scan at $(date)" 
     analyze2bxh ${scan} ${scan%.nii}.bxh #create bxh header for the first scan
   done
-  echo "[QA] Starting QA for $subject"
+  echo "[QA] Starting QA for $subject at $(date)"
   fmriqa_generate.pl --calc meanstddevsfnr,maskedcmass ${rawpath}/*.bxh ${PROJECT_DIR}/qa/${subject}
   # To run all QA options, remove --calc meanstddevsfnr,maskedcmass. Load bxh module and run fmriqa_generate.pl without arguments for more details.
 done
 
-echo "[QA] Done."
+echo "[QA] Done. $(date)"
 echo

@@ -10,20 +10,26 @@ set -e # stop immediately when an error occurs
 
 # load settings and functions
 source ../notes/pars.par 	
-source globals.par
 source get_subs
-source num_subID
+#source num_subID
+
+# Run conversion and QA'ing. These scripts just run on data that has not been done yet, so no need for subids
+#run this script and store the job ID output returned by SLURM. Time set for 240 minutes (time limit for short jobs)
+convert_jobid=$(sbatch -t 240  convert_data | grep -o '[0-9]*')
+
+sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa 
+#runtime set to 48 hours (2880 minutes; max for long job) change this number if necessary
 
 # call get_subs function based on argument
-unset SUBS
-declare -a subs_array=("${!1}")
-get_subs subs_array[@]
+#unset SUBS
+#declare -a subs_array=("${!1}")
+#get_subs subs_array[@]
 
 # CD to 
-cd $PREP_DIR_WD
+#cd $PREP_DIR_WD
 # Run each subject, one at a time
-for s in "${SUBS[@]}"; do
-	SUBJ=$s
+#for s in "${SUBS[@]}"; do
+#	SUBJ=$s
 	#pushd $(dirname $0) > /dev/null   # move into the subject's directory, quietly
 
 	# here, we call scripts to make a webpage describing this subject's analysis,
@@ -31,13 +37,13 @@ for s in "${SUBS[@]}"; do
 	# of your high-level analysis scripts (behavioral.sh, fir.sh, ...) where
 	# indicated, below
 
-	echo "== beginning analysis of $SUBJ at $(date) =="
+#	echo "== beginning analysis of $SUBJ at $(date) =="
 	# Convert to nii and QA
-	bash prep.sh
+#	bash prep.sh
 	# Slice time correction
-	bash scripts/time_fsl.sh
+#	bash scripts/time_fsl.sh
 	# Motion correction/Realignment
-	bash scripts/mcflirt.sh
+#	bash scripts/mcflirt.sh
 	# Unwarping
 
 	# --- IF NO DARTEL ---
@@ -45,12 +51,12 @@ for s in "${SUBS[@]}"; do
 
 	# 	-Smoothing
 
-	echo "== finished analysis of $SUBJ at $(date) =="
+#	echo "== finished analysis of $SUBJ at $(date) =="
 
 	#popd > /dev/null   # return to the directory this script was run from, quietly
-done
+#done
 
 # Normalization and Registration (DARTEL)
 
 # Smoothing
-if [ $SMOOTH_SOFT == 'DARTEL' ]; then smooth=$SMOOTH; else smooth=0; fi
+#if [ $SMOOTH_SOFT == 'DARTEL' ]; then SMOOTHING=$SMOOTH; else SMOOTHING=0; fi

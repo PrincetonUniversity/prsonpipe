@@ -8,8 +8,15 @@
 #    MicroGL (dcm2niix)
 # Arguments:    
 #   None
+#SBATCH -J "convert"
+#SBATCH -o ../output/convert_%j.out
+#SBATCH -p all
+#SBATCH -t 2880
+#SBATCH --mail-type=FAIL
 
 set -e  # fail immediately on error
+
+
 
 module load mricrogl # Make sure all necessary packages are available (spock) -JNM
 module load fsl
