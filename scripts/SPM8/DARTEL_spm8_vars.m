@@ -25,19 +25,19 @@ spm('defaults','fmri'); spm_jobman('initcfg');
 %================================================%
 
 
-execTAG = p.execTAG;					% execute the job immediately? (0 = no, 1 = yes)
+execTAG = p.execTAG;				% execute the job immediately? (0 = no, 1 = yes)
 
 % do which subjects? ('all' to do all, subIDs in vector form, e.g. [1:4 101:103], to do a subset)
 subTAG=subs;    
 
 % customizable preprocessing parameters
-vox_size=p.vox_size;					% voxel size at which to re-sample functionals (isotropic)
-smooth_FWHM=p.smooth;					% smoothing kernel (isotropic)
-normalize=p.normalize;					% run normalization?
+vox_size=p.vox_size;				% voxel size at which to re-sample functionals (isotropic)
+smooth_FWHM=p.smooth;				% smoothing kernel (isotropic)
+normalize=p.normalize;				% run normalization?
 realign=p.realign;					% run motion correction?
 
 % folder/directory information
-owd=p.proj_dir;				        	% study directory
+owd=p.proj_dir;				        % study directory
 output=p.output;					% dir in which to save dartel output
 subdirID=p.subdir;					% subjects directory containing subject folderss
 
@@ -46,8 +46,8 @@ subID=p.subID;   					% pattern for finding subject folders (use wildcards)
 runID=p.runID; 						% pattern for finding functional run files (use wildcards)
 
 % image information
-funcFormat=p.funcFormat;	            		% format of your raw functional images (1=img/hdr, 2=4D nii)
-mprageID=p.mprageID;            	    		% pattern for finding matched-bandwidth image (use wildcards)
+funcFormat=p.funcFormat;	        % format of your raw functional images (1=img/hdr, 2=4D nii)
+mprageID=p.mprageID;            	% pattern for finding matched-bandwidth image (use wildcards)
 
 % did you want to normalise only a subset of subjects? (leave empty for all)
 donormsubs={};
@@ -264,11 +264,7 @@ for s = 1:length(dosubs)
     % =====================================
    
    if realign == 0
-
-    % EITHER RUN THIS SECTION OR THE NEXT
-    %   RUN THIS SECTION IF YOU ALREADY RAN MOTION CORRECTION IN
-    %   PREPROCESSESING (DEFAULT)
-        
+    % motion correction already run on images in earlier preprocessing steps       
     % Create a mean image
 
         for i = 1:numruns
@@ -308,9 +304,7 @@ for s = 1:length(dosubs)
         save_untouch_nii(outnii,outname);
          
     else
-    % EITHER RUN THIS SECTION OR THE PREVIOUS
-    % DON'T RUN THIS SECTION UNLESS YOU DIDN'T RUN MOTION CORRECTION IN PREPROCESSESING
-    % AND NEED TO RUN IT HERE
+    % run motion correction here
 
         % Realignment of functionals
 
@@ -343,9 +337,9 @@ for s = 1:length(dosubs)
 
         
 
-        Co-register mprage to MEAN FUNCTIONAL
-
-        -------------------------------------------------
+%        Co-register mprage to MEAN FUNCTIONAL
+%
+%       -------------------------------------------------
 
         matlabbatch{3}.spm.spatial.coreg.estimate.ref = mean_func;
 
@@ -547,66 +541,63 @@ matlabbatch{2}.spm.tools.dartel.warp.settings.optim.its = 3;
 
 if normalize == 1
 
+    matlabbatch{3}.spm.tools.dartel.mni_norm.template{1} = dartel_template;
 
-matlabbatch{3}.spm.tools.dartel.mni_norm.template{1} = dartel_template;
+    % figure out which subs to run
 
+    if ~isempty(donormsubs)
 
+        for s = 1:length(dosubs)
 
-% figure out which subs to run
+            donorm(s) = ~isempty(cell2mat(regexp(donormsubs,subnam{s})));
 
-if ~isempty(donormsubs)
+        end
 
-    for s = 1:length(dosubs)
-
-        donorm(s) = ~isempty(cell2mat(regexp(donormsubs,subnam{s})));
+        dosubs = find(donorm);
 
     end
 
-    dosubs = find(donorm);
+    for s = 1:length(dosubs)
 
-end
+        matlabbatch{3}.spm.tools.dartel.mni_norm.data.subj(s).flowfield{1} = allu_rc1{dosubs(s)};
 
-for s = 1:length(dosubs)
+        matlabbatch{3}.spm.tools.dartel.mni_norm.data.subj(s).images = allfuncs{dosubs(s)};
 
-    matlabbatch{3}.spm.tools.dartel.mni_norm.data.subj(s).flowfield{1} = allu_rc1{dosubs(s)};
+    end                                              
 
-    matlabbatch{3}.spm.tools.dartel.mni_norm.data.subj(s).images = allfuncs{dosubs(s)};
+    matlabbatch{3}.spm.tools.dartel.mni_norm.vox = [vox_size vox_size vox_size];
 
-end                                              
+    matlabbatch{3}.spm.tools.dartel.mni_norm.bb = [-78 -112 -50; 78 76 85];
 
-matlabbatch{3}.spm.tools.dartel.mni_norm.vox = [vox_size vox_size vox_size];
+    matlabbatch{3}.spm.tools.dartel.mni_norm.preserve = 0;
 
-matlabbatch{3}.spm.tools.dartel.mni_norm.bb = [-78 -112 -50; 78 76 85];
-
-matlabbatch{3}.spm.tools.dartel.mni_norm.preserve = 0;
-
-matlabbatch{3}.spm.tools.dartel.mni_norm.fwhm = [smooth_FWHM smooth_FWHM smooth_FWHM];
+    matlabbatch{3}.spm.tools.dartel.mni_norm.fwhm = [smooth_FWHM smooth_FWHM smooth_FWHM];
 
 
 
-% Run DARTEL - Normalise mprages to MNI space
+    % Run DARTEL - Normalise mprages to MNI space
 
-% -------------------------------------------------
+    % -------------------------------------------------
 
 
 
-matlabbatch{4}.spm.tools.dartel.mni_norm.template{1} = dartel_template;
+    matlabbatch{4}.spm.tools.dartel.mni_norm.template{1} = dartel_template;
 
-for s = 1:length(dosubs)
+    for s = 1:length(dosubs)
 
-    matlabbatch{4}.spm.tools.dartel.mni_norm.data.subj(s).flowfield{1} = allu_rc1{s};
+        matlabbatch{4}.spm.tools.dartel.mni_norm.data.subj(s).flowfield{1} = allu_rc1{s};
 
-    matlabbatch{4}.spm.tools.dartel.mni_norm.data.subj(s).images{1} = allt2{s};
+        matlabbatch{4}.spm.tools.dartel.mni_norm.data.subj(s).images{1} = allt2{s};
 
-end                                              
+    end                                              
 
-matlabbatch{4}.spm.tools.dartel.mni_norm.vox = [1 1 3];
+    matlabbatch{4}.spm.tools.dartel.mni_norm.vox = [1 1 3];
 
-matlabbatch{4}.spm.tools.dartel.mni_norm.bb = [-78 -112 -50; 78 76 85];
+    matlabbatch{4}.spm.tools.dartel.mni_norm.bb = [-78 -112 -50; 78 76 85];
 
-matlabbatch{4}.spm.tools.dartel.mni_norm.preserve = 0;
+    matlabbatch{4}.spm.tools.dartel.mni_norm.preserve = 0;
 
-matlabbatch{4}.spm.tools.dartel.mni_norm.fwhm = [0 0 0];
+    matlabbatch{4}.spm.tools.dartel.mni_norm.fwhm = [0 0 0];
 
 end
 

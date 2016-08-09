@@ -6,14 +6,13 @@
 #26 July 2016, Judith Mildner (JNM) Change variable names for consistency with globals.sh
 
 
-PROJECT_NAME=prsonpipe				# ENTER THE STUDY NAME HERE. This should be the same name as your project folder in /fastscratch/ and in /tamir/
-PROJECT_DIR=/jukebox/tamir/prsonpipe		# ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
-USERNAME=psnl					# ENTER YOUR PNI USERNAME HERE.
-USER_EMAIL=prsonlab@gmail.com 			# ENTER YOUR EMAIL HERE.  This email address will be used to send you updates on jobs you run on spock.
-LAB_NAME=tamir 					# SET NAME OF LAB VOLUME ON JUKEBOX
-PKG_DIR=/jukebox/tamir/pkg 			# ENTER DIRECTORY OF PACKAGES
+PROJECT_NAME=prsonpipe                  # ENTER THE STUDY NAME HERE. This should be the same name as your project folder in /fastscratch/ and in /tamir/
+PROJECT_DIR=/jukebox/tamir/prsonpipe    # ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
+USER_EMAIL=prsonlab@gmail.com           # ENTER YOUR EMAIL HERE.  This email address will be used to send you updates on jobs you run on spock.
+LAB_NAME=tamir                          # SET NAME OF LAB VOLUME ON JUKEBOX
+PKG_DIR=/jukebox/tamir/pkg              # ENTER DIRECTORY OF PACKAGES
 
-NUM_TASKS=1					# ENTER THE NUMBER OF DIFFERENT TASKS (not conditions)
+NUM_TASKS=1                             # ENTER THE NUMBER OF DIFFERENT TASKS (not conditions)
 
 ######################ENTER STUDY DESCRIPTION HERE##########################
 #

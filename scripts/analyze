@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+# analyze.sh runs the analysis of a subject
+# original author: mason simon (mgsimon@princeton.edu)
+# this script was provided by NeuroPipe. modify it to suit your needs
+# edited MEW 8/1/16: added conditional statements based on args and added subject loop
+# ------------------------------------------------------------------------------
+
+set -e # stop immediately when an error occurs
+
+# load settings and functions
+source ../notes/pars.par 	
+source get_subs
+source num_subID
+
+# call get_subs function based on argument
+unset SUBS
+declare -a subs_array=("${!1}")
+get_subs subs_array[@]
+
+# CD to 
+cd $PREP_DIR_WD
+# Run each subject, one at a time
+for s in "${SUBS[@]}"; do
+	SUBJ=$s
+	#pushd $(dirname $0) > /dev/null   # move into the subject's directory, quietly
+
+	# here, we call scripts to make a webpage describing this subject's analysis,
+	# prepare the subject's data, and then run analyses on it. put in a call to each
+	# of your high-level analysis scripts (behavioral.sh, fir.sh, ...) where
+	# indicated, below
+
+	echo "== beginning analysis of $SUBJ at $(date) =="
+	# Convert to nii and QA
+	bash prep.sh
+	# Slice time correction
+	bash scripts/time_fsl.sh
+	# Motion correction/Realignment
+	bash scripts/mcflirt.sh
+	# Unwarping
+
+	# --- IF NO DARTEL ---
+	# 	-Normalization and Registration
+
+	# 	-Smoothing
+
+	echo "== finished analysis of $SUBJ at $(date) =="
+
+	#popd > /dev/null   # return to the directory this script was run from, quietly
+done
+
+# Normalization and Registration (DARTEL)
+
+# Smoothing
+if [ $SMOOTH_SOFT == 'DARTEL' ]; then SMOOTHING=$SMOOTH; else SMOOTHING=0; fi

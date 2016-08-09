@@ -1,25 +1,32 @@
 #!/bin/bash -e
 # author: Miriam Weaverdyck 8/1/16
-# bash write_pfile_prep $temp
-# $temp variable should be either 0 (general prep pfile, use raw) or 1 (temp prep
-# pfile, use working directory (wd))
-# ------------------------------------------------------------------------------
+# bash write_pfile_prep $ext
+#
 # this script writes out the parameters to the p_study.m file 
 # (a matlab file to be read by SPM12w)
+#
+# INPUT VARIABLE:
+# $ext: str = extension to filename (should reflect which step the temp pfile is for)
+# NOTE: must input 0 or 1 arguments. If not argument, will create a general pfile
+# ------------------------------------------------------------------------------
+# 8/9/16 MW - added argument to make temp files
 
-source pars.par
 source ../scripts/globals.par
 
-save_dir=$PROJECT_DIR/$SCRIPT_DIR_SPMw
-
 # set file name and folder based on whether or not this is a temp pfile
-if [[ $# -eq 0 ]] || [[ $1 -eq 0 ]]; then fname="prep"; wd_raw=$PREP_DIR_RAW; 
-else fname="temp"; wd_raw=$PREP_DIR_WD; fi
+if [[ $# -eq 0 ]]; then fname="prep"; wd_raw=$PREP_DIR_RAW; 
+	source pars.par
+elif [[ $# -eq 1 ]]; then fname="temp_$1"; wd_raw=$PREP_DIR_WD; 
+	source step.par
+else echo "You must input 0 or 1 arguments: 0 to create a general pfile, 1 to create a temporary pfile with the inputted extension.";
+	"Aborting..."; exit; fi
 
+save_dir=$PROJECT_DIR/$SCRIPT_DIR_SPMw
+fname_full=$save_dir/p_SPMw_$fname.m
 
 if [[ $QA == 'SPM' ]]; then qa=1; else qa=0; fi
 
-if [[ $SLICE_TIME == 'SPM' ]]; then SLICE_TIME=1; else slice_time=0; fi
+if [[ $SLICE_TIME == 'SPM' ]]; then slice_time=1; else slice_time=0; fi
 
 if [[ $REALIGN == 'SPM' ]]; then realign=1; else realign=0; fi
 
@@ -32,14 +39,14 @@ if [[ $SNR == 'SPM' ]]; then snr=1; else snr=0; fi
 if [[ $SLICES == 'SPM' ]]; then slices=1; else slices=0; fi
 
 
-cat <<EOT > $SAVE_DIR/p_SPMw_$fname.m
+cat <<EOT > $fname_full
 % spm12w r6225
 % Parameters file for fMRI preprocessing
 % Last updated: October, 2014
 % =======1=========2=========3=========4=========5=========6=========7=========8
 
 % User name
-p.username      = '$USERNAME'
+p.username      = '$USER'
 
 % Paths and names
 p.study_dir     = '$PROJECT_DIR';
@@ -53,8 +60,8 @@ p.realign       = $realign;
 p.unwarp        = $unwarp;      % Unwarping (correct field inhomogeneties)      
 p.smoothing     = $smooth;   	% Size of smoothing kernel in FWHM (0 for no smoothing)
 p.snr           = $snr;         % make SNR analysis document
-p.slices        = $SLICES;        
-p.cleanup       = 2;            % delete intermediate files 0 (keep all), 1 (keep last), 
+p.slices        = $slices;        
+p.cleanup       = 1;            % delete intermediate files 0 (keep all), 1 (keep last), 
                                 % 2 (keep last 2), 3 (keep last 2 and originals)
 p.cleanupzip    = 0;            % Zip up the final stages
 
@@ -68,6 +75,8 @@ p.normalize     = 'none';       % Normalize type ('none','epi','spm12','dartel')
 
 EOT
 
+echo "Finished writing $fname_full"
+
 # unset temporary variables so they can be reused
 unset wd_raw
-unset temp
+unset fname
