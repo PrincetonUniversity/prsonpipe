@@ -3,6 +3,12 @@
 *.mat
 *.out
 
+qa/*
+raw/*
+prep/*
+analysis/*
+output/*
+
 #packages
 *.gz
 
