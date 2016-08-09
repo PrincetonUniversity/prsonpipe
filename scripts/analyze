@@ -10,6 +10,7 @@ set -e # stop immediately when an error occurs
 
 # load settings and functions
 source ../notes/pars.par 	
+source globals.par
 source get_subs
 source num_subID
 
@@ -52,4 +53,4 @@ done
 # Normalization and Registration (DARTEL)
 
 # Smoothing
-if [ $SMOOTH_SOFT == 'DARTEL' ]; then SMOOTHING=$SMOOTH; else SMOOTHING=0; fi
+if [ $SMOOTH_SOFT == 'DARTEL' ]; then smooth=$SMOOTH; else smooth=0; fi

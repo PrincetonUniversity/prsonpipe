@@ -8,7 +8,9 @@
 
 set -e # stop immediately when an error occurs
 
+pushd `dirnam $0` > /dev/null   # move into this directory, quietly
 source ../notes/study_info.par
+popd > /dev/null   # return to the previous directory, quietly
 
 BACKUP_DIR=/jukebox/$LAB_NAME/$PROJECT_NAME
 
