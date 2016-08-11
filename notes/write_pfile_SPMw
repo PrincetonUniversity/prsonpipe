@@ -11,6 +11,8 @@
 # ------------------------------------------------------------------------------
 # 8/9/16 MW - added argument to make temp files
 
+pushd `dirname $0` > /dev/null   # move into this directory, quietly
+
 source ../scripts/globals.par
 
 # set file name and folder based on whether or not this is a temp pfile
@@ -19,7 +21,9 @@ if [[ $# -eq 0 ]]; then fname="prep"; wd_raw=$PREP_DIR_RAW;
 elif [[ $# -eq 1 ]]; then fname="temp_$1"; wd_raw=$PREP_DIR_WD; 
 	source step.par
 else echo "You must input 0 or 1 arguments: 0 to create a general pfile, 1 to create a temporary pfile with the inputted extension.";
-	"Aborting..."; exit; fi
+	echo "Aborting..."; exit; fi
+
+popd > /dev/null   # return to the previous directory, quietly
 
 save_dir=$PROJECT_DIR/$SCRIPT_DIR_SPMw
 fname_full=$save_dir/p_SPMw_$fname.m

@@ -1,5 +1,5 @@
 #!/bin/bash
-# author: mgsimon@princeton.edu
+# 
 # ------------------------------------------------------------------------------
 # this script sets up global variables for the analysis of the current subject
 # edited 8/1/16 MEW added SCRIPT_DIR* vars for write_pfile scripts
@@ -8,9 +8,9 @@
 
 set -e # stop immediately when an error occurs
 
-pushd `dirname $0` > /dev/null   # move into this directory, quietly
+#pushd `dirname -- "$0"` > /dev/null   # move into this directory, quietly
 source ../notes/study_info.par
-popd > /dev/null   # return to the previous directory, quietly
+#popd > /dev/null   # return to the previous directory, quietly
 
 BACKUP_DIR=/jukebox/$LAB_NAME/$PROJECT_NAME
 
@@ -35,7 +35,7 @@ SCRIPT_DIR_FULL=$PROJECT_DIR/scripts 	# edited to this from $PROJECT_DIR/arch/sc
 
 SCRIPT_DIR=scripts
 SCRIPT_DIR_FSL=$SCRIPT_DIR/FSL
-SCRIPT_DIR_SPM8=$SCRIPT_DIR/SPM8
+SCRIPT_DIR_DARTEL=$SCRIPT_DIR/DARTEL
 SCRIPT_DIR_SPM=$SCRIPT_DIR/SPM12
 SCRIPT_DIR_SPMw=$SCRIPT_DIR/SPM12w
 

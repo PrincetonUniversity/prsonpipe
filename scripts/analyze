@@ -1,60 +1,148 @@
 #!/bin/bash
 #
 # analyze.sh runs the analysis of a subject
+# bash analyze "${var[@]}"
+# bash analyze 1 2
+# bash analyze {1..3}
+# bash analyze s001 s005
+#
 # original author: mason simon (mgsimon@princeton.edu)
 # this script was provided by NeuroPipe. modify it to suit your needs
 # edited MEW 8/1/16: added conditional statements based on args and added subject loop
 # ------------------------------------------------------------------------------
+################################################################################
+# Packages used:
+#  none
+# Arguments (choose 1):
+#  none (will run all new subjects)
+#  "${var[@]}" OR s001 2 s005 etc. (subject array -- e.g. (1 {3..5}))
+#  'all' (will run all subjects)
+################################################################################
 #
 # SBATCH -J analyze-%j
-# SBATCH -t 00:01:00						# hh:mm:ss
 # SBATCH -o ../output/analyze-%j.out
+# SBATCH -t 00:01:00						# hh:mm:ss
 
 set -e # stop immediately when an error occurs
 
 # load settings and functions
-source ../notes/pars.par 	
-source get_subs
-#source num_subID
+source ../notes/pars.par 
+source globals.par	
+source funcs
 
-# Run conversion and QA'ing. These scripts just run on data that has not been done yet, so no need for subids
-# run this script and store the job ID output returned by SLURM. Time set for 240 minutes (time limit for short jobs)
-echo "---Converting dcm to nii---"
-convert_jobid=$(sbatch -t 240  convert_data | grep -o '[0-9]*')
-
-echo "---Running QA---"
-sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa 
-#runtime set to 48 hours (2880 minutes; max for long job) change this number if necessary
-
-# call get_subs function based on input argument to get array SUBS of all subject IDs that will be run
+# call get_subs function based on input argument 
+# to get array SUBS of all subject IDs that will be run
 unset SUBS
-if [[ -z "$1" ]]; then get_subs; else declare -a subs_array=("${!1}"); get_subs subs_array[@]; fi
+if [[ $# -eq 0 ]]; then get_subs; elif [[ "$1" == 'all' ]]; then get_subs 'all'; 
+else declare -a subs_array=( "$@" ); get_subs subs_array[@]; fi
+
+
+# Create an array (pars_array) of all the preprocessing parameters in order of execution
+declare -a par_names=("QA" "SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT")
+declare -a pars_array=("$QA" "$SLICE_TIME" "$REALIGN" "$UNWARP" "$NORM" "$SMOOTH_SOFT" )
+# Create an array (p_array) of all the parameter prefixes in same order
+declare -a p_array=('q' 'a' 'r' 'u' 'w' 's')
+
+# Create a similarity array (sim_array) of all the preprocessing parameters, such that:
+# 0 means the parameter uses a different software than the previous step
+# 1 means the parameter uses the same software as the previous step
+i=0
+for p in "${pars_array[@]}"; do
+	if ! [[ $i -eq 0 ]]; then 
+		# starting with second variable, check if it's the same as the previous one
+		if [[ ${pars_array[$i-1]} == $p ]]; then sim_array[$i]=1; else sim_array[$i]=0; fi
+	else sim_array[$i]=0; fi	# first entry will always be 0 because nothing before it
+	i=$i+1
+done
+
+
+# Run conversion and QA'ing. These scripts just run on data that has not been done yet, 
+# so no need for subids run this script and store the job ID output returned by SLURM. 
+echo "--- Converting all dcm files to nii ---"
+#convert_jobid=$(sbatch -t 240  convert_data | grep -o '[0-9]*')
+# runtime set for 240 minutes (time limit for short jobs)
+
+echo ""
+echo "***Running subjects ${SUBS[@]} on the following:"
+echo "QA                    = $QA"
+echo "Slice time correction = $SLICE_TIME"
+echo "Motion Correction     = $REALIGN"
+echo "Unwarping             = $UNWARP"
+echo "Normalization         = $NORM"
+echo "Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)"
+echo ""
+
+
+
+
+if [[ $QA == 'BXH' ]]; then 
+	echo "--- Running QA ---"
+	sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa 
+	#runtime set to 48 hours (2880 minutes; max for long job) change this number if necessary
+fi
+
 
 
 # Run each subject, one at a time
 for s in "${SUBS[@]}"; do
+	if [[ -z $s ]]; then echo "Can't find subject. Aborting..."; exit; fi
+
+	# save subject ID in form s000
 	SUBJ=$s
-	#pushd $(dirname $0) > /dev/null   # move into the subject's directory, quietly
 
 	echo "== beginning analysis of $SUBJ at $(date) =="
-
-	# Slice time correction
-#	bash scripts/time_fsl.sh
-	# Motion correction/Realignment
-#	bash scripts/mcflirt.sh
-	# Unwarping
-
-	# --- IF NO DARTEL ---
-	# 	-Normalization and Registration
-
-	# 	-Smoothing
-
-#	echo "== finished analysis of $SUBJ at $(date) =="
-
-	#popd > /dev/null   # return to the directory this script was run from, quietly
+	reset_step_par
+	i=0; for p in "${pars_array[@]}"; do
+		# if current step is normalization and it's in DARTEL, break out of loop, go to next sub
+		if [[ ${par_names[$i]} == 'NORM' ]] && [[ $NORM == 'DARTEL' ]]; then echo "Will run normalization and smoothing later."; break; fi
+		echo "-- Running ${par_names[$i]} --"
+		# otherwise, note step
+		# add step extension to current extension list of consecutive steps using same software
+		ext=$ext${p_array[$i]}
+		# turn step on in step.par
+		echo "${par_names[$i]}='$p'" >> $PROJECT_DIR/notes/step.par
+		if [[ ${sim_array[$i+1]} -eq 0 ]] || [[ ${pars_array[$i]} == 'none' ]]; then 
+			# next step does not use the same software, so run now
+			# write out pfile based on step.par
+			bash $PROJECT_DIR/notes/write_pfile_$p* $ext
+			# run script
+#			sbatch $SCRIPT_DIR/$p/run_$p_prep $SUBJ $SCRIPT_DIR/$p/p_*$ext
+			# reset pars for next step
+			reset_step_par
+			unset ext
+		fi
+		i=$i+1
+	done
+ 	echo "== finished analysis of $SUBJ at $(date) =="
 done
-
-# Normalization and Registration (DARTEL)
-
-# Smoothing
-#if [ $SMOOTH_SOFT == 'DARTEL' ]; then SMOOTHING=$SMOOTH; else SMOOTHING=0; fi
+# Normalization and Registration in DARTEL
+if [[ $NORM == 'DARTEL' ]] || [[ $SMOOTH_SOFT == 'none' ]]; then
+	# set i to the second to last index
+	i=${#pars_array[@]}-2
+	# run DARTEL normalization
+	echo "-- Running ${par_names[$i]} --"
+	# add step extension to current extension list of consecutive steps using same software
+	ext=$ext${p_array[$i]}
+	# turn step on in step.par
+	echo "${par_names[$i]}='${pars_array[$i]}'" >> $PROJECT_DIR/notes/step.par
+	if [[ ${sim_array[${#sim_array[@]}-1-1]} -eq 0 ]]; then 
+		# last step (smoothing) does not use DARTEL, so run normalization in DARTEL, then smoothing
+		# write out pfile based on step.par
+		bash $PROJECT_DIR/notes/write_pfile_${pars_array[$i]}* $ext
+		# run script
+		sbatch $SCRIPT_DIR/${pars_array[$i]}/run_${pars_array[$i]}_prep $SUBJ $SCRIPT_DIR/${pars_array[$i]}/p_*$ext
+		# reset pars for next step
+		reset_step_par
+		unset ext
+	fi
+	# run last time (either norm and smoothing, or just smoothing)
+	i=$i+1
+	# add step extension to current extension list of consecutive steps using same software
+	ext=$ext${p_array[$i]}
+	# turn step on in step.par
+	echo "${par_names[$i]}='${pars_array[$i]}'" >> $PROJECT_DIR/notes/step.par
+	# write out pfile based on step.par
+	bash $PROJECT_DIR/notes/write_pfile_${pars_array[$i]}* $ext
+	# run script
+	sbatch $SCRIPT_DIR/${pars_array[$i]}/run_${pars_array[$i]}_prep $SUBJ $SCRIPT_DIR/${pars_array[$i]}/p_*$ext
+fi

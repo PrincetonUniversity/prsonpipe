@@ -3,7 +3,7 @@
 # Change the variables below to match your study
 # Write in the comments below a description of your data collection protocol. It should contain all the info someone else would need to understand how to use your data. 
 #
-#26 July 2016, Judith Mildner (JNM) Change variable names for consistency with globals.sh
+#26 July 2016, Judith Mildner (JNM) Change variable names for consistency with globals.par
 
 
 PROJECT_NAME=prsonpipe                  # ENTER THE STUDY NAME HERE. This should be the same name as your project folder in /fastscratch/ and in /tamir/
@@ -12,7 +12,11 @@ USER_EMAIL=prsonlab@gmail.com           # ENTER YOUR EMAIL HERE.  This email add
 LAB_NAME=tamir                          # SET NAME OF LAB VOLUME ON JUKEBOX
 PKG_DIR=/jukebox/tamir/pkg              # ENTER DIRECTORY OF PACKAGES
 
-NUM_TASKS=1                             # ENTER THE NUMBER OF DIFFERENT TASKS (not conditions)
+NUM_TASKS=1                             # ENTER THE NUMBER OF DIFFERENT TASKS (not conditions) - IF MORE THAN ONE, FILL OUT BELOW:
+# --TASKS--
+# If you have more than one task, uncomment and write each name inside the parentheses below, separated by a space:
+#TASKS=(TASK1 TASK2 TASK3 etc.)			# Will take the first 3 letters of each
+#PREP_SEP=0								# Run each task with different preprocessing parameters? 1=yes, 0=no
 
 ######################ENTER STUDY DESCRIPTION HERE##########################
 #

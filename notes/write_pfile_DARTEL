@@ -5,15 +5,35 @@
 # (a matlab file to be read by SPM12w)
 
 set -e # stop immediately when an error occurs
+
+pushd `dirname $0` > /dev/null   # move into this directory, quietly
+
 source pars.par
 source ../scripts/globals.par
+
+# set file name and folder based on whether or not this is a temp pfile
+if [[ $# -eq 0 ]]; then fname=''; wd_raw=$PREP_DIR_RAW; 
+	source pars.par
+elif [[ $# -eq 1 ]]; then fname="_temp_$1"; wd_raw=$PREP_DIR_WD; 
+	source step.par
+else echo "You must input 0 or 1 arguments: 0 to create a general pfile, 1 to create a temporary pfile with the inputted extension.";
+	echo "Aborting..."; exit; fi
+	
+popd > /dev/null   # return to the previous directory, quietly
+
+save_dir=$PROJECT_DIR/$SCRIPT_DIR_DARTEL
+fname_full=$save_dir/p_DARTEL$fname.m
+
+
+
 
 if [[ $NORM != 'DARTEL' ]]; then
 	echo "ABORTING: DARTEL was not chosen for normalization in /notes/pars.par."
 	exit 0
 fi
 
-SAVE_DIR=$PROJECT_DIR/$SCRIPT_DIR_SPM8
+
+
 
 spm8_dir=$PKG_DIR/SPM8
 NIfTI_dir=$PKG_DIR/NIfTI
@@ -26,7 +46,7 @@ if [[ $REALIGN == 'DARTEL' ]]; then realign=1; else realign=0; fi
 
 sub_dir=prep/wd
 
-cat <<EOT > $SAVE_DIR/p_DARTEL.m
+cat <<EOT > $fname_full
 % Parameters file for SPM8 DARTEL normalization
 % Last updated: August 2016
 % =======1=========2=========3=========4=========5=========6=========7=========8
@@ -67,4 +87,4 @@ p.funcFormat    = 2;
 p.TPMimg        = '$spm8_dir/toolbox/Seg/TPM.nii';
 
 EOT
-echo "Parameters file $SAVE_DIR/p_DARTEL.m written and saved."
+echo "Parameters file $fname_full written and saved."

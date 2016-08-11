@@ -1,0 +1,148 @@
+#!/bin/bash -e/
+# author: Miriam Weaverdyck 8/10/16
+################################################################################
+# CONTENTS:
+# 1) get_subs:   takes in an array of subjects and returns an array of subject IDs in form s000
+# 2) num2subID:  called by get_subs, converts array to proper subID form (s000)
+#
+# ------------------------------------------------------------------------------
+
+source globals.par
+
+################################################################################
+# 1)
+# get_subs function
+# author: Miriam Weaverdyck August 3, 2016
+# This function returns an array of subject IDs in form s000
+###########################################
+# Arguments (choose 1):
+#  none (will run all new subjects)
+#  var[@] OR s001 2 05 etc. (subject array -- e.g. (1 {3..5}))
+#  'all' (will run all subjects)
+# Outputs: 
+#  SUBS (array of subjects in form s000)
+###########################################
+
+function get_subs {
+	unset SUBS
+	source globals.par  
+	source num2subID
+
+	if [[ $# -eq 0 ]]; then
+		# NEW SUBJECTS: no input means run all new subjects only, based on raw/
+		# make list of all subjects in raw/
+		i=0
+		for s in $(ls -d $RAW_DIR/*/ | xargs -n 1 basename); do
+			subs_all[$i]=$s
+			i=$i+1
+		done
+		# check list of subjects with those in prep
+		i=0
+		for s in "${subs_all[@]}"; do
+			echo "searching for $s"
+			for d in $(ls -d $PREP_DIR/*/); do
+				echo "looking in $d"
+				for p in $(ls -d $d*/ | xargs -n 1 basename); do
+					echo "examining $p"
+					if [[ $s == $p ]]; then
+						# found folder with same name as subject.  Delete from list
+						echo "Deleting ${subs_all[$i]} from list of all subs..."
+						unset subs_all[$i]
+						i=$i+1
+						continue
+					fi
+				done
+			done
+		done
+		# Make list of all new subjects, ignoring the empty elements
+		i=0
+		for s in "${subs_all[@]}"; do
+			if [[ ! -z $s ]]; then
+				SUBS[$i]=$s
+				i=$i+1
+			fi
+		done
+		# SUBS now contains an array of new subjects that have not been preprocessed
+		echo 'No subjects given. Selecting new subjects:'
+		echo "${SUBS[@]}"
+	elif [[ $1 == 'all' ]]; then
+		# ALL SUBJECTS: run all subjects, even those who have already been preprocessed
+		i=0
+		for s in $(ls -d $RAW_DIR/*/ | xargs -n 1 basename); do
+			SUBS[$i]=$s
+			i=$i+1
+		done
+		echo 'Selecting all subjects:'
+		echo "${SUBS[@]}"
+	else
+		# RUN SELECT SUBJECTS: run only the subjects inputted
+		declare -a subs=("${!1}")
+		# convert subject numbers to form (s000)
+		num2subID subs[@]
+		SUBS="${SUBIDS[@]}"
+
+		echo 'Selecting these subjects only:'
+		echo "${SUBS[@]}"
+	fi
+}
+
+################################################################################
+# 2)
+# num2subID var[@]
+# author: Miriam Weaverdyck August 3, 2016
+# This function takes in an array of numbers and returns an array of subject IDs.   
+# Called by get_subs - same args and output
+###########################################
+
+function num2subID {
+	unset SUBIDS
+	re_num='^[0-9]+$'
+
+	declare -a snums=("${!1}")
+	i=0
+	for snum in "${snums[@]}"; do
+		# check current format
+		if [[ "${snum:0:1}" == s ]] && [[ "${#snum}" -eq 4 ]] && [[ ${snum: -3} =~ $re_num ]]; then
+			#correct format (s000)
+			SUBIDS[$i]="${snums[$i]}"
+		elif [[ $snum =~ $re_num ]]; then
+			# is number
+			# convert to form s000
+			if [[ "${#snum}" -eq 3 ]]; then
+				# 3-digit number
+				SUBIDS[$i]=s"${snums[$i]}"
+			elif [[ "${#snum}" -eq 2 ]]; then
+				# 2-digit number
+				SUBIDS[$i]=s0"${snums[$i]}"
+			elif [[ "${#snum}" -eq 1 ]]; then
+				# 1-digit number
+				SUBIDS[$i]=s00"${snums[$i]}"
+			fi
+		else
+			echo "Unrecognized subject ID format: ${snum}"
+			echo "Please enter in one of the following formats:"
+			echo "'1' such that the array looks like (1 2 5 9)."
+			exit
+		fi
+		i=$i+1
+	done
+	echo "Subject list: ${SUBIDS[@]}"
+}
+
+function reset_step_par () {
+cat <<EOT > $PROJECT_DIR/notes/step.par
+# turn off everything
+QA='none'
+SLICE_TIME='none'
+REALIGN='none'
+UNWARP='none'
+SMOOTH_SOFT='none'
+SMOOTH=$SMOOTH
+SNR='none'
+SLICES=0
+
+# turn on steps:
+EOT
+}
+
+

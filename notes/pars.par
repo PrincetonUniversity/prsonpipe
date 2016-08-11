@@ -3,8 +3,8 @@
 # Enter the parameters for your project's p_ files below
 
 
-# QA: 'BXH', 'SPM'
-QA='BXH'
+# QA: 'BXH', 'SPM', 'none'
+QA='SPM'
 
 # Slice time correction: 'FSL', 'SPM', 'none'
 SLICE_TIME='SPM'
@@ -12,18 +12,18 @@ SLICE_TIME='SPM'
 # Realignment/Motion Correction: 'FSL', 'SPM', 'DARTEL' (must use DARTEL for normalization too), 'none'
 REALIGN='SPM'
 
-# Unwarping: 'topup' (FSL; must have spin echos), 'SPM', 'none'
-UNWARP='SPM'
+# Unwarping: 'FSL' (topup; must have spin echos), 'SPM', 'DARTEL'
+UNWARP='DARTEL'
 
 # Smoothing: 'FSL', 'SPM', 'DARTEL' (must use DARTEL for normalization too), 'none'; size of smoothing kernel in FWHM
-SMOOTH_SOFT='SPM'
+SMOOTH_SOFT='DARTEL'
 SMOOTH=8
 
-# Signal to Noise Ratio output: 'FSL', 'SPM'
-SNR='SPM'
+# # Signal to Noise Ratio output: 'FSL', 'SPM'
+# SNR='SPM'
 
 # Slices (SPM): yes=1, no=0
-SLICES=0
+# SLICES=0					# -- FIGURE OUT WHAT THIS DOES
 
 # === DARTEL settings (also read by write_pfile_GLM-MVPA) ===
 
@@ -42,6 +42,7 @@ RUNSPLIT=0
 OUTLIERS=0
 # Event/Block Duration (same units as TIME) (dur files will override)
 DURATION=0
+
 
 # --GLM Conditions--
 # Number of conditions
