@@ -169,3 +169,4 @@ if [[ $NORM == 'DARTEL' ]] || [[ $SMOOTH_SOFT == 'none' ]]; then
 	# run script
 	sbatch $SCRIPT_DIR/${pars_array[$i]}/run_${pars_array[$i]}_prep $SUBJ $SCRIPT_DIR/${pars_array[$i]}/p_*$ext
 fi
+reset_step_par
