@@ -2,8 +2,8 @@
 # author: Miriam Weaverdyck 8/10/16
 ################################################################################
 # CONTENTS:
-# 1) get_subs:   takes in an array of subjects and returns an array of subject IDs in form s000
-# 2) num2subID:  called by get_subs, converts array to proper subID form (s000)
+# 1) num2subID:  called by get_subs, converts array to proper subID form (s000)
+# 2) get_subs:   takes in an array of subjects and returns an array of subject IDs in form s000
 #
 # ------------------------------------------------------------------------------
 
@@ -11,83 +11,6 @@ source globals.par
 
 ################################################################################
 # 1)
-# get_subs function
-# author: Miriam Weaverdyck August 3, 2016
-# This function returns an array of subject IDs in form s000
-###########################################
-# Arguments (choose 1):
-#  none (will run all new subjects)
-#  var[@] OR s001 2 05 etc. (subject array -- e.g. (1 {3..5}))
-#  'all' (will run all subjects)
-# Outputs: 
-#  SUBS (array of subjects in form s000)
-###########################################
-
-function get_subs {
-	unset SUBS
-	source globals.par  
-	source num2subID
-
-	if [[ $# -eq 0 ]]; then
-		# NEW SUBJECTS: no input means run all new subjects only, based on raw/
-		# make list of all subjects in raw/
-		i=0
-		for s in $(ls -d $RAW_DIR/*/ | xargs -n 1 basename); do
-			subs_all[$i]=$s
-			i=$i+1
-		done
-		# check list of subjects with those in prep
-		i=0
-		for s in "${subs_all[@]}"; do
-			echo "searching for $s"
-			for d in $(ls -d $PREP_DIR/*/); do
-				echo "looking in $d"
-				for p in $(ls -d $d*/ | xargs -n 1 basename); do
-					echo "examining $p"
-					if [[ $s == $p ]]; then
-						# found folder with same name as subject.  Delete from list
-						echo "Deleting ${subs_all[$i]} from list of all subs..."
-						unset subs_all[$i]
-						i=$i+1
-						continue
-					fi
-				done
-			done
-		done
-		# Make list of all new subjects, ignoring the empty elements
-		i=0
-		for s in "${subs_all[@]}"; do
-			if [[ ! -z $s ]]; then
-				SUBS[$i]=$s
-				i=$i+1
-			fi
-		done
-		# SUBS now contains an array of new subjects that have not been preprocessed
-		echo 'No subjects given. Selecting new subjects:'
-		echo "${SUBS[@]}"
-	elif [[ $1 == 'all' ]]; then
-		# ALL SUBJECTS: run all subjects, even those who have already been preprocessed
-		i=0
-		for s in $(ls -d $RAW_DIR/*/ | xargs -n 1 basename); do
-			SUBS[$i]=$s
-			i=$i+1
-		done
-		echo 'Selecting all subjects:'
-		echo "${SUBS[@]}"
-	else
-		# RUN SELECT SUBJECTS: run only the subjects inputted
-		declare -a subs=("${!1}")
-		# convert subject numbers to form (s000)
-		num2subID subs[@]
-		SUBS="${SUBIDS[@]}"
-
-		echo 'Selecting these subjects only:'
-		echo "${SUBS[@]}"
-	fi
-}
-
-################################################################################
-# 2)
 # num2subID var[@]
 # author: Miriam Weaverdyck August 3, 2016
 # This function takes in an array of numbers and returns an array of subject IDs.   
@@ -144,5 +67,86 @@ SLICES=0
 # turn on steps:
 EOT
 }
+
+################################################################################
+# 2)
+# get_subs function
+# author: Miriam Weaverdyck August 3, 2016
+# This function returns an array of subject IDs in form s000
+###########################################
+# Arguments (choose 1):
+#  none (will run all new subjects)
+#  var[@] OR s001 2 05 etc. (subject array -- e.g. (1 {3..5}))
+#  'all' (will run all subjects)
+# Outputs: 
+#  SUBS (array of subjects in form s000)
+###########################################
+
+function get_subs {
+	unset SUBS
+
+	if [[ $# -eq 0 ]]; then
+		# NEW SUBJECTS: no input means run all new subjects only, based on raw/
+		# make list of all subjects in raw/
+		i=0
+		for s in $(ls -d $RAW_DIR/*/ | xargs -n 1 basename); do
+			subs_all[$i]=$s
+			i=$i+1
+		done
+		# check list of subjects with those in prep
+		i=0
+		for s in "${subs_all[@]}"; do
+			echo "--searching for $s--"
+			for d in $(ls -d $PREP_DIR/*/); do
+				echo "looking in $d"
+				# see if $d (which is dir in prep/) has subfolders, and if so, check subfolders
+				subdircount=`find $d -maxdepth 1 -type d | wc -l`
+				if [[ subdircount -gt 1 ]]; then 
+					for p in $(ls -d $d/*/ | xargs -n 1 basename); do
+						echo "examining subfolder $p"
+						if [[ $s == $p ]]; then
+							# found folder with same name as subject.  Delete from list
+							echo "Deleting ${subs_all[$i]} from list of all subs..."
+							unset subs_all[$i]
+							i=$i+1
+							continue
+						fi
+					done
+				#else echo "no subfolders found"
+				fi
+			done
+		done
+		# Make list of all new subjects, ignoring the empty elements
+		i=0
+		for s in "${subs_all[@]}"; do
+			if [[ ! -z $s ]]; then
+				SUBS[$i]=$s
+				i=$i+1
+			fi
+		done
+		# SUBS now contains an array of new subjects that have not been preprocessed
+		echo 'No subjects given. Selecting new subjects:'
+		echo "${SUBS[@]}"
+	elif [[ $1 == 'all' ]]; then
+		# ALL SUBJECTS: run all subjects, even those who have already been preprocessed
+		i=0
+		for s in $(ls -d $RAW_DIR/*/ | xargs -n 1 basename); do
+			SUBS[$i]=$s
+			i=$i+1
+		done
+		echo 'Selecting all subjects:'
+		echo "${SUBS[@]}"
+	else
+		# RUN SELECT SUBJECTS: run only the subjects inputted
+		declare -a subs=("${!1}")
+		# convert subject numbers to form (s000)
+		num2subID subs[@]
+		SUBS="${SUBIDS[@]}"
+
+		echo 'Selecting these subjects only:'
+		echo "${SUBS[@]}"
+	fi
+}
+
 
 

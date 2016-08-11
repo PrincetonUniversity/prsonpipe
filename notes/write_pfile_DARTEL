@@ -25,14 +25,7 @@ save_dir=$PROJECT_DIR/$SCRIPT_DIR_DARTEL
 fname_full=$save_dir/p_DARTEL$fname.m
 
 
-
-
-if [[ $NORM != 'DARTEL' ]]; then
-	echo "ABORTING: DARTEL was not chosen for normalization in /notes/pars.par."
-	exit 0
-fi
-
-
+if [[ $NORM != 'DARTEL' ]]; then echo "WARNING: DARTEL was not chosen for normalization in /notes/pars.par."; exit; fi
 
 
 spm8_dir=$PKG_DIR/SPM8

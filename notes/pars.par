@@ -7,10 +7,10 @@
 QA='SPM'
 
 # Slice time correction: 'FSL', 'SPM', 'none'
-SLICE_TIME='SPM'
+SLICE_TIME='none'
 
 # Realignment/Motion Correction: 'FSL', 'SPM', 'DARTEL' (must use DARTEL for normalization too), 'none'
-REALIGN='SPM'
+REALIGN='none'
 
 # Unwarping: 'FSL' (topup; must have spin echos), 'SPM', 'DARTEL'
 UNWARP='DARTEL'
@@ -28,7 +28,7 @@ SMOOTH=8
 # === DARTEL settings (also read by write_pfile_GLM-MVPA) ===
 
 # Normalization (includes registration to MNI space, unwarping in DARTEL): 'FSL', 'DARTEL', 'none'
-NORM='DARTEL'
+NORM='none'
 
 # voxel size at which to re-sample functionals (isotropic)
 VOX_SIZE=2.0

@@ -9,6 +9,8 @@
 # original author: mason simon (mgsimon@princeton.edu)
 # this script was provided by NeuroPipe. modify it to suit your needs
 # edited MEW 8/1/16: added conditional statements based on args and added subject loop
+# 8/11/16 MEW: finished adding arrays for all prep steps so that it loops through
+# array per subject.  Can work with 'none' entries, now
 # ------------------------------------------------------------------------------
 ################################################################################
 # Packages used:
@@ -48,13 +50,16 @@ declare -a p_array=('q' 'a' 'r' 'u' 'w' 's')
 # 1 means the parameter uses the same software as the previous step
 i=0
 for p in "${pars_array[@]}"; do
-	if ! [[ $i -eq 0 ]]; then 
-		# starting with second variable, check if it's the same as the previous one
-		if [[ ${pars_array[$i-1]} == $p ]]; then sim_array[$i]=1; else sim_array[$i]=0; fi
-	else sim_array[$i]=0; fi	# first entry will always be 0 because nothing before it
+		if [[ $p != 'none' ]]; then 
+			# check if current step is same as curp (current software parameter)
+			if [[ $p == $curp ]]; then sim_array[$i]=1; else sim_array[$i]=0; fi
+			curp=$p; 
+		else sim_array[$i]=1; 
+		fi
+		if [[ $i -eq 0 ]]; then sim_array[$i]=0; fi # first entry will always be 0 because nothing before it
 	i=$i+1
 done
-
+#echo "${sim_array[@]}"
 
 # Run conversion and QA'ing. These scripts just run on data that has not been done yet, 
 # so no need for subids run this script and store the job ID output returned by SLURM. 
@@ -65,7 +70,7 @@ echo "--- Converting all dcm files to nii ---"
 echo ""
 echo "***Running subjects ${SUBS[@]} on the following:"
 echo "QA                    = $QA"
-echo "Slice time correction = $SLICE_TIME"
+echo "Slice Time Correction = $SLICE_TIME"
 echo "Motion Correction     = $REALIGN"
 echo "Unwarping             = $UNWARP"
 echo "Normalization         = $NORM"
@@ -82,7 +87,7 @@ if [[ $QA == 'BXH' ]]; then
 fi
 
 
-
+n=0
 # Run each subject, one at a time
 for s in "${SUBS[@]}"; do
 	if [[ -z $s ]]; then echo "Can't find subject. Aborting..."; exit; fi
@@ -93,40 +98,56 @@ for s in "${SUBS[@]}"; do
 	echo "== beginning analysis of $SUBJ at $(date) =="
 	reset_step_par
 	i=0; for p in "${pars_array[@]}"; do
-		# if current step is normalization and it's in DARTEL, break out of loop, go to next sub
-		if [[ ${par_names[$i]} == 'NORM' ]] && [[ $NORM == 'DARTEL' ]]; then echo "Will run normalization and smoothing later."; break; fi
-		echo "-- Running ${par_names[$i]} --"
-		# otherwise, note step
-		# add step extension to current extension list of consecutive steps using same software
-		ext=$ext${p_array[$i]}
-		# turn step on in step.par
-		echo "${par_names[$i]}='$p'" >> $PROJECT_DIR/notes/step.par
-		if [[ ${sim_array[$i+1]} -eq 0 ]] || [[ ${pars_array[$i]} == 'none' ]]; then 
+		# if current step is set to 'none', skip and move on to next step
+		if [[ $p == 'none' ]]; then 
+			echo "Skipping ${par_names[$i]}"; 
+		else
+			# if current step is normalization and it's in DARTEL, break out of loop, go to next sub
+			if [[ ${par_names[$i]} == 'NORM' ]] && [[ $NORM == 'DARTEL' ]]; then 
+				# if not last subject, reset step par and ext
+				if [[ $n -ne ${#SUBS[@]}-1 ]]; then 
+					echo "Will run normalization and smoothing later."; reset_step_par; unset ext; 
+				fi
+				break; 
+			fi
+			echo "Adding ${par_names[$i]} to $p run list"
+			# otherwise, note step
+			# add step extension to current extension list of consecutive steps using same software
+			ext=$ext${p_array[$i]}
+			# turn step on in step.par
+			echo "${par_names[$i]}='$p'" >> $PROJECT_DIR/notes/step.par
+			curp=$p
+		fi
+		if [[ ${sim_array[$i+1]} -eq 0 ]]; then 
 			# next step does not use the same software, so run now
+			echo "-- Running $curp analysis --"
 			# write out pfile based on step.par
-			bash $PROJECT_DIR/notes/write_pfile_$p* $ext
+			bash $PROJECT_DIR/notes/write_pfile_$curp* $ext
 			# run script
-#			sbatch $SCRIPT_DIR/$p/run_$p_prep $SUBJ $SCRIPT_DIR/$p/p_*$ext
+#			sbatch $SCRIPT_DIR/$curp/run_$curp_prep $SUBJ $SCRIPT_DIR/$curp/p_*$ext
 			# reset pars for next step
 			reset_step_par
 			unset ext
 		fi
 		i=$i+1
 	done
- 	echo "== finished analysis of $SUBJ at $(date) =="
+	n=$n+1
+ 	#echo "== finished analysis of $SUBJ at $(date) =="
 done
+echo "== finished indivdual analyses of ${SUBS[@]} at $(date) =="
 # Normalization and Registration in DARTEL
 if [[ $NORM == 'DARTEL' ]] || [[ $SMOOTH_SOFT == 'none' ]]; then
 	# set i to the second to last index
 	i=${#pars_array[@]}-2
 	# run DARTEL normalization
-	echo "-- Running ${par_names[$i]} --"
+	echo "Adding ${par_names[$i]} to $p run list"
 	# add step extension to current extension list of consecutive steps using same software
 	ext=$ext${p_array[$i]}
 	# turn step on in step.par
 	echo "${par_names[$i]}='${pars_array[$i]}'" >> $PROJECT_DIR/notes/step.par
 	if [[ ${sim_array[${#sim_array[@]}-1-1]} -eq 0 ]]; then 
 		# last step (smoothing) does not use DARTEL, so run normalization in DARTEL, then smoothing
+		echo "-- Running ${pars_array[$i]} analysis --"
 		# write out pfile based on step.par
 		bash $PROJECT_DIR/notes/write_pfile_${pars_array[$i]}* $ext
 		# run script
@@ -137,10 +158,12 @@ if [[ $NORM == 'DARTEL' ]] || [[ $SMOOTH_SOFT == 'none' ]]; then
 	fi
 	# run last time (either norm and smoothing, or just smoothing)
 	i=$i+1
+	echo "Adding ${par_names[$i]} to ${pars_array[$i]} run list"
 	# add step extension to current extension list of consecutive steps using same software
 	ext=$ext${p_array[$i]}
 	# turn step on in step.par
 	echo "${par_names[$i]}='${pars_array[$i]}'" >> $PROJECT_DIR/notes/step.par
+	echo "-- Running ${pars_array[$i]} analysis --"
 	# write out pfile based on step.par
 	bash $PROJECT_DIR/notes/write_pfile_${pars_array[$i]}* $ext
 	# run script
