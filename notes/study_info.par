@@ -1,24 +1,51 @@
 # study_info
 # author: Miriam Weaverdyck 7/26/2016
-# Change the variables below to match your study
-# Write in the comments below a description of your data collection protocol. It should contain all the info someone else would need to understand how to use your data. 
+# 
+# This file contains important information about your study. Directions:
+# 1. Change the variables below to match your study
+# 2. Add the order of scans typically used (as a template, you can customize the order for each subject if necessary)
+# 3. Write in the comments below a description of your data collection protocol. 
+#    It should contain all the info someone else would need to understand how to use your data. 
+# 4. Run the init_project script in the scripts directory ("bash scripts/init_project") 
+#    This will initialize files and directories specific to your study.
 #
 #26 July 2016, Judith Mildner (JNM) Change variable names for consistency with globals.par
+#11 August 2016, JNM Update to include new initialize script and run order template
+
+####-DON'T TOUCH THIS-####
+###<<START_VARS>>      ###
+##########################
+#######--------------------PROJECT SETTINGS-------------------######
+
+PROJECT_NAME=prsonpipe                # ENTER THE STUDY NAME HERE. Should be the same as your project dir in /fastscratch/ and /jukebox/tamir/
+PROJECT_DIR=/jukebox/tamir/prsonpipe  # ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
+USER_EMAIL=prsonlab@gmail.com         # ENTER YOUR EMAIL HERE.  This will be used to send you updates on jobs you run on spock.
+LAB_NAME=tamir                        # SET NAME OF LAB VOLUME ON JUKEBOX
+PKG_DIR=/jukebox/tamir/pkg            # ENTER DIRECTORY OF PACKAGES
 
 
-PROJECT_NAME=prsonpipe                  # ENTER THE STUDY NAME HERE. This should be the same name as your project folder in /fastscratch/ and in /tamir/
-PROJECT_DIR=/jukebox/tamir/prsonpipe    # ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
-USER_EMAIL=prsonlab@gmail.com           # ENTER YOUR EMAIL HERE.  This email address will be used to send you updates on jobs you run on spock.
-LAB_NAME=tamir                          # SET NAME OF LAB VOLUME ON JUKEBOX
-PKG_DIR=/jukebox/tamir/pkg              # ENTER DIRECTORY OF PACKAGES
+#######-------------------------TASKS------------------------######
 
-NUM_TASKS=1                             # ENTER THE NUMBER OF DIFFERENT TASKS (not conditions) - IF MORE THAN ONE, FILL OUT BELOW:
-# --TASKS--
-# If you have more than one task, uncomment and write each name inside the parentheses below, separated by a space:
-#TASKS=(TASK1 TASK2 TASK3 etc.)			# Will take the first 3 letters of each
-#PREP_SEP=0								# Run each task with different preprocessing parameters? 1=yes, 0=no
+NUM_TASKS=1                           # ENTER THE NUMBER OF DIFFERENT TASKS (not conditions) - IF MORE THAN ONE, FILL OUT BELOW:
+# If you have more than one task, write each name inside the parentheses below, separated by a space:
+TASKS=(TSK)                           # e.g. (TSK ABC XYZ) Will take only the first 3 letters of each, so make sure they are unique (no numbers, allcaps)
+PREP_SEP=0                            # Run each task with different preprocessing parameters? 1=yes, 0=no
 
-######################ENTER STUDY DESCRIPTION HERE##########################
+####-DON'T TOUCH THIS-####
+####<<END_VARS>>       ###
+##########################
+
+######--------------------RUN ORDER TEMPLATE-----------------######
+####-DON'T TOUCH THIS-####
+###<<START_RO>>        ###
+##########################
+
+
+
+####-DON'T TOUCH THIS-####
+###<<END_RO>>          ###
+##########################
+######---------------ENTER STUDY DESCRIPTION HERE------------######
 #
 #
 #

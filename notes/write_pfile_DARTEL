@@ -25,7 +25,7 @@ save_dir=$PROJECT_DIR/$SCRIPT_DIR_DARTEL
 fname_full=$save_dir/p_DARTEL$fname.m
 
 
-if [[ $NORM != 'DARTEL' ]]; then echo "WARNING: DARTEL was not chosen for normalization in /notes/pars.par."; exit; fi
+if [[ $NORM != 'DARTEL' ]]; then echo "WARNING: DARTEL was not chosen for normalization in /notes/pars.par. Aborting..."; exit; fi
 
 
 spm8_dir=$PKG_DIR/SPM8
@@ -80,4 +80,4 @@ p.funcFormat    = 2;
 p.TPMimg        = '$spm8_dir/toolbox/Seg/TPM.nii';
 
 EOT
-echo "Parameters file $fname_full written and saved."
+echo "Finished writing $fname_full"

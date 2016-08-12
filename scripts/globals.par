@@ -25,14 +25,12 @@ RUNORDER_FILE=$PROJECT_DIR/arch/subpars/runorders/$SUBJ*
 
 RAW_DIR=$PROJECT_DIR/raw
 PREP_DIR=$PROJECT_DIR/prep
-PREP_DIR_WD=$PREP_DIR/wd
 QA_DIR=$PROJECT_DIR/qa
 OUT_DIR=$PROJECT_DIR/output
 
 #SUBJ_DIR=$SUBJ # s000 folder within raw, prep, or other directory, which stores niftis at that level for that subject
 
 SCRIPT_DIR_FULL=$PROJECT_DIR/scripts 	# edited to this from $PROJECT_DIR/arch/scripts (MEW 8/2/16)
-
 SCRIPT_DIR=scripts
 SCRIPT_DIR_FSL=$SCRIPT_DIR/FSL
 SCRIPT_DIR_DARTEL=$SCRIPT_DIR/DARTEL

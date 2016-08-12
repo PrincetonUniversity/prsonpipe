@@ -16,9 +16,9 @@ pushd `dirname $0` > /dev/null   # move into this directory, quietly
 source ../scripts/globals.par
 
 # set file name and folder based on whether or not this is a temp pfile
-if [[ $# -eq 0 ]]; then fname="prep"; wd_raw=$PREP_DIR_RAW; 
+if [[ $# -eq 0 ]]; then fname="prep"; wd_raw=$RAW_DIR/${1:0:3}; 
 	source pars.par
-elif [[ $# -eq 1 ]]; then fname="temp_$1"; wd_raw=$PREP_DIR_WD; 
+elif [[ $# -eq 1 ]]; then fname="temp_$1"; wd_raw=$PREP_DIR/${1:0:3}/wd; 
 	source step.par
 else echo "You must input 0 or 1 arguments: 0 to create a general pfile, 1 to create a temporary pfile with the inputted extension.";
 	echo "Aborting..."; exit; fi
@@ -46,7 +46,7 @@ if [[ $SLICES == 'SPM' ]]; then slices=1; else slices=0; fi
 cat <<EOT > $fname_full
 % spm12w r6225
 % Parameters file for fMRI preprocessing
-% Last updated: October, 2014
+% Last updated: August, 2016
 % =======1=========2=========3=========4=========5=========6=========7=========8
 
 % User name
@@ -61,9 +61,9 @@ p.rawdir        = '$wd_raw'
           
 p.slicetime     = $slice_time;        
 p.realign       = $realign;        
-p.unwarp        = $unwarp;      % Unwarping (correct field inhomogeneties)      
-p.smoothing     = $smooth;   	% Size of smoothing kernel in FWHM (0 for no smoothing)
-p.snr           = $snr;         % make SNR analysis document
+p.unwarp        = $unwarp;            % Unwarping (correct field inhomogeneties)      
+p.smoothing     = $smooth;            % Size of smoothing kernel in FWHM (0 for no smoothing)
+p.snr           = $snr;            % make SNR analysis document
 p.slices        = $slices;        
 p.cleanup       = 1;            % delete intermediate files 0 (keep all), 1 (keep last), 
                                 % 2 (keep last 2), 3 (keep last 2 and originals)

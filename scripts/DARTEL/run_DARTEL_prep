@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # type: sbatch -J name script.sh "subs"
-# subs should either be a vector ([1:4 5:6]) or 'all' or nothing for new subjects only
+# subs should either be a matlab vector "[1:4 5:6]""
 # Keep lines starting with #SBATCH together and at top of script! Modify settings as appropriate.
 
 #SBATCH -J dartel				# Job name
@@ -14,7 +14,16 @@ source ../globals.par
 #bash $PROJECT_DIR/notes/write_pfile_DARTEL
 
 # get subjects to run
-subs=$1
+SUBS=$1
+
+if [[ "$(declare -p SUBS)" =~ "declare -a" ]]; then 
+	echo "SUBS is a bash array. Must convert to matlab array."; 
+	subs='['
+	for s in "${SUBS[@]}"; do
+		subs="$subs${s:1:4} "
+	done
+	subs="$subs]"
+fi
 
 echo "Beginning DARTEL analysis of subject(s) $subs at $(date)"
 
@@ -23,20 +32,24 @@ module load matlab/R2015b
 # run script
 matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
 
-# move files to DARTEL_prep
-pushd $PREP_DIR_WD/ > /dev/null   # move into the working directory, quietly
-for d in $(ls -d ./*/ | xargs -n 1 basename); do
-	s=$PREP_DIR/DARTEL/$d/
-	if ! [[ -d $s ]]; then mkdir $s; fi
-	if [[ -e "$d/mean*" ]]; then mv $d/mean* $s; fi
-	if [[ -e "$d/r*" ]]; then mv $d/r* $s; fi
-	if [[ -e "$d/u*" ]]; then mv $d/u* $s; fi
-	if [[ -e "$d/w*" ]]; then mv $d/w* $s; fi
-	if [[ -e "$d/y*" ]]; then mv $d/y* $s; fi
-	if [[ -e "$d/s*" ]]; then mv $d/s* $s; fi
-	if [[ -e "$d/*_seg8.mat" ]]; then mv $d/*_seg8.mat $s; fi
-	if [[ -e "$d/Template*" ]]; then mv $d/Template* $PREP_DIR/DARTEL/Templates/; fi
-done
-popd > /dev/null   # return to the directory this script was run from, quietly
 
+# REQUIRES $SUBS TO BE AN ARRAY OF subIDs (form s000)
+# move files to DARTEL_prep
+for t in "${TASKS[@]}"; do 
+	pushd $PREP_DIR/$t/wd > /dev/null   # move into the working directory, quietly
+	#(ls -d ./*/ | xargs -n 1 basename)
+	for d in "${SUBS[@]}"; do
+		s=../DARTEL/$d/
+		if ! [[ -d $s ]]; then mkdir $s; fi
+		if [[ -e "$d/mean*" ]]; then mv $d/mean* $s; fi
+		if [[ -e "$d/r*" ]]; then mv $d/r* $s; fi
+		if [[ -e "$d/u*" ]]; then mv $d/u* $s; fi
+		if [[ -e "$d/w*" ]]; then mv $d/w* $s; fi
+		if [[ -e "$d/y*" ]]; then mv $d/y* $s; fi
+		if [[ -e "$d/s*" ]]; then mv $d/s* $s; fi
+		if [[ -e "$d/*_seg8.mat" ]]; then mv $d/*_seg8.mat $s; fi
+		if [[ -e "$d/Template*" ]]; then mv $d/Template* ../DARTEL/Templates/; fi
+	done
+	popd > /dev/null   # return to the directory this script was run from, quietly
+done
 echo "Finished DARTEL analysis of subject(s) $subs at $(date)"

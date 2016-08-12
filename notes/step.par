@@ -9,3 +9,4 @@ SNR='none'
 SLICES=0
 
 # turn on steps:
+NORM='DARTEL'

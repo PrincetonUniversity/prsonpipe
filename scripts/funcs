@@ -1,9 +1,11 @@
 #!/bin/bash -e/
 # author: Miriam Weaverdyck 8/10/16
+# 8/11/16 updated to look in taskdirs
 ################################################################################
 # CONTENTS:
-# 1) num2subID:  called by get_subs, converts array to proper subID form (s000)
-# 2) get_subs:   takes in an array of subjects and returns an array of subject IDs in form s000
+# 1) num2subID:  		called by get_subs, converts array to proper subID form (s000)
+# 2) get_subs:   		takes in an array of subjects and returns an array of subject IDs in form s000
+# 3) reset_step_par: 	overwrites pars.par with nothing turned on
 #
 # ------------------------------------------------------------------------------
 
@@ -15,6 +17,8 @@ source globals.par
 # author: Miriam Weaverdyck August 3, 2016
 # This function takes in an array of numbers and returns an array of subject IDs.   
 # Called by get_subs - same args and output
+# Arguments:
+#  var[@] OR s001 2 05 etc. (subject array -- e.g. (1 {3..5}))
 ###########################################
 
 function num2subID {
@@ -52,6 +56,106 @@ function num2subID {
 	echo "Subject list: ${SUBIDS[@]}"
 }
 
+################################################################################
+# 2)
+# get_subs function
+# author: Miriam Weaverdyck August 3, 2016
+# This function returns an array of subject IDs in form s000
+###########################################
+# Arguments (1 or 2 total):
+#  TSK (task name to look at)
+#  choose 1:------------------------
+#  | none (will run all new subjects)
+#  | var[@] OR s001 2 05 etc. (subject array -- e.g. (1 {3..5}))
+#  | 'all' (will run all subjects)
+# Outputs: 
+#  SUBS (array of subjects in form s000)
+###########################################
+
+function get_subs {
+	unset SUBS
+	tsk=$1
+
+	if [[ $# -eq 0 ]]; then echo "Please specify a task. Aborting..."; exit;
+	elif [[ $# -eq 1 ]]; then
+		# NEW SUBJECTS: no subject input means run all new subjects only, based on raw/
+		# make list of all subjects in raw/
+		echo 'No subjects given. Selecting new subjects...'
+		i=0
+		for s in $(ls -d $RAW_DIR/$tsk/*/ | xargs -n 1 basename); do
+			subs_all[$i]=$s;
+			i=$i+1;
+		done
+		echo "Subjects found in raw/$tsk: ${subs_all[@]}"
+		# check list of subjects with those in prep
+		i=0
+		for s in "${subs_all[@]}"; do
+			echo "--searching for $s--"
+			d=$PREP_DIR/$tsk/wd
+			#for d in $(ls -d $PREP_DIR/*/); do
+				# d is task folder
+				# check in wd
+				echo "looking in $d"
+				# see if $d/wd (which is task's wd subfolder in prep) has subfolders, and if so, check if they match subID
+				subdircount=`find $d/ -maxdepth 1 -type d | wc -l`
+				for p in $(ls -d $d/*/ | xargs -n 1 basename); do
+					#echo "examining subject $p: if same as $s, delete"
+					if [[ $s == $p ]]; then
+						# found folder with same name as subject.  Delete from list
+						echo "Found ${subs_all[$i]} - deleting from list of all subs..."
+						unset subs_all[$i]
+						continue
+					fi
+				done
+			#done
+			i=$i+1
+		done
+		# Make list of all new subjects, ignoring the empty elements
+		i=0
+		for s in "${subs_all[@]}"; do
+			if [[ ! -z $s ]]; then
+				SUBS[$i]=$s
+				i=$i+1
+			fi
+		done
+		# SUBS now contains an array of new subjects that have not been preprocessed
+		echo "New subjects: ${SUBS[@]}"
+	elif [[ $2 == 'all' ]]; then
+		# ALL SUBJECTS: run all subjects in task, even those who have already been preprocessed
+		echo 'Selecting all subjects:'
+		i=0
+		for s in $(ls -d $RAW_DIR/$tsk/*/ | xargs -n 1 basename); do
+			SUBS[$i]=$s
+			i=$i+1
+		done
+		echo "${SUBS[@]}"
+	else
+		# RUN SELECT SUBJECTS: run only the subjects inputted
+		declare -a subs=("${!2}")
+		# convert subject numbers to form (s000)
+		num2subID subs[@]
+		i=0
+		for s in "${SUBIDS[@]}"; do
+			for p in $(ls -d $RAW_DIR/$tsk/*/ | xargs -n 1 basename); do
+				if [[ $s == $p ]]; then
+					# found folder with same name as subject.  Delete from list
+					SUBS[$i]=$s;
+					i=$i+1
+				fi
+			done
+		done
+		echo 'Selecting these subjects only:'
+		echo "${SUBS[@]}"
+	fi
+}
+
+################################################################################
+# 3)
+# reset_step_par
+# author: Miriam Weaverdyck August 10, 2016
+# This function rewrites step.par such that all preprocessing steps are off
+###########################################
+
 function reset_step_par () {
 cat <<EOT > $PROJECT_DIR/notes/step.par
 # turn off everything
@@ -69,84 +173,5 @@ EOT
 }
 
 ################################################################################
-# 2)
-# get_subs function
-# author: Miriam Weaverdyck August 3, 2016
-# This function returns an array of subject IDs in form s000
+# 4)
 ###########################################
-# Arguments (choose 1):
-#  none (will run all new subjects)
-#  var[@] OR s001 2 05 etc. (subject array -- e.g. (1 {3..5}))
-#  'all' (will run all subjects)
-# Outputs: 
-#  SUBS (array of subjects in form s000)
-###########################################
-
-function get_subs {
-	unset SUBS
-
-	if [[ $# -eq 0 ]]; then
-		# NEW SUBJECTS: no input means run all new subjects only, based on raw/
-		# make list of all subjects in raw/
-		i=0
-		for s in $(ls -d $RAW_DIR/*/ | xargs -n 1 basename); do
-			subs_all[$i]=$s
-			i=$i+1
-		done
-		# check list of subjects with those in prep
-		i=0
-		for s in "${subs_all[@]}"; do
-			echo "--searching for $s--"
-			for d in $(ls -d $PREP_DIR/*/); do
-				echo "looking in $d"
-				# see if $d (which is dir in prep/) has subfolders, and if so, check subfolders
-				subdircount=`find $d -maxdepth 1 -type d | wc -l`
-				if [[ subdircount -gt 1 ]]; then 
-					for p in $(ls -d $d/*/ | xargs -n 1 basename); do
-						echo "examining subfolder $p"
-						if [[ $s == $p ]]; then
-							# found folder with same name as subject.  Delete from list
-							echo "Deleting ${subs_all[$i]} from list of all subs..."
-							unset subs_all[$i]
-							i=$i+1
-							continue
-						fi
-					done
-				#else echo "no subfolders found"
-				fi
-			done
-		done
-		# Make list of all new subjects, ignoring the empty elements
-		i=0
-		for s in "${subs_all[@]}"; do
-			if [[ ! -z $s ]]; then
-				SUBS[$i]=$s
-				i=$i+1
-			fi
-		done
-		# SUBS now contains an array of new subjects that have not been preprocessed
-		echo 'No subjects given. Selecting new subjects:'
-		echo "${SUBS[@]}"
-	elif [[ $1 == 'all' ]]; then
-		# ALL SUBJECTS: run all subjects, even those who have already been preprocessed
-		i=0
-		for s in $(ls -d $RAW_DIR/*/ | xargs -n 1 basename); do
-			SUBS[$i]=$s
-			i=$i+1
-		done
-		echo 'Selecting all subjects:'
-		echo "${SUBS[@]}"
-	else
-		# RUN SELECT SUBJECTS: run only the subjects inputted
-		declare -a subs=("${!1}")
-		# convert subject numbers to form (s000)
-		num2subID subs[@]
-		SUBS="${SUBIDS[@]}"
-
-		echo 'Selecting these subjects only:'
-		echo "${SUBS[@]}"
-	fi
-}
-
-
-

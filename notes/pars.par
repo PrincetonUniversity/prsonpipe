@@ -4,7 +4,7 @@
 
 
 # QA: 'BXH', 'SPM', 'none'
-QA='SPM'
+QA='none'
 
 # Slice time correction: 'FSL', 'SPM', 'none'
 SLICE_TIME='none'
@@ -13,10 +13,10 @@ SLICE_TIME='none'
 REALIGN='none'
 
 # Unwarping: 'FSL' (topup; must have spin echos), 'SPM', 'DARTEL'
-UNWARP='DARTEL'
+UNWARP='none'
 
 # Smoothing: 'FSL', 'SPM', 'DARTEL' (must use DARTEL for normalization too), 'none'; size of smoothing kernel in FWHM
-SMOOTH_SOFT='DARTEL'
+SMOOTH_SOFT='none'
 SMOOTH=8
 
 # # Signal to Noise Ratio output: 'FSL', 'SPM'
@@ -28,7 +28,7 @@ SMOOTH=8
 # === DARTEL settings (also read by write_pfile_GLM-MVPA) ===
 
 # Normalization (includes registration to MNI space, unwarping in DARTEL): 'FSL', 'DARTEL', 'none'
-NORM='none'
+NORM='DARTEL'
 
 # voxel size at which to re-sample functionals (isotropic)
 VOX_SIZE=2.0
