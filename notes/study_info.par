@@ -11,15 +11,18 @@
 #
 #26 July 2016, Judith Mildner (JNM) Change variable names for consistency with globals.par
 #11 August 2016, JNM Update to include new initialize script and run order template
+#
+#NOTE: The words between << >> in comment boxes are delimiters needed to set up your project. 
+#      Don't alter those, or the boxes surrounding them.
 
-####-DON'T TOUCH THIS-####
-###<<START_VARS>>      ###
-##########################
+                   ####-DON'T TOUCH THIS-#### 
+                   ###<<START_VARS>>      ###
+                   ##########################
 #######--------------------PROJECT SETTINGS-------------------######
 
-PROJECT_NAME=prsonpipe                # ENTER THE STUDY NAME HERE. Should be the same as your project dir in /fastscratch/ and /jukebox/tamir/
+PROJECT_NAME=prsonpipe                # ENTER THE STUDY NAME. Should be the same as project dir in /fastscratch/ and jukebox labvolume
 PROJECT_DIR=/jukebox/tamir/prsonpipe  # ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
-USER_EMAIL=prsonlab@gmail.com         # ENTER YOUR EMAIL HERE.  This will be used to send you updates on jobs you run on spock.
+USER_EMAIL=prsonlab@gmail.com         # ENTER YOUR EMAIL.  This will be used to send you updates on jobs you run on spock.
 LAB_NAME=tamir                        # SET NAME OF LAB VOLUME ON JUKEBOX
 PKG_DIR=/jukebox/tamir/pkg            # ENTER DIRECTORY OF PACKAGES
 
@@ -27,24 +30,24 @@ PKG_DIR=/jukebox/tamir/pkg            # ENTER DIRECTORY OF PACKAGES
 #######-------------------------TASKS------------------------######
 
 NUM_TASKS=1                           # ENTER THE NUMBER OF DIFFERENT TASKS (not conditions) - IF MORE THAN ONE, FILL OUT BELOW:
-# If you have more than one task, write each name inside the parentheses below, separated by a space:
-TASKS=(TSK)                           # e.g. (TSK ABC XYZ) Will take only the first 3 letters of each, so make sure they are unique (no numbers, allcaps)
+# Write task names in the parentheses below, separated by a space (name should be 3 letters, easy to remember, see wiki for examples:
+TASKS=(TSK ABC XYZ)                           # e.g. (TSK ABC XYZ)  make sure they are unique (no numbers, allcaps, three letters)
 PREP_SEP=0                            # Run each task with different preprocessing parameters? 1=yes, 0=no
 
-####-DON'T TOUCH THIS-####
-####<<END_VARS>>       ###
-##########################
+                   ####-DON'T TOUCH THIS-####
+                   ###<<END_VARS>>        ###
+                   ##########################
 
 ######--------------------RUN ORDER TEMPLATE-----------------######
-####-DON'T TOUCH THIS-####
-###<<START_RO>>        ###
-##########################
+                   ####-DON'T TOUCH THIS-####
+                   ###<<START_RO>>        ###
+                   ##########################
 
 
 
-####-DON'T TOUCH THIS-####
-###<<END_RO>>          ###
-##########################
+                   ####-DON'T TOUCH THIS-####
+                   ###<<END_RO>>          ### 
+                   ##########################
 ######---------------ENTER STUDY DESCRIPTION HERE------------######
 #
 #
