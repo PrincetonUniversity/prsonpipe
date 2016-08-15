@@ -3,6 +3,14 @@
 # ------------------------------------------------------------------------------
 # this script writes out the parameters to the p_study.m file 
 # (a matlab file to be read by SPM12w)
+#################################################################################
+# Arguments:
+#  IF ONLY ONE TASK LISTED IN STUDY_INFO:
+#    no args creates a general pfile and reads from pars.par
+#    'uw' creates a temp pfile with extension '_uw' and reads from step.par
+#  IF ONE OR MORE TASKS LISTED IN STUDY_INFO:
+#    'TSK' creates a general pfile for task TSK and reads from that task's pars.par file
+#    'TSK' and 'uw' creates a temp pfile with extension '_TSKuw' and reads from step.par
 
 set -e # stop immediately when an error occurs
 
@@ -12,12 +20,34 @@ source pars.par
 source ../scripts/globals.par
 
 # set file name and folder based on whether or not this is a temp pfile
-if [[ $# -eq 0 ]]; then fname=''; wd_raw=$PREP_DIR_RAW; 
+if [[ $# -eq 0 ]] && [[ "${#TASKS[@]}" -eq 1 ]]; then 
+	# no inputs, only 1 task
+	t=$TASKS
+	fname=''; wd_raw=$RAW_DIR/$t; 
 	source pars.par
-elif [[ $# -eq 1 ]]; then fname="_temp_$1"; wd_raw=$PREP_DIR_WD; 
-	source step.par
-else echo "You must input 0 or 1 arguments: 0 to create a general pfile, 1 to create a temporary pfile with the inputted extension.";
-	echo "Aborting..."; exit; fi
+elif [[ $# -eq 1 ]]; then 
+	# 1 input
+	if [[ "${#TASKS[@]}" -eq 1 ]]; then
+		# only 1 task, so input must be extension
+		t=$TASKS
+		fname="_temp_$t$1"; wd_raw=$PREP_DIR/$t; 
+		source step.par
+	else
+		t=$1
+		# more than 1 task, so input must be task name
+		fname="_$1"; wd_raw=$RAW_DIR/$1;
+	fi
+elif [[ $# -eq 2 ]]; then
+	t=$1
+	# 2 inputs, task name and extension name
+	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t$2
+else echo "You must input 0-2 arguments: ";
+	echo "0 (if only one TASK exists!) to create a general pfile.";
+	echo "1 (if only one TASK exists!) to create a temporary pfile with the inputted extension.";
+	echo "1 (if more than one TASK exists!) to create a general pfile for inputted TASK.";
+	echo "2 to create a temporary pfile for TASK (first input) and with an extension (second input).";
+	echo "Aborting..."; exit; 
+fi
 	
 popd > /dev/null   # return to the previous directory, quietly
 
@@ -25,8 +55,7 @@ save_dir=$PROJECT_DIR/$SCRIPT_DIR_DARTEL
 fname_full=$save_dir/p_DARTEL$fname.m
 
 
-if [[ $NORM != 'DARTEL' ]]; then echo "WARNING: DARTEL was not chosen for normalization in /notes/pars.par. Aborting..."; exit; fi
-
+#if [[ $NORM != 'DARTEL' ]]; then echo "WARNING: DARTEL was not chosen for normalization in /notes/pars.par. Aborting..."; exit; fi
 
 spm8_dir=$PKG_DIR/SPM8
 NIfTI_dir=$PKG_DIR/NIfTI
@@ -36,8 +65,6 @@ if [[ $NORM == 'DARTEL' ]]; then norm=1; else norm=0; fi
 if [[ $SMOOTH_SOFT == 'DARTEL' ]]; then	smooth=$SMOOTH; else smooth=0; fi
 
 if [[ $REALIGN == 'DARTEL' ]]; then realign=1; else realign=0; fi
-
-sub_dir=prep/wd
 
 cat <<EOT > $fname_full
 % Parameters file for SPM8 DARTEL normalization
@@ -59,15 +86,15 @@ p.execTAG       = 1;
 % customizable preprocessing parameters
 p.vox_size      = $VOX_SIZE;
 p.smooth        = $smooth;
-p.normalize	= $norm;
-p.realign	= $realign;
+p.normalize	    = $norm;
+p.realign	    = $realign;
 
 % subjects directory containing subject folders
-p.subdir        = '$sub_dir';
+p.subdir        = '$wd_raw';
 % pattern for finding subject folders (use wildcards)
 p.subID         = 's*';
 % do which subjects? ('all' to do all, position vector, e.g. 1:4, to do a subset)
-%p.subTAG        = 'all';
+%p.subTAG        = 'all'; # DARTEL does not currently use subTAG
 % pattern for finding functional run files (use wildcards)
 p.runID         = 'epi_r*';
 % pattern for finding matched-bandwidth image (use wildcards)
