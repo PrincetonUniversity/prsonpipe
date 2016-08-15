@@ -15,18 +15,23 @@ if [[ -n $1 && $1 != 'overwrite' ]]; then
   exit 1
 fi
 
-if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../arch/subpars/runorders/run-order.txt ]]; then
+if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../arch/subpars/runorders/run-order.txt || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
   echo "[INIT] This project has already been initialized." 
   echo "[INIT] If you really want to proceed, and overwrite your previous work, run init_project overwrite"
   exit 1
 fi
 
-source ../notes/study_info.par
+#Source the project settings lines of study_info
+source /dev/stdin <<EOF
+$(sed -n '/-PROJECT\ SETTINGS-/,/-TASKS-/p' ../notes/study_info.par | head -n -1 | tail -n +2)
+EOF
 
 #append all the text between the vars delimiters to globals.pr (excluding the first and last 2 lines containing comments)
-cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 >> ${PROJECT_DIR}/scripts/globals.par
+cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 >> ${PROJECT_DIR}/scripts/temp.txt
+sed -e '/<<STUDY_INFO_VARS_HERE>>/r temp.txt' -e '/<<STUDY_INFO_VARS_HERE>>/d' ${PROJECT_DIR}/scripts/globals.par
+rm ${PROJECT_DIR}/scripts/temp.txt
 #same for runorders, but overwrite instead of append
-cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_RO>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 > ${PROJECT_DIR}/arch/subpars/runorders/run-order.txt
+cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 | tail -n +3 > ${PROJECT_DIR}/arch/subpars/runorders/run-order.txt
 
 source ${PROJECT_DIR}/scripts/globals.par
 
@@ -65,7 +70,8 @@ if [[ $1 == 'overwrite' ]]; then rm -fr "${PROJECT_DIR}/raw/*"; rm -fr "${PROJEC
 #Create project dirs
 echo "[INIT] Running scripts/setup_backup_dirs to make sure backup directories exist on lab volume"
 bash ${PROJECT_DIR}/scripts/setup_backup_dirs
-rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* ${PROJECT_DIR} /jukebox/${LAB_NAME}/${PROJECT_NAME}/scripts
+echo "[INIT] Copying your file structure and scripts to your backup dir"
+rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* --exclude=.git ${PROJECT_DIR} /jukebox/${LAB_NAME}/${PROJECT_NAME}/scripts
 for name in ${TASKS[@]}; do
   mkdir -p ${PROJECT_DIR}/raw/${name}/
   mkdir -p ${PROJECT_DIR}/prep/${name}/{FSL,SPM,wd}
@@ -73,4 +79,3 @@ for name in ${TASKS[@]}; do
 done
 
 echo "[INIT] Completed."
-
