@@ -26,7 +26,7 @@ source ../notes/study_info.par
 #append all the text between the vars delimiters to globals.pr (excluding the first and last 2 lines containing comments)
 cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 >> ${PROJECT_DIR}/scripts/globals.par
 #same for runorders, but overwrite instead of append
-cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_RO>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 > ${PROJECT_DIR}/arch/subpars/runorders/run-order.txt
+cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 | tail -n +3 > ${PROJECT_DIR}/arch/subpars/runorders/run-order.txt
 
 source ${PROJECT_DIR}/scripts/globals.par
 
