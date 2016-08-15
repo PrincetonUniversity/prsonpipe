@@ -29,7 +29,7 @@
 set -e # stop immediately when an error occurs
 
 # load settings and functions
-source temp_globals.par	
+source globals.par	
 source funcs
 
 for t in "${TASKS[@]}"; do 
