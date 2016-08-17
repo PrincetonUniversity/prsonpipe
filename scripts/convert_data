@@ -40,8 +40,8 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
   # set necessary variables and check if prerequisites exist. -JNM
   dicom_archive="${PROJECT_DIR}/arch/dicom/raw_${full_subj}.tar.gz"
   if [[ ! -f $dicom_archive ]]; then echo "[CONVERT] ${dicom_archive} does not exist. Skipping $full_subj."; continue; fi
-  output_dir="${PROJECT_DIR}/raw/${subj}"
-  if [[ ! -d $output_dir ]]; then echo "[CONVERT] Creating $output_dir."; mkdir $output_dir; else echo "[CONVERT] $subj already converted. Skipping $full_subj"; continue; fi
+  output_dir="${PROJECT_DIR}/raw/"
+  if [[ -n $(find $output_dir -name $subj) ]]; then echo "[CONVERT] $subj already converted. Skipping $full_subj"; continue; fi
   run_order_file="${PROJECT_DIR}/arch/subpars/runorders/${full_subj}.txt"
   if [[ ! -f $run_order_file ]]; then echo "[CONVERT] ${run_order_file} does not exist. Skipping $full_subj."; continue; fi
 
@@ -83,7 +83,8 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
     num_expected_scans=$(wc -l < $stripped_run_order_file)
    if [ $num_actual_scans != $num_expected_scans ]; then
       echo "found $num_actual_scans scans, but $num_expected_scans were described in $run_order_file. check that you're listing enough scans for your circle localizer, etc... because those may convert as more than one scan." >/dev/stderr
-      exit $UNEXPECTED_NUMBER_OF_SCANS
+      continue
+      #exit $UNEXPECTED_NUMBER_OF_SCANS
     fi
 
 
@@ -116,7 +117,34 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
 
     rm -f $temp_output_dir/${PREFIX}*
     rm -f $stripped_run_order_file
-    mv $temp_output_dir/* $output_dir
+    
+#move the nifti's to the right directory
+    pushd ${output_dir} > /dev/null
+    subdirs=(${TASKS[@]/%/\/${subj}})
+    mkdir ${subdirs[@]}   
+    for file in $(ls $temp_output_dir); do
+     # the anatomical goes in the first task dir and is then symlinked in the others, so SPMw doesn't get mad
+      if [[ ${file} == anat.nii ]]; then
+        lp=1
+        for dir in */; do
+          while [[ $lp -eq 1 ]]; do mv "${temp_output_dir}/${file}" "${dir}${subj}/anat.nii"; anatdir="${dir}${subj}"; ((lp+=1)); continue 2; done
+          ln -s ${anatdir}/anat.nii ${dir}${subj}/anat.nii
+        done
+     #spin echo's go in each dir unless they're specific to a task
+      elif [[ ${file} == *SE*.nii ]]; then
+        if [[ $( echo ${file%%/} | cut -d'_' -f 1) == 'epi' ]]; then
+          echo "${subdirs[@]}/" | xargs -n 1 rsync -avq --ignore-existing "${temp_output_dir}/${file}"
+        else
+          tskname=$(echo ${file} | cut -d '_' -f 1)
+          mv ${temp_output_dir}/${file} ${tskname}/${subj}/
+        fi
+      else
+        tskname=$(echo $file | cut -d'_' -f 2)
+        filename=$(echo $file | cut -d'_' -f 1,3)
+        mv ${temp_output_dir}/${file} ${tskname}/${subj}/${filename}
+      fi
+    done
+    
     
     echo "[CONVERT] $subj done at $(date)"
 
