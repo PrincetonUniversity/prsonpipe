@@ -10,7 +10,7 @@ function DARTEL_spm8_vars(subs)
 %=====================================================================%
 
 % get parameters
-run /jukebox/tamir/prsonpipe/scripts/DARTEL/p_DARTEL						
+run p_DARTEL						
 
 % load packages
 addpath(p.spm8_dir)

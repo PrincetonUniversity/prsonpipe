@@ -140,9 +140,9 @@ for t in "${TASKS[@]}"; do
 				bash $PROJECT_DIR/notes/write_pfile_$curp* $t $ext
 				# run script
 				if [[ $first -eq 1 ]]; then 
-					prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${convert_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep $SUBJ $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
+					prev_jobid=$(sbatch -t 01:00:00 -D $curp* --dependency=afterok:${convert_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep $SUBJ $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
 				else
-					prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep $SUBJ $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
+					prev_jobid=$(sbatch -t 01:00:00 -D $curp* --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep $SUBJ $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
 				fi
 				# reset pars for next step
 				reset_step_par
@@ -172,7 +172,7 @@ for t in "${TASKS[@]}"; do
 			# write out pfile based on step.par
 			bash $PROJECT_DIR/notes/write_pfile_$curp* $t $ext
 			# run script
-#			prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_curp*_prep SUBS[@] $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
+#			prev_jobid=$(sbatch -t 01:00:00 -D $curp* --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_curp*_prep SUBS[@] $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
 			# reset pars for next step
 			reset_step_par
 			unset ext
@@ -194,7 +194,7 @@ for t in "${TASKS[@]}"; do
 		# write out pfile based on step.par
 		bash $PROJECT_DIR/notes/write_pfile_$curp* $t $ext
 		# run script
-#		sbatch  -t 01:00:00 --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep SUBS[@] $SCRIPT_DIR_FULL/$curp*/p_*$t$ext
+#		sbatch  -t 01:00:00 -D $curp* --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep SUBS[@] $SCRIPT_DIR_FULL/$curp*/p_*$t$ext
 		# MUST SET PREV_JOBID
 	fi
 	reset_step_par
