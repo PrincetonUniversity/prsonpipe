@@ -96,17 +96,19 @@ function get_subs {
 				# d is task folder
 				# check in wd
 				echo "looking in $d"
-				# see if $d/wd (which is task's wd subfolder in prep) has subfolders, and if so, check if they match subID
+				# see if $d (which is task's wd subfolder in prep) has subfolders, and if so, check if they match subID
 				subdircount=`find $d/ -maxdepth 1 -type d | wc -l`
-				for p in $(ls -d $d/*/ | xargs -n 1 basename); do
-					#echo "examining subject $p: if same as $s, delete"
-					if [[ $s == $p ]]; then
-						# found folder with same name as subject.  Delete from list
-						echo "Found ${subs_all[$i]} - deleting from list of all subs..."
-						unset subs_all[$i]
-						continue
-					fi
-				done
+				if [[ $subdircount -gt 1 ]]; then 
+					for p in $(ls -d $d/*/ | xargs -n 1 basename >/dev/null); do
+						#echo "examining subject $p: if same as $s, delete"
+						if [[ $s == $p ]]; then
+							# found folder with same name as subject.  Delete from list
+							echo "Found ${subs_all[$i]} - deleting from list of all subs..."
+							unset subs_all[$i]
+							continue
+						fi
+					done
+				fi
 			#done
 			i=$i+1
 		done

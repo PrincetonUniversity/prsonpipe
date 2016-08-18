@@ -32,7 +32,20 @@ set -e # stop immediately when an error occurs
 source globals.par	
 source funcs
 
+# Run conversion and QA'ing. These scripts just run on data that has not been done yet, 
+# so no need for subids run this script and store the job ID output returned by SLURM. 
+echo "--- Converting all dcm files to nii ---"
+#convert_jobid=$(sbatch -t 240  convert_data | grep -o '[0-9]*')
+# runtime set for 240 minutes (time limit for short jobs)
+
+if [[ $QA == 'BXH' ]]; then 
+	echo "--- Running QA ---"
+#	$(sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa | grep -o '[0-9]*')
+	#runtime set to 48 hours (2880 minutes; max for long job) change this number if necessary
+fi
+
 for t in "${TASKS[@]}"; do 
+
 	echo ">>> Starting task $t <<<"
 	if [[ $PREP_SEP -eq 0 ]]; then source ../notes/pars.par; else source ../notes/pars_$t.par; fi
 	# call get_subs function based on input argument 
@@ -71,12 +84,6 @@ for t in "${TASKS[@]}"; do
 	done
 	#echo "${sim_array[@]}"
 
-	# Run conversion and QA'ing. These scripts just run on data that has not been done yet, 
-	# so no need for subids run this script and store the job ID output returned by SLURM. 
-	echo "--- Converting all dcm files to nii ---"
-	convert_jobid=$(sbatch -t 240  convert_data | grep -o '[0-9]*')
-	# runtime set for 240 minutes (time limit for short jobs)
-
 	echo ""
 	echo "***Running subjects ${SUBS[@]} on the following:"
 	echo "QA                    = $QA"
@@ -89,12 +96,6 @@ for t in "${TASKS[@]}"; do
 
 	first=1
 
-	if [[ $QA == 'BXH' ]]; then 
-		echo "--- Running QA ---"
-		prev_jobid=$(sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa | grep -o '[0-9]*')
-		#runtime set to 48 hours (2880 minutes; max for long job) change this number if necessary
-	fi
-
 	n=0
 	# Run each subject, one at a time
 	for s in "${SUBS[@]}"; do
@@ -106,7 +107,7 @@ for t in "${TASKS[@]}"; do
 		echo "== beginning analysis of $SUBJ at $(date) =="
 		# reset
 		reset_step_par
-		if [[ $QA != 'BXH' ]]; then first=1; else first=0; fi
+		if [[ $QA == 'BXH' ]]; then first=0; else first=1; fi
 
 		i=0; for p in "${pars_array[@]}"; do
 			# if current step is set to 'none', skip and move on to next step
@@ -114,6 +115,7 @@ for t in "${TASKS[@]}"; do
 				echo "Skipping ${par_names[$i]}"; 
 			else
 				first=0
+				if [[ ${par_names[$i]} == 'QA' ]] && [[ $QA == 'BXH' ]]; then continue; fi
 				# if current step is normalization and it's in DARTEL, break out of loop, go to next sub
 				if [[ ${par_names[$i]} == 'NORM' ]] && [[ $NORM == 'DARTEL' ]]; then 
 					# if not last subject, reset step par and ext
@@ -137,7 +139,11 @@ for t in "${TASKS[@]}"; do
 				# write out pfile based on step.par
 				bash $PROJECT_DIR/notes/write_pfile_$curp* $t $ext
 				# run script
-				prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep $SUBJ $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
+				if [[ $first -eq 1 ]]; then 
+					prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${convert_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep $SUBJ $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
+				else
+					prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep $SUBJ $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
+				fi
 				# reset pars for next step
 				reset_step_par
 				unset ext
@@ -166,7 +172,7 @@ for t in "${TASKS[@]}"; do
 			# write out pfile based on step.par
 			bash $PROJECT_DIR/notes/write_pfile_$curp* $t $ext
 			# run script
-			prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_curp*_prep SUBS[@] $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
+#			prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_curp*_prep SUBS[@] $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
 			# reset pars for next step
 			reset_step_par
 			unset ext
@@ -188,7 +194,7 @@ for t in "${TASKS[@]}"; do
 		# write out pfile based on step.par
 		bash $PROJECT_DIR/notes/write_pfile_$curp* $t $ext
 		# run script
-		sbatch  -t 01:00:00 --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep SUBS[@] $SCRIPT_DIR_FULL/$curp*/p_*$t$ext
+#		sbatch  -t 01:00:00 --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep SUBS[@] $SCRIPT_DIR_FULL/$curp*/p_*$t$ext
 		# MUST SET PREV_JOBID
 	fi
 	reset_step_par
@@ -196,7 +202,7 @@ for t in "${TASKS[@]}"; do
 done
 
 echo ">>>>>>> Done with all analyses <<<<<<<"
-for t in "${TASKS[@]}"; do 
-	echo "$t subjects: ${SUBS_${t}[@]}"
-done
+# for t in "${TASKS[@]}"; do 
+# 	echo "$t subjects: ${SUBS_${t}[@]}"
+# done
 echo ">>>>>>><<<<<<<"
