@@ -8,7 +8,7 @@
 #SBATCH -t 01:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
 #SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
 
-source ../globals.par
+source globals.par
 
 # write out parameters file for DARTEL
 #bash $PROJECT_DIR/notes/write_pfile_DARTEL
@@ -30,7 +30,7 @@ echo "Beginning DARTEL analysis of subject(s) $subs at $(date)"
 # run matlab from the command line as part of a submit job
 module load matlab/R2015b
 # run script
-matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL/DARTEL_spm8_vars($subs); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
 
 
 # REQUIRES $SUBS TO BE AN ARRAY OF subIDs (form s000)
