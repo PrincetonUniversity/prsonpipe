@@ -95,7 +95,8 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
   file_array=(${temp_output_dir}/*.nii)
 
     # the sed magic here strips out comments
-  cat $stripped_run_order_file | while read name num_expected_trs; do
+  {
+   while read name num_expected_trs; do
     if [ $name == $ERROR_FLAG ]; then
      let "number += 1"
      continue
@@ -109,12 +110,13 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
         num_actual_trs=$(fslnvols ${niigz_file_prefix}.nii)
         if [ $num_expected_trs -ne $num_actual_trs ]; then
           echo "$name has $num_actual_trs TRs--expected $num_expected_trs" >/dev/stderr
-          exit $UNEXPECTED_NUMBER_OF_TRS
+          continue 2
+          #exit $UNEXPECTED_NUMBER_OF_TRS
         fi
       fi
        let "number += 1"
     done
-
+    } < $stripped_run_order_file
     rm -f $temp_output_dir/${PREFIX}*
     rm -f $stripped_run_order_file
     
