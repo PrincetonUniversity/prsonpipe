@@ -7,23 +7,29 @@
 #
 # INPUT VARIABLE:
 # $ext: str = extension to filename (should reflect which step the temp pfile is for)
-# NOTE: must input 0 or 1 arguments. If not argument, will create a general pfile
-# ------------------------------------------------------------------------------
-# 8/9/16 MW - added argument to make temp files
+#################################################################################
+# NOTE: must input 0, 1, or 2 arguments.
+# Arguments:
+#  IF ONLY ONE TASK LISTED IN STUDY_INFO:
+#    no args 	: creates a general pfile and reads from pars.par
+#    'uw' 		: creates a temp pfile with extension '_uw' and reads from step.par
+#  IF ONE OR MORE TASKS LISTED IN STUDY_INFO:
+#    'TSK'    	: creates a general pfile for task TSK and reads from that task's pars.par file
+#    'TSK' 'uw' : creates a temp pfile with extension '_TSKuw' and reads from step.par
 
 pushd `dirname $0` > /dev/null   # move into this directory, quietly
 
 source ../scripts/globals.par
 
 # set file name and folder based on whether or not this is a temp pfile
-if [[ $# -eq 0 ]] && [[ "${#TASKS[@]}" -eq 1 ]]; then 
+if [[ $# -eq 0 ]] && [[ $NUM_TASKS -eq 1 ]]; then 
 	# no inputs, only 1 task
 	t=$TASKS
 	fname=''; wd_raw=$RAW_DIR/$t; 
-	source pars.par
+	if [[ $PREP_SEP -eq 0 ]]; then source pars.par; else source pars_$t.par; fi
 elif [[ $# -eq 1 ]]; then 
 	# 1 input
-	if [[ "${#TASKS[@]}" -eq 1 ]]; then
+	if [[ $NUM_TASKS -eq 1 ]]; then
 		# only 1 task, so input must be extension
 		t=$TASKS
 		fname="_temp_$t$1"; wd_raw=$PREP_DIR/$t/wd; 
@@ -31,17 +37,14 @@ elif [[ $# -eq 1 ]]; then
 	else
 		t=$1
 		# more than 1 task, so input must be task name
-		fname="_$t"; wd_raw=$RAW_DIR/$1;
+		fname="_$t"; wd_raw=$RAW_DIR/$1; 
+		if [[ $PREP_SEP -eq 0 ]]; then source pars.par; else source pars_$t.par; fi
 	fi
 elif [[ $# -eq 2 ]]; then
-	t=$1
 	# 2 inputs, task name and extension name
-	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t/wd;
-	if [[ $PREP_SEP -eq 0 ]]; then
-		source pars.par
-	else
-		source pars_$t.par
-	fi
+	t=$1
+	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t/wd; 
+	source step.par
 else echo "You must input 0-2 arguments: ";
 	echo "0 (if only one TASK exists!) to create a general pfile.";
 	echo "1 (if only one TASK exists!) to create a temporary pfile with the inputted extension.";
@@ -49,12 +52,6 @@ else echo "You must input 0-2 arguments: ";
 	echo "2 to create a temporary pfile for TASK (first input) and with an extension (second input).";
 	echo "Aborting..."; exit; 
 fi
-
-# if [[ $# -eq 0 ]]; then fname="prep"; wd_raw=$RAW_DIR/$t{1:0:3}; 
-# 	source pars.par
-# elif [[ $# -eq 1 ]]; then fname="temp_$1"; source step.par; wd_raw=$WD_RAW;
-# else echo "You must input 0 or 1 arguments: 0 to create a general pfile, 1 to create a temporary pfile with the inputted extension.";
-# 	echo "Aborting..."; exit; fi
 
 popd > /dev/null   # return to the previous directory, quietly
 

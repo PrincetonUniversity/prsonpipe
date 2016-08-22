@@ -45,7 +45,6 @@ if [[ $QA == 'BXH' ]]; then
 fi
 
 for t in "${TASKS[@]}"; do 
-
 	echo ">>> Starting task $t <<<"
 	if [[ $PREP_SEP -eq 0 ]]; then source ../notes/pars.par; else source ../notes/pars_$t.par; fi
 	# call get_subs function based on input argument 
