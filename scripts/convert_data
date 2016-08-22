@@ -153,7 +153,7 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
 done
 
 echo [CONVERT]
-echo "[CONVERT] Conversion complete"
+echo "[CONVERT] Done."
 echo
 
 exec 9>&- #close subid_list.txt. file -JNM

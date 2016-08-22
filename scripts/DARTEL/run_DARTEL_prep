@@ -5,10 +5,13 @@
 
 #SBATCH -J dartel				# Job name
 #SBATCH --workdir=./			# Set working directory
-#SBATCH -t 01:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
+#SBATCH -o ../../output/dartel-%j
+#SBATCH -t 48:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
 #SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
 
+
 source ../globals.par
+label='[DARTEL]'
 
 # write out parameters file for DARTEL
 #bash $PROJECT_DIR/notes/write_pfile_DARTEL
@@ -20,7 +23,7 @@ SUBS=( "$@" )
 # get subjects to run
 
 if [[ "$(declare -p SUBS)" =~ "declare -a" ]]; then 
-	echo "SUBS is a bash array. Must convert to matlab array."; 
+	echo "${label} SUBS is a bash array. Must convert to matlab array."; 
 	subs='['
 	for s in "${SUBS[@]}"; do
 		subs="$subs${s:1:4} "
@@ -28,14 +31,12 @@ if [[ "$(declare -p SUBS)" =~ "declare -a" ]]; then
 	subs="$subs]"
 fi
 
-pfile=$1
-
-echo "Beginning DARTEL analysis of subject(s) $subs at $(date)"
+echo "${label} Beginning DARTEL analysis of subject(s) $subs with pfile $pfile at $(date)"
 
 # run matlab from the command line as part of a submit job
 module load matlab/R2015b
 # run script
-matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs,$pfile); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs,'$pfile'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
 
 
 # REQUIRES $SUBS TO BE AN ARRAY OF subIDs (form s000)
@@ -57,4 +58,4 @@ for t in "${TASKS[@]}"; do
 	done
 	popd > /dev/null   # return to the directory this script was run from, quietly
 done
-echo "Finished DARTEL analysis of subject(s) $subs at $(date)"
+echo "${label} Finished DARTEL analysis of subject(s) $subs at $(date)"

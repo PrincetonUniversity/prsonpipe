@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# type: sbatch -J name script.sh "subs"
+# subs should either be a vector ([1:4 5:6]) or 'all'
+# Keep lines starting with #SBATCH together and at top of script! Modify settings as appropriate.
+
+#SBATCH -J SPMw_prep				# Job name
+#SBATCH --workdir=./				# Set working directory
+#SBATCH -t 01:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
+#SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
+
+label='SPM12W'
+
+echo "[$label] Not written yet"
+echo "[$label] Done."

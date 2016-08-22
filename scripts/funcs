@@ -3,10 +3,10 @@
 # 8/11/16 updated to look in taskdirs
 ################################################################################
 # CONTENTS:
-# 1) num2subID:  		called by get_subs, converts array to proper subID form (s000)
-# 2) get_subs:   		takes in an array of subjects and returns an array of subject IDs in form s000
-# 3) reset_step_par: 	overwrites pars.par with nothing turned on
-#
+# 1) num2subID			:	called by get_subs, converts array to proper subID form (s000)
+# 2) get_subs			:	takes in an array of subjects and returns an array of subject IDs in form s000
+# 3) reset_step_par		:	overwrites pars.par with nothing turned on
+# 4) wait_for_it		:	waits until log file contains "[STEP] Done."
 # ------------------------------------------------------------------------------
 
 source globals.par
@@ -176,4 +176,22 @@ EOT
 
 ################################################################################
 # 4)
+# wait_for_it
+# author Miriam Weaverdyck, August 22, 2016
+# This function waits until log file contains "[INPUT] Done."
 ###########################################
+
+function wait_for_it {
+	if [[ $# -eq 0 ]]; then echo "[WAIT] Please specify a step to search for. Aborting..."; exit; fi
+
+	step=${1^^}
+	logfile=$2
+	SLEEP_INTERVAL=10   # this is in seconds
+
+	while [ -z "$(grep [$step] Done. $logfile)" ]; do
+		# still running...
+		sleep $SLEEP_INTERVAL
+	done
+
+	echo "[WAIT] $step finished (based on logfile $logfile). Moving on..."
+}
