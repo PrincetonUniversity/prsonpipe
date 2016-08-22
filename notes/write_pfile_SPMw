@@ -26,7 +26,7 @@ elif [[ $# -eq 1 ]]; then
 	if [[ "${#TASKS[@]}" -eq 1 ]]; then
 		# only 1 task, so input must be extension
 		t=$TASKS
-		fname="_temp_$t$1"; wd_raw=$PREP_DIR/$t; 
+		fname="_temp_$t$1"; wd_raw=$PREP_DIR/$t/wd; 
 		source step.par
 	else
 		t=$1
@@ -36,7 +36,7 @@ elif [[ $# -eq 1 ]]; then
 elif [[ $# -eq 2 ]]; then
 	t=$1
 	# 2 inputs, task name and extension name
-	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t$2;
+	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t/wd;
 	if [[ $PREP_SEP -eq 0 ]]; then
 		source pars.par
 	else

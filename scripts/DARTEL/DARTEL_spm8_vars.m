@@ -10,7 +10,7 @@ function DARTEL_spm8_vars(subs,pfile)
 %=====================================================================%
 
 % get parameters
-run pfile			
+run(pfile)		
 
 % load packages
 addpath(p.spm8_dir)
@@ -110,7 +110,7 @@ for s = 1:length(dosubs)
 
     fprintf('Starting subject %d of %d, %s\n',s,length(dosubs),cbusub)
 
-    swd = [owd filesep subdirID filesep cbusub];    % subject working directory (cbusub = sub name)
+    swd = [subdirID filesep cbusub];    % subject working directory (cbusub = sub name)
 
     fprintf('Subject files found in %s\n',swd)
 

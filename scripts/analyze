@@ -114,7 +114,6 @@ for t in "${TASKS[@]}"; do
 			if [[ $p == 'none' ]]; then 
 				echo "Skipping ${par_names[$i]}"; 
 			else
-				first=0
 				if [[ ${par_names[$i]} == 'QA' ]] && [[ $QA == 'BXH' ]]; then continue; fi
 				# if current step is normalization and it's in DARTEL, break out of loop, go to next sub
 				if [[ ${par_names[$i]} == 'NORM' ]] && [[ $NORM == 'DARTEL' ]]; then 
@@ -130,7 +129,7 @@ for t in "${TASKS[@]}"; do
 				ext=$ext${p_array[$i]}
 				# turn step on in step.par
 				echo "${par_names[$i]}='$p'" >> $PROJECT_DIR/notes/step.par
-				if [[ $first -eq 1 ]]; then echo "WD_RAW='$PREP_DIR/$t/wd'" >> $PROJECT_DIR/notes/step.par; fi
+				if [[ $first -eq 1 ]]; then echo "wd_raw='$raw_DIR/$t'" >> $PROJECT_DIR/notes/step.par; fi
 				curp=$p
 			fi
 			if [[ ${sim_array[$i+1]} -eq 0 ]]; then 
@@ -147,6 +146,7 @@ for t in "${TASKS[@]}"; do
 				# reset pars for next step
 				reset_step_par
 				unset ext
+				first=0
 			fi
 			i=$i+1
 		done
@@ -166,6 +166,7 @@ for t in "${TASKS[@]}"; do
 		echo $curp
 		# turn step on in step.par
 		echo "${par_names[$i]}='${pars_array[$i]}'" >> $PROJECT_DIR/notes/step.par
+		if [[ $first -eq 1 ]]; then echo "wd_raw='$RAW_DIR/$t'" >> $PROJECT_DIR/notes/step.par; fi
 		if [[ ${sim_array[i+1]} -eq 0 ]]; then 
 			# last step (smoothing) does not use DARTEL, so run normalization in DARTEL, then smoothing
 			echo "-- Running ${pars_array[$i]} analysis --"

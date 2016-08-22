@@ -32,7 +32,7 @@ PKG_DIR=/jukebox/tamir/pkg            # ENTER DIRECTORY OF PACKAGES
 
 NUM_TASKS=1                           # ENTER THE NUMBER OF DIFFERENT TASKS (not conditions) - IF MORE THAN ONE, FILL OUT BELOW:
 # Write task names in the parentheses below, separated by a space (name should be 3 letters, easy to remember, see wiki for examples:
-TASKS=(TSK ABC XYZ)                           # e.g. (TSK ABC XYZ)  make sure they are unique (no numbers, allcaps, three letters)
+TASKS=(TSK)                           # e.g. (TSK ABC XYZ)  make sure they are unique (no numbers, allcaps, three letters)
 PREP_SEP=0                            # Run each task with different preprocessing parameters? 1=yes, 0=no
 
                    ####-DON'T TOUCH THIS-####

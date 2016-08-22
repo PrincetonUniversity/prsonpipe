@@ -24,13 +24,12 @@ if [[ $# -eq 0 ]] && [[ "${#TASKS[@]}" -eq 1 ]]; then
 	# no inputs, only 1 task
 	t=$TASKS
 	fname=''; wd_raw=$RAW_DIR/$t; 
-	source pars.par
 elif [[ $# -eq 1 ]]; then 
 	# 1 input
 	if [[ "${#TASKS[@]}" -eq 1 ]]; then
 		# only 1 task, so input must be extension
 		t=$TASKS
-		fname="_temp_$t$1"; wd_raw=$PREP_DIR/$t; 
+		fname="_temp_$t$1"; wd_raw=$PREP_DIR/$t/wd; 
 		source step.par
 	else
 		t=$1
@@ -40,11 +39,11 @@ elif [[ $# -eq 1 ]]; then
 elif [[ $# -eq 2 ]]; then
 	t=$1
 	# 2 inputs, task name and extension name
-	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t;
+	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t/wd;
 	if [[ $PREP_SEP -eq 0 ]]; then
-		source pars.par
+		source step.par
 	else
-		source pars_$t.par
+		source step_$t.par
 	fi
 else echo "You must input 0-2 arguments: ";
 	echo "0 (if only one TASK exists!) to create a general pfile.";
@@ -79,7 +78,7 @@ cat <<EOT > $fname_full
 % SPM packages to load
 p.spm8_dir      = '$spm8_dir';
 p.NIfTI_dir     = '$NIfTI_dir';
-p.scripts_dir   = '$SCRIPT_DIR_SPM8';
+p.scripts_dir   = '$SCRIPT_DIR_DARTEL';
 
 % study directory
 p.proj_dir      = '$PROJECT_DIR';
