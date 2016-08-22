@@ -40,7 +40,7 @@ echo "--- Converting all dcm files to nii ---"
 
 if [[ $QA == 'BXH' ]]; then 
 	echo "--- Running QA ---"
-#	$(sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa | grep -o '[0-9]*')
+#	sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa
 	#runtime set to 48 hours (2880 minutes; max for long job) change this number if necessary
 fi
 
@@ -172,7 +172,7 @@ for t in "${TASKS[@]}"; do
 			# write out pfile based on step.par
 			bash $PROJECT_DIR/notes/write_pfile_$curp* $t $ext
 			# run script
-#			prev_jobid=$(sbatch -t 01:00:00 -D $curp* --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_curp*_prep SUBS[@] $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
+#			prev_jobid=$(sbatch -t 01:00:00 -D $curp* --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_curp*_prep $SCRIPT_DIR_FULL/$curp*/p_*$t$ext ${SUBS[@]} $SCRIPT_DIR_FULL/$curp*/p_*$t$ext | grep -o '[0-9]*')
 			# reset pars for next step
 			reset_step_par
 			unset ext
@@ -194,7 +194,7 @@ for t in "${TASKS[@]}"; do
 		# write out pfile based on step.par
 		bash $PROJECT_DIR/notes/write_pfile_$curp* $t $ext
 		# run script
-#		sbatch  -t 01:00:00 -D $curp* --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep SUBS[@] $SCRIPT_DIR_FULL/$curp*/p_*$t$ext
+#		sbatch  -t 01:00:00 -D $curp* --dependency=afterok:${prev_jobid} $SCRIPT_DIR_FULL/$curp*/run_$curp*_prep $SCRIPT_DIR_FULL/$curp*/p_*$t$ext ${SUBS[@]}
 		# MUST SET PREV_JOBID
 	fi
 	reset_step_par

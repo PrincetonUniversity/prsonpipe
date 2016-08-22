@@ -40,7 +40,7 @@ elif [[ $# -eq 1 ]]; then
 elif [[ $# -eq 2 ]]; then
 	t=$1
 	# 2 inputs, task name and extension name
-	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t$2;
+	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t;
 	if [[ $PREP_SEP -eq 0 ]]; then
 		source pars.par
 	else
@@ -103,7 +103,7 @@ p.subID         = 's*';
 % pattern for finding functional run files (use wildcards)
 p.runID         = 'epi_r*';
 % pattern for finding matched-bandwidth image (use wildcards)
-p.mprageID      = 'anat.nii';
+p.mprageID      = 'anat*.nii';
 
 % format of your raw functional images (1=img/hdr, 2=4D nii)
 p.funcFormat    = 2;

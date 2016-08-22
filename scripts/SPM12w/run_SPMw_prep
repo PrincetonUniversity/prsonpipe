@@ -9,7 +9,7 @@
 #SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
 
 # write out parameters file for SPMw preprocessing
-bash ../../notes/write_pfile_prep
+#bash ../../notes/write_pfile_prep
 
 # get subjects to run from first argument
 subs="$1"

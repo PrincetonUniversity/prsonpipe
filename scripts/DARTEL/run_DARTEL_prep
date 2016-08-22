@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# type: sbatch -J name script.sh "subs"
+# type: sbatch -J name script.sh pfile "subs"
 # subs should either be a matlab vector "[1:4 5:6]""
 # Keep lines starting with #SBATCH together and at top of script! Modify settings as appropriate.
 
@@ -13,8 +13,11 @@ source ../globals.par
 # write out parameters file for DARTEL
 #bash $PROJECT_DIR/notes/write_pfile_DARTEL
 
+pfile=$1
+shift 
+SUBS=( "$@" )
+
 # get subjects to run
-SUBS=$1
 
 if [[ "$(declare -p SUBS)" =~ "declare -a" ]]; then 
 	echo "SUBS is a bash array. Must convert to matlab array."; 
@@ -25,12 +28,14 @@ if [[ "$(declare -p SUBS)" =~ "declare -a" ]]; then
 	subs="$subs]"
 fi
 
+pfile=$1
+
 echo "Beginning DARTEL analysis of subject(s) $subs at $(date)"
 
 # run matlab from the command line as part of a submit job
 module load matlab/R2015b
 # run script
-matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs,$pfile); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
 
 
 # REQUIRES $SUBS TO BE AN ARRAY OF subIDs (form s000)

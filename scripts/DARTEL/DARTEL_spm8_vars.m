@@ -1,4 +1,4 @@
-function DARTEL_spm8_vars(subs)
+function DARTEL_spm8_vars(subs,pfile)
 
 %=====================================================================%
 
@@ -10,7 +10,7 @@ function DARTEL_spm8_vars(subs)
 %=====================================================================%
 
 % get parameters
-run p_DARTEL						
+run pfile			
 
 % load packages
 addpath(p.spm8_dir)
