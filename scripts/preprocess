@@ -13,7 +13,7 @@
 # array per subject.  Can work with 'none' entries, now.  
 # 8/11/16 MEW: updated to go through $TASKS array
 # 8/22/16 MEW: included wait_for_it, passes pfiles as arguments to all sbatch commands, 
-# 			wd_dir included, copies files from raw to prep_wd
+# 			wd_dir included, copies files from raw to wd_dir_sub
 # ------------------------------------------------------------------------------
 ################################################################################
 # Packages used:
@@ -24,8 +24,8 @@
 #  'all' (will run all subjects)
 ################################################################################
 #
-# SBATCH -J analyze-%j
-# SBATCH -o ../output/analyze-%j.out
+# SBATCH -J prep-%j
+# SBATCH -o ../output/prep-%j.out
 # SBATCH -t 00:01:00						# hh:mm:ss
 
 set -e # stop immediately when an error occurs
@@ -37,24 +37,27 @@ label='[PREP]'
 
 # Run conversion and QA'ing. These scripts just run on data that has not been done yet, 
 # so no need for subids run this script and store the job ID output returned by SLURM. 
-echo "${label} --- Converting all dcm files to nii ---"
+convert_log=${PROJECT_DIR}/arch/LOG.txt
+echo "${label} $(date) -- Converting all dcm files to nii ---" > "${convert_log}"
 convert_jobid=$(sbatch -t 240  convert_data | grep -o '[0-9]*')
 # runtime set for 240 minutes (time limit for short jobs)
 
 if [[ $QA == 'BXH' ]]; then 
-	echo "${label} --- Running QA ---"
+	echo "${label} $(date) -- Running BXH QA ---" >> "${PROJECT_DIR}/qa/LOG.txt"
 	sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa
 	#runtime set to 48 hours (2880 minutes; max for long job) change this number if necessary
 fi
 
-#wait_for_it "convert" "$OUT_DIR/logfile"
+#wait_for_it "convert" "${convert_log}"
 
 for t in "${TASKS[@]}"; do 
 	echo "${label} >>> Starting task $t <<<"
 
 	# source task's pars file
 	if [[ $PREP_SEP -eq 0 ]]; then source ${PROJECT_DIR}/notes/pars.par; else source ${PROJECT_DIR}/notes/pars_${t}.par; fi
-	if ! [[ -d ${wd_dir} ]]; then mkdir ${PREP_DIR}/${t}/${wd_dir}; fi
+
+	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
+	if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
 
 	# call get_subs function
 	if [[ $# -eq 0 ]]; then get_subs $t; elif [[ "$1" == 'all' ]]; then get_subs $t 'all'; 
@@ -93,16 +96,17 @@ for t in "${TASKS[@]}"; do
 	
 	# Run each subject, one at a time
 	n=0; for s in "${SUBS[@]}"; do
-		if [[ -z $s ]]; then echo "${label} Can't find subject. Aborting..."; exit; fi
+		if [[ -z $s ]]; then echo "${label} Can't find subject ${s}. Aborting..."; exit; fi
 		first=1; SUBJ=$s
 
-		# copy sub folder from raw/tsk to prep/tsk/wd
-		prep_wd=${PREP_DIR}/${t}/${wd_dir}/${SUBJ}
-		if [[ -d ${prep_wd} ]]; then echo "${label} ${prep_wd} already exists. Replacing.";
-		else mkdir "${prep_wd}"; fi
-		cp ${RAW_DIR}/${t}/${SUBJ}/* ${prep_wd}/
+		wd_dir_sub=${wd_dir_full}/${SUBJ}
+		logfile=${wd_dir_sub}/LOG.txt
 
-		echo "${label} == beginning preprocessing of $SUBJ at $(date) =="
+		# copy sub folder from raw/tsk to prep/tsk/wd
+		if [[ -d "${wd_dir_sub}" ]]; then echo "${label} ${wd_dir_sub} already exists. Deleting and replacing."; rm -rf ${wd_dir_sub}; fi
+		cp -r ${RAW_DIR}/${t}/${SUBJ} ${wd_dir_sub}
+
+		echo "${label} $(date) == beginning preprocessing of $SUBJ ==" >> "$logfile"
 		reset_step_par; unset ext; unset pnames
 
 		i=0; for p in "${pars_array[@]}"; do
@@ -124,7 +128,7 @@ for t in "${TASKS[@]}"; do
 			# check if next step uses same software
 			# RUN STEPS
 			if [[ ${sim_array[$i+1]} -eq 0 ]]; then 
-				echo "${label} $(date) -- running $pnames in $curp analysis on $SUBJ --"
+				echo "${label} $(date) -- running $pnames in $curp analysis on $SUBJ --" >> "$logfile"
 				# write out pfile based on step.par
 				bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
 				script_path="${SCRIPT_DIR_FULL}/${curp}"
@@ -150,7 +154,10 @@ for t in "${TASKS[@]}"; do
 
 	# DARTEL
 	if [[ $NORM == 'DARTEL' ]]; then
-		echo "${label} == beginning group preprocessing of ${SUBS[@]} at $(date) =="
+		for s in "${SUBS[@]}"; do
+			logfile=${wd_dir_full}/${s}/LOG.txt
+			echo "${label} $(date) == beginning group preprocessing of ${SUBS[@]} ==" >> "$logfile"
+		done
 
 		# SET UP FOR DARTEL
 		i=`expr ${#pars_array[@]} - 2`  # set i to NORM index (second to last)
@@ -167,7 +174,10 @@ for t in "${TASKS[@]}"; do
 		fi
 
 		# RUN DARTEL
-		echo "${label} $(date) -- running $pnames in $curp analysis on ${SUBS[@]} --"
+		for s in "${SUBS[@]}"; do
+			logfile=${wd_dir_full}/${s}/LOG.txt
+			echo "${label} $(date) -- running $pnames in $curp analysis --" >> "$logfile"
+		done
 		bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
 		script_path="${SCRIPT_DIR_FULL}/$curp"
 		run_script="${script_path}/run_${curp}_prep"
@@ -186,7 +196,10 @@ for t in "${TASKS[@]}"; do
 			p=${pars_array[i]}; p_name=${par_names[$i]}; e=${p_array[$i]}
 			ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
 			echo "${p_name}='$p'" >> ${PROJECT_DIR}/notes/step.par
-			echo "${label} $(date) -- running $pnames in $curp analysis on ${SUBS[@]} --"
+			for s in "${SUBS[@]}"; do
+				logfile=${wd_dir_full}/${s}/LOG.txt
+				echo "${label} $(date) -- running $pnames in $curp analysis --" >> "$logfile"
+			done
 			bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
 			script_path="${SCRIPT_DIR_FULL}/$curp"
 			run_script="${script_path}/run_${curp}_prep"
@@ -197,4 +210,4 @@ for t in "${TASKS[@]}"; do
 		fi
 	fi
 done
-echo "${label} ================ Done with all preprocessing at $(date) ================"
+echo "${label} $(date) ================ Done with all preprocessing ================"

@@ -96,7 +96,7 @@ function get_subs {
 			subdircount=`find ${d}/ -maxdepth 1 -type d | wc -l`
 			if [[ $subdircount -gt 1 ]]; then 
 				for p in $(ls -d ${d}/*/ | xargs -n 1 basename); do
-					echo "examining subject $p: if same as $s, delete"
+					#echo "examining subject $p: if same as $s, delete"
 					if [[ $s == $p ]]; then
 						# found folder with same name as subject.  Delete from list
 						unset subs_all[$i]
