@@ -20,15 +20,21 @@ pfile=$1
 shift 
 SUBS=( "$@" )
 
-# get subjects to run
-
-if [[ "$(declare -p SUBS)" =~ "declare -a" ]]; then 
-	echo "${label} SUBS is a bash array. Must convert to matlab array."; 
-	subs='['
+if [[ ${1:0:1} == '[' ]]; then 
+	echo "${label} subject input is matlab array."
+	subs=''
 	for s in "${SUBS[@]}"; do
-		subs="$subs${s:1:4} "
+		subs="$subs $s"
 	done
-	subs="$subs]"
+else
+	if [[ "$(declare -p SUBS)" =~ "declare -a" ]]; then 
+		echo "${label} subject input is a bash array. Must convert to matlab array."; 
+		subs='['
+		for s in "${SUBS[@]}"; do
+			subs="${subs}${s:1:4} "
+		done
+		subs="${subs}]"
+	fi
 fi
 
 echo "${label} Beginning DARTEL analysis of subject(s) $subs with pfile $pfile at $(date)"

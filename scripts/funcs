@@ -73,43 +73,37 @@ function num2subID {
 ###########################################
 
 function get_subs {
+	set -e # stop immediately when an error occurs
 	unset SUBS
 	tsk=$1
 
-	if [[ $# -eq 0 ]]; then echo "Please specify a task. Aborting..."; exit;
-	elif [[ $# -eq 1 ]]; then
+	if [[ $# -le 1 ]]; then
+		if [[ $# -eq 0 ]] && [[ ${NUM_TASKS} -gt 1 ]]; then echo "Please specify a task: ${TASKS[@]}. Aborting..."; exit; fi
+		if [[ $# -eq 0 ]]; then tsk=$TASKS; fi
 		# NEW SUBJECTS: no subject input means run all new subjects only, based on raw/
 		# make list of all subjects in raw/
-		echo 'No subjects given. Selecting new subjects...'
+		if ! [[ -d ${RAW_DIR}/${tsk}/ ]]; then echo "'${tsk}' is not a valid task name. Aborting..."; exit; fi
 		i=0
-		for s in $(ls -d $RAW_DIR/$tsk/*/ | xargs -n 1 basename); do
+		for s in $(ls -d ${RAW_DIR}/${tsk}/*/ | xargs -n 1 basename); do
 			subs_all[$i]=$s;
 			i=$i+1;
 		done
-		echo "Subjects found in raw/$tsk: ${subs_all[@]}"
 		# check list of subjects with those in prep
 		i=0
 		for s in "${subs_all[@]}"; do
-			echo "--searching for $s--"
-			d=$PREP_DIR/$tsk/wd
-			#for d in $(ls -d $PREP_DIR/*/); do
-				# d is task folder
-				# check in wd
-				echo "looking in $d"
-				# see if $d (which is task's wd subfolder in prep) has subfolders, and if so, check if they match subID
-				subdircount=`find $d/ -maxdepth 1 -type d | wc -l`
-				if [[ $subdircount -gt 1 ]]; then 
-					for p in $(ls -d $d/*/ | xargs -n 1 basename >/dev/null); do
-						#echo "examining subject $p: if same as $s, delete"
-						if [[ $s == $p ]]; then
-							# found folder with same name as subject.  Delete from list
-							echo "Found ${subs_all[$i]} - deleting from list of all subs..."
-							unset subs_all[$i]
-							continue
-						fi
-					done
-				fi
-			#done
+			d=${PREP_DIR}/${tsk}/${wd_dir}
+			# see if $d (which is task's wd subfolder in prep) has subfolders, and if so, check if they match subID
+			subdircount=`find ${d}/ -maxdepth 1 -type d | wc -l`
+			if [[ $subdircount -gt 1 ]]; then 
+				for p in $(ls -d ${d}/*/ | xargs -n 1 basename); do
+					echo "examining subject $p: if same as $s, delete"
+					if [[ $s == $p ]]; then
+						# found folder with same name as subject.  Delete from list
+						unset subs_all[$i]
+						continue
+					fi
+				done
+			fi
 			i=$i+1
 		done
 		# Make list of all new subjects, ignoring the empty elements
@@ -121,16 +115,15 @@ function get_subs {
 			fi
 		done
 		# SUBS now contains an array of new subjects that have not been preprocessed
-		echo "New subjects: ${SUBS[@]}"
+		echo "No subjects given.  Selecting all ${#SUBS[@]} new subjects for task $tsk: ${SUBS[@]}"
 	elif [[ $2 == 'all' ]]; then
 		# ALL SUBJECTS: run all subjects in task, even those who have already been preprocessed
-		echo 'Selecting all subjects:'
 		i=0
-		for s in $(ls -d $RAW_DIR/$tsk/*/ | xargs -n 1 basename); do
+		for s in $(ls -d ${RAW_DIR}/${tsk}/*/ | xargs -n 1 basename); do
 			SUBS[$i]=$s
 			i=$i+1
 		done
-		echo "${SUBS[@]}"
+		echo "Selecting all ${#SUBS[@]} subjects for task ${tsk}: ${SUBS[@]}"
 	else
 		# RUN SELECT SUBJECTS: run only the subjects inputted
 		declare -a subs=("${!2}")
@@ -138,7 +131,7 @@ function get_subs {
 		num2subID subs[@]
 		i=0
 		for s in "${SUBIDS[@]}"; do
-			for p in $(ls -d $RAW_DIR/$tsk/*/ | xargs -n 1 basename); do
+			for p in $(ls -d ${RAW_DIR}/${tsk}/*/ | xargs -n 1 basename); do
 				if [[ $s == $p ]]; then
 					# found folder with same name as subject.  Delete from list
 					SUBS[$i]=$s;
@@ -146,8 +139,7 @@ function get_subs {
 				fi
 			done
 		done
-		echo 'Selecting these subjects only:'
-		echo "${SUBS[@]}"
+		echo "Selecting all ${#SUBS[@]} inputted subjects for task $tsk: ${SUBS[@]}"
 	fi
 }
 
@@ -160,17 +152,20 @@ function get_subs {
 
 function reset_step_par () {
 cat <<EOT > $PROJECT_DIR/notes/step.par
+wd_dir=$wd_dir
 # turn off everything
 QA='none'
 SLICE_TIME='none'
 REALIGN='none'
 UNWARP='none'
+NORM='none'
+VOX_SIZE=$VOX_SIZE
 SMOOTH_SOFT='none'
 SMOOTH=$SMOOTH
 SNR='none'
 SLICES=0
 
-# turn on steps:
+# turn on these steps:
 EOT
 }
 

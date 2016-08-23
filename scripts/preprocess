@@ -12,7 +12,8 @@
 # 8/11/16 MEW: finished adding arrays for all prep steps so that it loops through
 # array per subject.  Can work with 'none' entries, now.  
 # 8/11/16 MEW: updated to go through $TASKS array
-# 8/22/16 MEW: included wait_for_it, passes pfiles as arguments to all sbatch commands
+# 8/22/16 MEW: included wait_for_it, passes pfiles as arguments to all sbatch commands, 
+# 			wd_dir included, copies files from raw to prep_wd
 # ------------------------------------------------------------------------------
 ################################################################################
 # Packages used:
@@ -50,43 +51,38 @@ fi
 
 for t in "${TASKS[@]}"; do 
 	echo "${label} >>> Starting task $t <<<"
-	if [[ $PREP_SEP -eq 0 ]]; then source ../notes/pars.par; else source ../notes/pars_$t.par; fi
-	# call get_subs function based on input argument 
-	# to get array SUBS of all subject IDs that will be run
+
+	# source task's pars file
+	if [[ $PREP_SEP -eq 0 ]]; then source ${PROJECT_DIR}/notes/pars.par; else source ${PROJECT_DIR}/notes/pars_${t}.par; fi
+	if ! [[ -d ${wd_dir} ]]; then mkdir ${PREP_DIR}/${t}/${wd_dir}; fi
+
+	# call get_subs function
 	if [[ $# -eq 0 ]]; then get_subs $t; elif [[ "$1" == 'all' ]]; then get_subs $t 'all'; 
 	else declare -a subs_array=( "$@" ); get_subs $t subs_array[@]; fi
 
+	# if no subjects in raw/tsk, then move to next task
 	if [[ -z $SUBS ]]; then echo "${label} No subjects found for task $t."; continue; fi
 
-	declare SUBS_$t=${SUBS[@]}
+#	declare SUBS_$t=${SUBS[@]}
 
-	# Create an array (par_names) of all the preprocessing parameter names in order of execution
+	# Create an array (par_names) of all the preprocessing step names (in order of execution)
 	declare -a par_names=("QA" "SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT")
-	# Create an array (pars_array) of all the preprocessing parameters in order of execution
+	# Create an array (pars_array) of all the preprocessing step's software (SPM12w, FSL, DARTEL) (same order as par_names)
 	declare -a pars_array=("$QA" "$SLICE_TIME" "$REALIGN" "$UNWARP" "$NORM" "$SMOOTH_SOFT" )
-	# Create an array (p_array) of all the parameter prefixes in same order
+	# Create an array (p_array) of all the preprocessing prefixes (same order as par_names)
 	declare -a p_array=('q' 'a' 'r' 'u' 'w' 's')
 
 	# Create a similarity array (sim_array) of all the preprocessing parameters, such that:
 	# 0 means the parameter uses a different software than the previous step
 	# 1 means the parameter uses the same software as the previous step
-	i=0
-	for p in "${pars_array[@]}"; do
+	i=0; for p in "${pars_array[@]}"; do
+		# check if current step is same as curp (current software parameter)
 		if [[ $p != 'none' ]]; then 
-			# check if current step is same as curp (current software parameter)
-			if [[ $p == $curp ]]; then sim_array[$i]=1; else sim_array[$i]=0; fi
-			curp=$p; 
-		else sim_array[$i]=1; 
-		fi
-		i=$i+1
+			if [[ $p == $curp ]]; then sim_array[$i]=1; else sim_array[$i]=0; fi; curp=$p; 
+		else sim_array[$i]=1; fi; i=$i+1
 	done
-	i=0
-	for p in "${pars_array[@]}"; do
-		if ! [[ $p == 'none' ]]; then sim_array[$i]=1; break; fi
-		i=$i+1
-	done
+	i=0; for p in "${pars_array[@]}"; do if ! [[ $p == 'none' ]]; then sim_array[$i]=1; break; fi; i=$i+1; done
 
-	echo "${label} "
 	echo "${label} ***Running subjects ${SUBS[@]} on the following:"
 	echo "${label} QA                    = $QA"
 	echo "${label} Slice Time Correction = $SLICE_TIME"
@@ -94,137 +90,111 @@ for t in "${TASKS[@]}"; do
 	echo "${label} Unwarping             = $UNWARP"
 	echo "${label} Normalization         = $NORM"
 	echo "${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)"
-	echo "${label} "
-
-	first=1
-
-	n=0
+	
 	# Run each subject, one at a time
-	for s in "${SUBS[@]}"; do
+	n=0; for s in "${SUBS[@]}"; do
 		if [[ -z $s ]]; then echo "${label} Can't find subject. Aborting..."; exit; fi
+		first=1; SUBJ=$s
 
-		# save subject ID in form s000
-		SUBJ=$s
+		# copy sub folder from raw/tsk to prep/tsk/wd
+		prep_wd=${PREP_DIR}/${t}/${wd_dir}/${SUBJ}
+		if [[ -d ${prep_wd} ]]; then echo "${label} ${prep_wd} already exists. Replacing.";
+		else mkdir "${prep_wd}"; fi
+		cp ${RAW_DIR}/${t}/${SUBJ}/* ${prep_wd}/
 
-		echo "${label} == beginning analysis of $SUBJ at $(date) =="
-		# reset
-		reset_step_par
-		if [[ $QA == 'BXH' ]]; then first=0; else first=1; fi
+		echo "${label} == beginning preprocessing of $SUBJ at $(date) =="
+		reset_step_par; unset ext; unset pnames
 
 		i=0; for p in "${pars_array[@]}"; do
+			# SET UP STEPS
+			p_name=${par_names[$i]}; e=${p_array[$i]}
 			# if current step is set to 'none', skip and move on to next step
-			if [[ $p == 'none' ]]; then 
-				echo "${label} Skipping ${par_names[$i]}"; 
-			else
+			if [[ $p != 'none' ]]; then 
+				# check if current step is QA(BXH) or NORM(DARTEL)
 				if [[ ${par_names[$i]} == 'QA' ]] && [[ $QA == 'BXH' ]]; then continue; fi
-				# if current step is normalization and it's in DARTEL, break out of loop, go to next sub
 				if [[ ${par_names[$i]} == 'NORM' ]] && [[ $NORM == 'DARTEL' ]]; then 
 					# if not last subject, reset step par and ext
-					if [[ $n -ne ${#SUBS[@]}-1 ]]; then 
-						echo "${label} Will run normalization and smoothing later."; reset_step_par; unset ext; 
-					fi
+					if [[ $n -ne ${#SUBS[@]}-1 ]]; then reset_step_par; unset ext; fi; 
 					break; 
 				fi
-				echo "${label} Adding ${par_names[$i]} to $p run list"
-				# otherwise, note step
-				# add step extension to current extension list of consecutive steps using same software
-				ext=${ext}${p_array[$i]}
-				# turn step on in step.par
-				echo "${par_names[$i]}='$p'" >> ${PROJECT_DIR}/notes/step.par
-				if [[ $first -eq 1 ]]; then echo "wd_raw='${raw_DIR}/$t'" >> ${PROJECT_DIR}/notes/step.par; fi
-				curp=$p
+				# add step extension to current software's (e.g. FSL) extension list and turn on step in step.par
+				ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
+				echo "${p_name}='$curp'" >> ${PROJECT_DIR}/notes/step.par
 			fi
+			# check if next step uses same software
+			# RUN STEPS
 			if [[ ${sim_array[$i+1]} -eq 0 ]]; then 
-				# next step does not use the same software, so run now
-				echo "${label} -- Running $curp analysis --"
+				echo "${label} $(date) -- running $pnames in $curp analysis on $SUBJ --"
 				# write out pfile based on step.par
 				bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
 				script_path="${SCRIPT_DIR_FULL}/${curp}"
+				run_script="${script_path}/run_${curp}_prep"
 				pfile="${script_path}/p_${curp}_temp_${t}${ext}.m"
 
-				# run script
-				pushd ${script_path} > /dev/null   # move into this directory, quietly
+				# run steps in current software
+				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
 				if [[ $first -eq 1 ]]; then 
-					prev_jobid=$(sbatch -t 01:00:00 -D $curp "${script_path}/run_${curp}_prep" "$pfile" "$SUBJ" | grep -o '[0-9]*')
+					prev_jobid=$(sbatch -t 01:00:00 "${run_script}" "$pfile" "$SUBJ" | grep -o '[0-9]*')
 				else
-					prev_jobid=$(sbatch -t 01:00:00 -D $curp --dependency=afterok:${prev_jobid} "${script_path}/run_${curp}_prep" "$pfile" "$SUBJ" | grep -o '[0-9]*')
+					prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$SUBJ" | grep -o '[0-9]*')
 				fi
 				popd > /dev/null   # return to the previous directory, quietly
 
 				# reset pars for next step
-				reset_step_par
-				unset ext
-				first=0
+				reset_step_par; unset ext; first=0; unset pnames;
 			fi
 			i=$i+1
 		done
 		n=$n+1
 	done
-	echo "${label} == finished indivdual analyses of ${SUBS[@]} at $(date) =="
-	# Normalization and Registration in DARTEL
+
+	# DARTEL
 	if [[ $NORM == 'DARTEL' ]]; then
-		# set i to the second to last index
-		i=${#pars_array[@]}-2
-		# run DARTEL normalization
-		echo "${label} Adding ${par_names[$i]} to $p run list"
-		# add step extension to current extension list of consecutive steps using same software
-		ext=${ext}${p_array[$i]}
-		curp=${pars_array[$i]}
-		# turn step on in step.par
-		echo "${par_names[$i]}='${pars_array[$i]}'" >> ${PROJECT_DIR}/notes/step.par
-		if [[ $first -eq 1 ]]; then echo "wd_raw='${RAW_DIR}/$t'" >> ${PROJECT_DIR}/notes/step.par; fi
-		if [[ ${sim_array[i+1]} -eq 0 ]]; then 
-			# last step (smoothing) does not use DARTEL, so run normalization in DARTEL, then smoothing
-			echo "${label} -- Running $curp analysis --"
-			# write out pfile based on step.par
+		echo "${label} == beginning group preprocessing of ${SUBS[@]} at $(date) =="
+
+		# SET UP FOR DARTEL
+		i=`expr ${#pars_array[@]} - 2`  # set i to NORM index (second to last)
+		p=${pars_array[i]}; p_name=${par_names[$i]}; e=${p_array[$i]}
+		# add step extension to current extension list and turn step on in step.par
+		ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
+		echo "${p_name}='$p'" >> ${PROJECT_DIR}/notes/step.par
+		# if smoothing also uses DARTEL, add s to extensions and turn on smooth in step.par
+		i=$i+1; 
+		if [[ ${sim_array[i]} -eq 1 ]]; then
+			p=${pars_array[i]}; p_name=${par_names[$i]}; e=${p_array[$i]}; 
+			ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
+			echo "${p_name}='$p'" >> ${PROJECT_DIR}/notes/step.par
+		fi
+
+		# RUN DARTEL
+		echo "${label} $(date) -- running $pnames in $curp analysis on ${SUBS[@]} --"
+		bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
+		script_path="${SCRIPT_DIR_FULL}/$curp"
+		run_script="${script_path}/run_${curp}_prep"
+		pfile="${script_path}/p_${curp}_temp_${t}${ext}.m"
+		pushd ${script_path} > /dev/null   	# move into software's script directory, quietly
+		if [[ $first -eq 1 ]]; then 
+			prev_jobid=$(sbatch -t 01:00:00 "${run_script}" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
+		else
+			prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
+		fi
+		popd > /dev/null   					# return to the previous directory, quietly
+
+		# RUN SMOOTHING (if not in DARTEL)
+		if [[ ${sim_array[i]} -eq 0 ]]; then
+			reset_step_par; unset ext; unset pnames
+			p=${pars_array[i]}; p_name=${par_names[$i]}; e=${p_array[$i]}
+			ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
+			echo "${p_name}='$p'" >> ${PROJECT_DIR}/notes/step.par
+			echo "${label} $(date) -- running $pnames in $curp analysis on ${SUBS[@]} --"
 			bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
 			script_path="${SCRIPT_DIR_FULL}/$curp"
-			pfile="${script_path}/p_${curp}_temp_${t}${ext}.m"
-			# run script
-			pushd ${script_path} > /dev/null   # move into this directory, quietly
-			if [[ $first -eq 1 ]]; then 
-				prev_jobid=$(sbatch -t 01:00:00 "${script_path}/run_${curp}_prep" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
-			else
-				prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${script_path}/run_${curp}_prep" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
-			fi
+			run_script="${script_path}/run_${curp}_prep"
+			pfile="${script_path}/p_${curp}_temp_${t}${ext}.m"			
+			pushd ${script_path} > /dev/null   # move into software's script directory, quietly
+			sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${SUBS[@]}"
 			popd > /dev/null   # return to the previous directory, quietly
-
-			# reset pars for next step
-			reset_step_par
-			unset ext
 		fi
-		# run last time (either norm and smoothing, or just smoothing)
-		i=$i+1
-		if [[ ${pars_array[$i]} == 'none' ]]; then echo "${label} Skipping ${par_names[$i]}"; 
-		else
-			curp=${pars_array[$i]}
-			echo "${label} Adding ${par_names[$i]} to $curp run list"
-			# add step extension to current extension list of consecutive steps using same software
-			ext=${ext}${p_array[$i]}
-			curp=${pars_array[$i]}
-			# turn step on in step.par
-			echo "${par_names[$i]}='${pars_array[$i]}'" >> ${PROJECT_DIR}/notes/step.par
-		fi
-		echo "${label} -- Running $curp analysis --"
-		# write out pfile based on step.par
-		bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
-		script_path="${SCRIPT_DIR_FULL}/${curp}"
-		pfile="${script_path}/p_${curp}_temp_${t}${ext}.m"
-		# run script
-		pushd ${script_path} > /dev/null   # move into this directory, quietly
-		if [[ $first -eq 1 ]]; then 
-			prev_jobid=$(sbatch -t 01:00:00 "${script_path}/run_${curp}_prep" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
-		else
-			sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${script_path}/run_${curp}_prep" "$pfile" "${SUBS[@]}"
-		fi
-		popd > /dev/null   # return to the previous directory, quietly
 	fi
-	reset_step_par
-	echo "${label} Done with $t subjects: ${SUBS[@]}"
 done
-
-echo "${label} >>>>>>> Done with all analyses <<<<<<<"
-# for t in "${TASKS[@]}"; do 
-# 	echo "$t subjects: ${SUBS_${t}[@]}"
-# done
-#echo "${label} >>>>>>><<<<<<<"
+echo "${label} ================ Done with all preprocessing at $(date) ================"

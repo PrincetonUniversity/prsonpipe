@@ -2,6 +2,7 @@
 # author: Miriam Weaverdyck 8/1/16
 # Enter the parameters for your project's p_ files below
 
+wd_dir='wd'
 
 # QA: 'BXH', 'SPM12w', 'none'
 QA='none'

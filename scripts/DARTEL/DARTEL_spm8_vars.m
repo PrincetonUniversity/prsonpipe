@@ -387,6 +387,7 @@ for s = 1:length(dosubs)
         save(filename,'matlabbatch');                           % save jobs variable in file batch_preproc_MMDDYY_HHMM.mat in subject's base directory
 
     if execTAG==1
+       
 
         spm_jobman('run',matlabbatch);
 
