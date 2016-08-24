@@ -18,7 +18,7 @@
 #    'TSK' 'uw' : creates a temp pfile with extension '_TSKuw' and reads from step.par
 
 
-label='[S_PFILE]'
+label='[PFILE_SPM]'
 
 pushd `dirname $0` > /dev/null   # move into this directory, quietly
 
@@ -112,7 +112,7 @@ p.normalize     = 'none';       % Normalize type ('none','epi','spm12','dartel')
 
 EOT
 
-echo "${label} Finished writing $fname_full"
+echo "${label} Done. Finished writing $fname_full"
 
 # unset temporary variables so they can be reused
 unset wd_raw

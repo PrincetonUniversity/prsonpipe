@@ -14,7 +14,7 @@
 #    'TSK' 'uw' : creates a temp pfile with extension '_TSKuw' and reads from step.par
 
 set -e # stop immediately when an error occurs
-label='[D_PFILE]'
+label='[PFILE_DAR]'
 
 pushd `dirname $0` > /dev/null   # move into this directory, quietly
 
@@ -110,7 +110,7 @@ p.funcFormat    = 2;
 p.TPMimg        = '$spm8_dir/toolbox/Seg/TPM.nii';
 
 EOT
-echo "${label} Finished writing $fname_full"
+echo "${label} Done. Finished writing $fname_full"
 
 # unset temporary variables so they can be reused
 unset wd_raw

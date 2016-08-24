@@ -48,7 +48,7 @@ if [[ $QA == 'BXH' ]]; then
 	#runtime set to 48 hours (2880 minutes; max for long job) change this number if necessary
 fi
 
-#wait_for_it "convert" "${convert_log}"
+wait_for_it "CONVERT" "${convert_log}"
 
 for t in "${TASKS[@]}"; do 
 	echo "${label} >>> Starting task $t <<<"
@@ -65,8 +65,6 @@ for t in "${TASKS[@]}"; do
 
 	# if no subjects in raw/tsk, then move to next task
 	if [[ -z $SUBS ]]; then echo "${label} No subjects found for task $t."; continue; fi
-
-#	declare SUBS_$t=${SUBS[@]}
 
 	# Create an array (par_names) of all the preprocessing step names (in order of execution)
 	declare -a par_names=("QA" "SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT")
@@ -209,5 +207,10 @@ for t in "${TASKS[@]}"; do
 			popd > /dev/null   # return to the previous directory, quietly
 		fi
 	fi
+	# write '[PREP] Done.' in each subject's LOG.txt file
+	for s in "${SUBS[@]}"; do
+		logfile=${wd_dir_full}/${s}/LOG.txt
+		echo "${label} Done. $(date)" >> "$logfile"
+	done
 done
-echo "${label} $(date) ================ Done with all preprocessing ================"
+echo "${label} Done. $(date)"

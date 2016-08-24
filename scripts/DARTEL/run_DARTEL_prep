@@ -9,26 +9,26 @@
 #SBATCH -t 48:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
 #SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
 
-
 source ../globals.par
 label='[DARTEL]'
+logfile=LOG.txt
 
-# write out parameters file for DARTEL
-#bash $PROJECT_DIR/notes/write_pfile_DARTEL
-
+# first arg is pfile
 pfile=$1
+# rest of args are subs (each arg separated by a space)
 shift 
 SUBS=( "$@" )
 
+# check if subjects in matlab array or bash array
 if [[ ${1:0:1} == '[' ]]; then 
-	echo "${label} subject input is matlab array."
+	# matlab array
 	subs=''
 	for s in "${SUBS[@]}"; do
 		subs="$subs $s"
 	done
 else
+	# bash array
 	if [[ "$(declare -p SUBS)" =~ "declare -a" ]]; then 
-		echo "${label} subject input is a bash array. Must convert to matlab array."; 
 		subs='['
 		for s in "${SUBS[@]}"; do
 			subs="${subs}${s:1:4} "
@@ -37,7 +37,7 @@ else
 	fi
 fi
 
-echo "${label} Beginning DARTEL analysis of subject(s) $subs with pfile $pfile at $(date)"
+echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${subs} with pfile ${pfile}" >> "${logfile}"
 
 # run matlab from the command line as part of a submit job
 module load matlab/R2015b
@@ -64,4 +64,4 @@ matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars($subs,'$pfile')
 # 	done
 #done
 popd > /dev/null   # return to the directory this script was run from, quietly
-echo "${label} Finished DARTEL analysis of subject(s) $subs at $(date)"
+echo "${label} Done. $(date)" >> "${logfile}"
