@@ -18,10 +18,10 @@
 ################################################################################
 # Packages used:
 #  none
-# Arguments (choose 1):
-#  none (will run all new subjects)
-#  "${var[@]}" OR s001 2 s005 etc. (subject array -- e.g. (1 {3..5}))
-#  'all' (will run all subjects)
+# Arguments:
+#  none 	: will run all tasks with all NEW subjects (on a task by task basis)
+#  'TSK'	: will run task TSK, if exists (must be first argument, only 1 task)
+#  'subs' 	: subject array -- e.g. (1 {3..5}); "${var[@]}"; s001 02 s005; 'all'
 ################################################################################
 #
 # SBATCH -J prep-%j
@@ -47,6 +47,9 @@ if [[ $QA == 'BXH' ]]; then
 	sbatch -t 2880 --dependency=afterok:${convert_jobid} bxh_qa
 	#runtime set to 48 hours (2880 minutes; max for long job) change this number if necessary
 fi
+
+# if only one input, check if task name or subject
+if [[ $# -ge 1 ]] && [[ -d ${RAW_DIR}/${1} ]]; then TASKS=(${1}); shift; echo "running task $1 ${TASKS[@]}"; fi
 
 wait_for_it "CONVERT" "${convert_log}"
 
