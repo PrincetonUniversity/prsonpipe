@@ -83,9 +83,9 @@ for t in "${TASKS[@]}"; do
 		# check if current step is same as curp (current software parameter)
 		if [[ $p != 'none' ]]; then 
 			if [[ $p == $curp ]]; then sim_array[$i]=1; else sim_array[$i]=0; fi; curp=$p; 
-		else sim_array[$i]=1; fi; i=$i+1
+		else sim_array[$i]=1; fi; i=$(($i + 1))
 	done
-	i=0; for p in "${pars_array[@]}"; do if ! [[ $p == 'none' ]]; then sim_array[$i]=1; break; fi; i=$i+1; done
+	i=0; for p in "${pars_array[@]}"; do if [[ $p != 'none' ]]; then sim_array[$i]=1; break; fi; i=$(($i + 1)); done
 
 	echo "${label} ***Running subjects ${SUBS[@]} on the following:"
 	echo "${label} QA                    = $QA"
@@ -128,7 +128,7 @@ for t in "${TASKS[@]}"; do
 			fi
 			# check if next step uses same software
 			# RUN STEPS
-			if [[ ${sim_array[$i+1]} -eq 0 ]]; then 
+			if [[ ${sim_array[$(($i + 1))]} -eq 0 ]]; then 
 				echo "${label} $(date) -- running $pnames in $curp analysis on $SUBJ --" >> "$logfile"
 				# write out pfile based on step.par
 				bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
@@ -148,9 +148,9 @@ for t in "${TASKS[@]}"; do
 				# reset pars for next step
 				reset_step_par; unset ext; first=0; unset pnames;
 			fi
-			i=$i+1
+			i=$(($i + 1))
 		done
-		n=$n+1
+		n=$(($n + 1))
 	done
 
 	# DARTEL
@@ -167,7 +167,7 @@ for t in "${TASKS[@]}"; do
 		ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
 		echo "${p_name}='$p'" >> ${PROJECT_DIR}/notes/step.par
 		# if smoothing also uses DARTEL, add s to extensions and turn on smooth in step.par
-		i=$i+1; 
+		i=$(($i + 1)); 
 		if [[ ${sim_array[i]} -eq 1 ]]; then
 			p=${pars_array[i]}; p_name=${par_names[$i]}; e=${p_array[$i]}; 
 			ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
