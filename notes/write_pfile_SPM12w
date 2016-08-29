@@ -8,7 +8,7 @@
 # INPUT VARIABLE:
 # $ext: str = extension to filename (should reflect which step the temp pfile is for)
 #################################################################################
-# NOTE: must input 0, 1, or 2 arguments.
+# NOTE: must input 0, 1, or 2 arguments, based on number of tasks.
 # Arguments:
 #  IF ONLY ONE TASK LISTED IN STUDY_INFO:
 #    no args 	: creates a general pfile and reads from pars.par

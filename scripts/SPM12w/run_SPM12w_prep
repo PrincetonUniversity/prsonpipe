@@ -3,12 +3,36 @@
 # subs should either be a vector ([1:4 5:6]) or 'all'
 # Keep lines starting with #SBATCH together and at top of script! Modify settings as appropriate.
 
-#SBATCH -J SPMw_prep				# Job name
-#SBATCH --workdir=./				# Set working directory
-#SBATCH -t 01:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
-#SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
+#SBATCH -J run_SPMw_prep		# Job name
+#SBATCH --workdir=./			# Set working directory
+#SBATCH -t 00:05:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
+#SBATCH --mem 1024				# Set amount of memory in MB (1GB = 1024 MB)
 
-label='SPM12W'
+source ../globals.par
+
+pushd ../ > /dev/null
+source funcs
+popd > /dev/null 
+
+label='[SPM12W]'
+logfile=LOG.txt
+
+# first arg is pfile
+pfile=$1
+# rest of args are subs (each arg separated by a space)
+shift 
+SUBS=( "$@" )
+
+num2subID SUBS[@]
+
+echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" >> "${logfile}"
+
+
+for s in SUBIDS; do 
+	# run script
+	sbatch SPM12w_prep ${pfile} $s
+done
 
 echo "[$label] Not written yet"
 echo "[$label] Done."
+echo "${label} Done. $(date)" >> "${logfile}"
