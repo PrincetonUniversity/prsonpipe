@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# type: sbatch -J name script.sh "subs"
-# subs should either be a vector ([1:4 5:6]) or 'all'
-# Keep lines starting with #SBATCH together and at top of script! Modify settings as appropriate.
+# type: sbatch -J name script.sh sub
+# sub should be singular subject number or ID
 
 #SBATCH -J run_SPMw_prep		# Job name
 #SBATCH --workdir=./			# Set working directory
-#SBATCH -t 00:05:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
-#SBATCH --mem 1024				# Set amount of memory in MB (1GB = 1024 MB)
+#SBATCH -t 01:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
+#SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
 
 source ../globals.par
 
@@ -19,20 +18,14 @@ logfile=LOG.txt
 
 # first arg is pfile
 pfile=$1
-# rest of args are subs (each arg separated by a space)
-shift 
-SUBS=( "$@" )
+# second arg is subjectID
+sub=$2
 
-num2subID SUBS[@]
+num2subID sub
 
-echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" >> "${logfile}"
+echo "${label} $(date) Beginning DARTEL analysis of subject ${SUBIDS} with pfile ${pfile}" >> "${logfile}"
+# run matlab from the command line as part of a submit job
+module load matlab/R2015b
+matlab -nosplash -nodisplay -nodesktop -r "try; ${PKG_DIR}/spm12w_new1608/spm12w_preprocess('sid',${SUBIDS}, 'para_file', '${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
 
-
-for s in SUBIDS; do 
-	# run script
-	sbatch SPM12w_prep ${pfile} $s
-done
-
-echo "[$label] Not written yet"
-echo "[$label] Done."
 echo "${label} Done. $(date)" >> "${logfile}"

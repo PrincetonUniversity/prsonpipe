@@ -98,16 +98,16 @@ for t in "${TASKS[@]}"; do
 	# Run each subject, one at a time
 	n=0; for s in "${SUBS[@]}"; do
 		if [[ -z $s ]]; then echo "${label} Can't find subject ${s}. Aborting..."; exit; fi
-		first=1; SUBJ=$s
+		first=1;
 
-		wd_dir_sub=${wd_dir_full}/${SUBJ}
+		wd_dir_sub=${wd_dir_full}/${s}
 		logfile=${wd_dir_sub}/LOG.txt
 
 		# copy sub folder from raw/tsk to prep/tsk/wd
 		if [[ -d "${wd_dir_sub}" ]]; then echo "${label} ${wd_dir_sub} already exists. Deleting and replacing."; rm -rf ${wd_dir_sub}; fi
-		cp -r ${RAW_DIR}/${t}/${SUBJ} ${wd_dir_sub}
+		cp -r ${RAW_DIR}/${t}/${s} ${wd_dir_sub}
 
-		echo "${label} $(date) == beginning preprocessing of $SUBJ ==" >> "$logfile"
+		echo "${label} $(date) == beginning preprocessing of $s ==" >> "$logfile"
 		reset_step_par; unset ext; unset pnames
 
 		i=0; for p in "${pars_array[@]}"; do
@@ -129,7 +129,7 @@ for t in "${TASKS[@]}"; do
 			# check if next step uses same software
 			# RUN STEPS
 			if [[ ${sim_array[$(($i + 1))]} -eq 0 ]]; then 
-				echo "${label} $(date) -- running $pnames in $curp analysis on $SUBJ --" >> "$logfile"
+				echo "${label} $(date) -- running $pnames in $curp analysis on $s --" >> "$logfile"
 				# write out pfile based on step.par
 				bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
 				script_path="${SCRIPT_DIR_FULL}/${curp}"
@@ -139,9 +139,9 @@ for t in "${TASKS[@]}"; do
 				# run steps in current software
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
 				if [[ $first -eq 1 ]]; then 
-					prev_jobid=$(sbatch -t 01:00:00 "${run_script}" "$pfile" "$SUBJ" | grep -o '[0-9]*')
+					prev_jobid=$(sbatch -t 01:00:00 "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				else
-					prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$SUBJ" | grep -o '[0-9]*')
+					prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				fi
 				popd > /dev/null   # return to the previous directory, quietly
 
@@ -193,21 +193,21 @@ for t in "${TASKS[@]}"; do
 
 		# RUN SMOOTHING (if not in DARTEL)
 		if [[ ${sim_array[i]} -eq 0 ]]; then
-			reset_step_par; unset ext; unset pnames
-			p=${pars_array[i]}; p_name=${par_names[$i]}; e=${p_array[$i]}
-			ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
-			echo "${p_name}='$p'" >> ${PROJECT_DIR}/notes/step.par
 			for s in "${SUBS[@]}"; do
+				reset_step_par; unset ext; unset pnames
+				p=${pars_array[i]}; p_name=${par_names[$i]}; e=${p_array[$i]}
+				ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
+				echo "${p_name}='$p'" >> ${PROJECT_DIR}/notes/step.par
 				logfile=${wd_dir_full}/${s}/LOG.txt
 				echo "${label} $(date) -- running $pnames in $curp analysis --" >> "$logfile"
+				bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
+				script_path="${SCRIPT_DIR_FULL}/$curp"
+				run_script="${script_path}/run_${curp}_prep"
+				pfile="${script_path}/p_${curp}_temp_${t}${ext}.m"
+				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
+				sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${s}"
+				popd > /dev/null   # return to the previous directory, quietly
 			done
-			bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
-			script_path="${SCRIPT_DIR_FULL}/$curp"
-			run_script="${script_path}/run_${curp}_prep"
-			pfile="${script_path}/p_${curp}_temp_${t}${ext}.m"			
-			pushd ${script_path} > /dev/null   # move into software's script directory, quietly
-			sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${SUBS[@]}"
-			popd > /dev/null   # return to the previous directory, quietly
 		fi
 	fi
 	# write '[PREP] Done.' in each subject's LOG.txt file

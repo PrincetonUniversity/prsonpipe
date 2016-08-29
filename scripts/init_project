@@ -3,6 +3,8 @@
 # This script sets up all the necessary paths and files to initialize a new project.
 # Run it from the scripts dir after filling out notes/study_info
 # JNM August 11, 2016
+# JNM August 23, 2016 copying pars.par for each task. Check number of task names (if empty add TSK, if not matching # of tasks error)
+#    Create backup of globals.par when entering study_info vars (.bak_globals.par) use this backup when overwriting.
 ###########################################
 #  Arguments:
 #    None or overwrite      #To overwrite and delete previous setup in the project dir. 
@@ -21,6 +23,10 @@ if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../arch/subpars/runorder
   exit 1
 fi
 
+if [[ $1 == 'overwrite' ]]; then
+  mv .bak_globals.par globals.par
+fi
+
 #Source the project settings lines of study_info
 source /dev/stdin <<EOF
 $(sed -n '/-PROJECT\ SETTINGS-/,/-TASKS-/p' ../notes/study_info.par | head -n -1 | tail -n +2)
@@ -28,14 +34,23 @@ EOF
 
 #append all the text between the vars delimiters to globals.pr (excluding the first and last 2 lines containing comments)
 cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 >> ${PROJECT_DIR}/scripts/temp.txt
-sed -i -e '/<<STUDY_INFO_VARS_HERE>>/r temp.txt' -e '/<<STUDY_INFO_VARS_HERE>>/d' ${PROJECT_DIR}/scripts/globals.par
+sed -i'.bak_*' -e '/<<STUDY_INFO_VARS_HERE>>/r temp.txt' -e '/<<STUDY_INFO_VARS_HERE>>/d' ${PROJECT_DIR}/scripts/globals.par
 rm ${PROJECT_DIR}/scripts/temp.txt
 #same for runorders, but overwrite instead of append
 cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 | tail -n +3 > ${PROJECT_DIR}/arch/subpars/runorders/run-order.txt
 
 source ${PROJECT_DIR}/scripts/globals.par
 
-#check variable names
+#check task names
+if [[ ${#TASKS[@]} -eq 0 ]]; then
+  TASKS[0]=TSK
+fi
+
+#Check if the number of tasks (NUM_TASKS) matches task names
+if [[ $NUM_TASKS -ne ${#TASKS[@]} ]]; then
+  echo "Number of tasks does not match number of task names. Aborting." >&2
+  exit 1
+fi
 # 3 letters & allcaps?
 i=0
 for name in ${TASKS[@]}; do
@@ -74,8 +89,10 @@ echo "[INIT] Copying your file structure and scripts to your backup dir"
 rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* --exclude=.git ${PROJECT_DIR} /jukebox/${LAB_NAME}/${PROJECT_NAME}/scripts
 for name in ${TASKS[@]}; do
   mkdir -p ${PROJECT_DIR}/raw/${name}/
-  mkdir -p ${PROJECT_DIR}/prep/${name}/{FSL,SPM,wd}
-  mkdir -p ${PROJECT_DIR}/prep/${name}/DARTEL/Templates
+  mkdir -p ${PROJECT_DIR}/prep/${name}/
+  if [[ $PREP_SEP -eq 1 ]]; then
+  cp "${PROJECT_DIR}/notes/pars.par" "${PROJECT_DIR}/notes/pars_${name}.par"
+  fi
 done
 
 echo "[INIT] Completed."
