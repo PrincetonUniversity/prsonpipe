@@ -24,18 +24,22 @@ if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../arch/subpars/runorder
 fi
 
 if [[ $1 == 'overwrite' ]]; then
-  mv .bak_globals.par globals.par
+  mv .globals.par.bak globals.par
 fi
+
+
 
 #Source the project settings lines of study_info
 source /dev/stdin <<EOF
 $(sed -n '/-PROJECT\ SETTINGS-/,/-TASKS-/p' ../notes/study_info.par | head -n -1 | tail -n +2)
 EOF
 
+
 #append all the text between the vars delimiters to globals.pr (excluding the first and last 2 lines containing comments)
 cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 >> ${PROJECT_DIR}/scripts/temp.txt
-sed -i'.bak_*' -e '/<<STUDY_INFO_VARS_HERE>>/r temp.txt' -e '/<<STUDY_INFO_VARS_HERE>>/d' ${PROJECT_DIR}/scripts/globals.par
+sed --in-place='.bak' -e '/<<STUDY_INFO_VARS_HERE>>/{r temp.txt' -e 'd}' "${PROJECT_DIR}/scripts/globals.par"
 rm ${PROJECT_DIR}/scripts/temp.txt
+mv globals.par.bak .globals.par.bak
 #same for runorders, but overwrite instead of append
 cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 | tail -n +3 > ${PROJECT_DIR}/arch/subpars/runorders/run-order.txt
 
