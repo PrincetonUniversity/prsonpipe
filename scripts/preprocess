@@ -87,7 +87,7 @@ for t in "${TASKS[@]}"; do
 	done
 	i=0; for p in "${pars_array[@]}"; do if [[ $p != 'none' ]]; then sim_array[$i]=1; break; fi; i=$(($i + 1)); done
 
-	echo "${label} ***Running subjects ${SUBS[@]} on the following:"
+	echo "${label} ***Running subjects ${SUBS[@]} on the following***"
 	echo "${label} QA                    = $QA"
 	echo "${label} Slice Time Correction = $SLICE_TIME"
 	echo "${label} Motion Correction     = $REALIGN"
@@ -117,7 +117,7 @@ for t in "${TASKS[@]}"; do
 			if [[ $p != 'none' ]]; then 
 				# check if current step is QA(BXH) or NORM(DARTEL)
 				if [[ ${par_names[$i]} == 'QA' ]] && [[ $QA == 'BXH' ]]; then continue; fi
-				if [[ ${par_names[$i]} == 'NORM' ]] && [[ $NORM == 'DARTEL' ]]; then 
+				if [[ ${par_names[$i]} == 'NORM' ]] && [[ $NORM == ${DARTEL} ]]; then 
 					# if not last subject, reset step par and ext
 					if [[ $n -ne ${#SUBS[@]}-1 ]]; then reset_step_par; unset ext; fi; 
 					break; 
@@ -154,23 +154,23 @@ for t in "${TASKS[@]}"; do
 	done
 
 	# DARTEL
-	if [[ $NORM == 'DARTEL' ]]; then
+	if [[ $NORM == ${DARTEL} ]]; then
 		for s in "${SUBS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
 			echo "${label} $(date) == beginning group preprocessing of ${SUBS[@]} ==" >> "$logfile"
 		done
 
 		# SET UP FOR DARTEL
-		i=`expr ${#pars_array[@]} - 2`  # set i to NORM index (second to last)
-		p=${pars_array[i]}; p_name=${par_names[$i]}; e=${p_array[$i]}
+		i=$((${#pars_array[@]} - 2))  # set i to NORM index (second to last)
+		p=${pars_array[$i]}; p_name=${par_names[$i]}; e=${p_array[$i]}
 		# add step extension to current extension list and turn step on in step.par
 		ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
 		echo "${p_name}='$p'" >> ${PROJECT_DIR}/notes/step.par
 		# if smoothing also uses DARTEL, add s to extensions and turn on smooth in step.par
 		i=$(($i + 1)); 
-		if [[ ${sim_array[i]} -eq 1 ]]; then
-			p=${pars_array[i]}; p_name=${par_names[$i]}; e=${p_array[$i]}; 
-			ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
+		if [[ ${sim_array[$i]} -eq 1 ]] && [[ ${pars_array[$i]} != 'none' ]]; then
+			p_name=${par_names[$i]}; e=${p_array[$i]}; 
+			ext=${ext}${e}; pnames="${pnames} $p_name"
 			echo "${p_name}='$p'" >> ${PROJECT_DIR}/notes/step.par
 		fi
 

@@ -14,30 +14,34 @@ set -e # stop immediately when an error occurs
 BACKUP_DIR=/jukebox/${LAB_NAME}/${PROJECT_NAME}
 
 ####retrieve script uses these#### edited to source from study_info
-RUNORDER_FILE=$PROJECT_DIR/arch/subpars/runorders/$SUBJ*
+RUNORDER_FILE=${PROJECT_DIR}/arch/subpars/runorders/$SUBJ*
 ###################################
+
+# prep software names
+FSL=FSL
+DARTEL=DARTEL
+SPMW=SPM12w
+
+RAW_DIR=${PROJECT_DIR}/raw
+PREP_DIR=${PROJECT_DIR}/prep
+QA_DIR=${PROJECT_DIR}/qa
+OUT_DIR=${PROJECT_DIR}/output
+
+SCRIPT_DIR_FULL=${PROJECT_DIR}/scripts
+
+SCRIPT_DIR=scripts
+SCRIPT_DIR_FSL=${SCRIPT_DIR}/FSL
+SCRIPT_DIR_DARTEL=${SCRIPT_DIR}/DARTEL
+SCRIPT_DIR_SPM=${SCRIPT_DIR}/SPM12
+SCRIPT_DIR_SPMw=${SCRIPT_DIR}/SPM12w
+
+#FSF_DIR=fsf
+DICOM_ARCHIVE=${PROJECT_DIR}/arch/nifti/raw.tar.gz
 
 # add necessary directories to the system path
 #export BXH_DIR=/jukebox/tamir/pkg/bxh_xcede_tools*/bin
 #export MAGICK_HOME=/jukebox/ntb/packages/ImageMagick-6.5.9-9
 #export BIAC_HOME=/jukebox/ntb/packages/BIAC_matlab/mr
-
-RAW_DIR=$PROJECT_DIR/raw
-PREP_DIR=$PROJECT_DIR/prep
-QA_DIR=$PROJECT_DIR/qa
-OUT_DIR=$PROJECT_DIR/output
-
-#SUBJ_DIR=$SUBJ # s000 folder within raw, prep, or other directory, which stores niftis at that level for that subject
-
-SCRIPT_DIR_FULL=$PROJECT_DIR/scripts 	# edited to this from $PROJECT_DIR/arch/scripts (MEW 8/2/16)
-SCRIPT_DIR=scripts
-SCRIPT_DIR_FSL=$SCRIPT_DIR/FSL
-SCRIPT_DIR_DARTEL=$SCRIPT_DIR/DARTEL
-SCRIPT_DIR_SPM=$SCRIPT_DIR/SPM12
-SCRIPT_DIR_SPMw=$SCRIPT_DIR/SPM12w
-
-#FSF_DIR=fsf
-DICOM_ARCHIVE=$PROJECT_DIR/arch/nifti/raw.tar.gz
 
 #BEHAVIORAL_DATA_DIR=behav
 #FIRSTLEVEL_DIR=analysis/firstlevel

@@ -55,19 +55,19 @@ fi
 popd > /dev/null   # return to the previous directory, quietly
 
 save_dir=${PROJECT_DIR}/${SCRIPT_DIR_DARTEL}
-fname_full=${save_dir}/p_DARTEL${fname}.m
+fname_full=${save_dir}/p_${DARTEL}${fname}.m
 
 
 #if [[ $NORM != 'DARTEL' ]]; then echo "WARNING: DARTEL was not chosen for normalization in /notes/pars.par. Aborting..."; exit; fi
 
-spm8_dir=$PKG_DIR/SPM8
-NIfTI_dir=$PKG_DIR/NIfTI
+spm8_dir=${PKG_DIR}/SPM8
+NIfTI_dir=${PKG_DIR}/NIfTI
 
-if [[ $NORM == 'DARTEL' ]]; then norm=1; else norm=0; fi
+if [[ $NORM == ${DARTEL} ]]; then norm=1; else norm=0; fi
 
-if [[ $SMOOTH_SOFT == 'DARTEL' ]]; then	smooth=$SMOOTH; else smooth=0; fi
+if [[ $SMOOTH_SOFT == ${DARTEL} ]]; then	smooth=$SMOOTH; else smooth=0; fi
 
-if [[ $REALIGN == 'DARTEL' ]]; then realign=1; else realign=0; fi
+if [[ $REALIGN == ${DARTEL} ]]; then realign=1; else realign=0; fi
 
 cat <<EOT > $fname_full
 % Parameters file for SPM8 DARTEL normalization
@@ -75,28 +75,28 @@ cat <<EOT > $fname_full
 % =======1=========2=========3=========4=========5=========6=========7=========8
 
 % SPM packages to load
-p.spm8_dir      = '$spm8_dir';
-p.NIfTI_dir     = '$NIfTI_dir';
-p.scripts_dir   = '$SCRIPT_DIR_DARTEL';
+p.spm8_dir      = '${spm8_dir}';
+p.NIfTI_dir     = '${NIfTI_dir}';
+p.scripts_dir   = '${SCRIPT_DIR_DARTEL}';
 
 % study directory
-p.proj_dir      = '$PROJECT_DIR';
-p.output        = '$OUT_DIR';
+p.proj_dir      = '${PROJECT_DIR}';
+p.output        = '${OUT_DIR}';
 
 % execute the job immediately? (0 = no, 1 = yes)
 p.execTAG       = 1;
 
 % customizable preprocessing parameters
-p.vox_size      = $VOX_SIZE;
-p.smooth        = $smooth;
-p.normalize	    = $norm;
-p.realign	    = $realign;
+p.vox_size      = ${VOX_SIZE};
+p.smooth        = ${smooth};
+p.normalize	    = ${norm};
+p.realign	    = ${realign};
 
 % subjects directory containing subject folders
-p.subdir        = '$wd_raw';
+p.subdir        = '${wd_raw}';
 % pattern for finding subject folders (use wildcards)
 p.subID         = 's*';
-% do which subjects? ('all' to do all, position vector, e.g. 1:4, to do a subset)
+% do which subjects? ('all' to do all)
 %p.subTAG        = 'all'; # DARTEL does not currently use subTAG
 % pattern for finding functional run files (use wildcards)
 p.runID         = 'epi_r*';

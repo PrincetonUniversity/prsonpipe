@@ -9,9 +9,8 @@
 #SBATCH -t 48:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
 #SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
 
-source ../globals.par
-
 pushd ../ > /dev/null
+source globals.par
 source funcs
 popd > /dev/null 
 
@@ -27,6 +26,10 @@ SUBS=( "$@" )
 make_matlab_array SUBS[@]
 
 echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" >> "${logfile}"
+
+#echo "unziping nii files"
+#for s in "${SUBS[@]}"; do
+#	pushd ${PREP_DIR} > /dev/null 
 
 # run matlab from the command line as part of a submit job
 module load matlab/R2015b

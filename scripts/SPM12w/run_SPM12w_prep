@@ -4,6 +4,7 @@
 
 #SBATCH -J run_SPMw_prep		# Job name
 #SBATCH --workdir=./			# Set working directory
+#SBATCH -o ../../output/SPMw-%j.out
 #SBATCH -t 01:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
 #SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
 
@@ -19,13 +20,11 @@ logfile=LOG.txt
 # first arg is pfile
 pfile=$1
 # second arg is subjectID
-sub=$2
-
-num2subID sub
+sub=$2; num2subID sub
 
 echo "${label} $(date) Beginning DARTEL analysis of subject ${SUBIDS} with pfile ${pfile}" >> "${logfile}"
 # run matlab from the command line as part of a submit job
 module load matlab/R2015b
-matlab -nosplash -nodisplay -nodesktop -r "try; ${PKG_DIR}/spm12w_new1608/spm12w_preprocess('sid',${SUBIDS}, 'para_file', '${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+matlab -nosplash -nodisplay -nodesktop -r "try; SPM12w_preprocess('${SUBIDS[@]}', '${pfile}', '${PKG_DIR}/'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
 
 echo "${label} Done. $(date)" >> "${logfile}"
