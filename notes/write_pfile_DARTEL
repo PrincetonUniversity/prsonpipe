@@ -19,32 +19,31 @@ label='[PFILE_DAR]'
 pushd `dirname $0` > /dev/null   # move into this directory, quietly
 
 source ../scripts/globals.par
-source pars.par; 
 
 # set file name and folder based on whether or not this is a temp pfile
 if [[ $# -eq 0 ]] && [[ $NUM_TASKS -eq 1 ]]; then 
 	# no inputs, only 1 task
 	t=$TASKS
-	fname=''; wd_raw=${RAW_DIR}/$t; 
 	if [[ $PREP_SEP -eq 0 ]]; then source pars.par; else source pars_${t}.par; fi
+	fname=''; wd_raw=${RAW_DIR}/$t; 
 elif [[ $# -eq 1 ]]; then 
 	# 1 input
 	if [[ $NUM_TASKS -eq 1 ]]; then
 		# only 1 task, so input must be extension
 		t=$TASKS
-		fname="_temp_$t$1"; wd_raw=$PREP_DIR/$t/${wd_dir}; 
 		source step.par
+		fname="_temp_$t$1"; wd_raw=$PREP_DIR/$t/${wd_dir}; 
 	else
-		t=$1
 		# more than 1 task, so input must be task name
-		fname="_$t"; wd_raw=$RAW_DIR/$1; 
+		t=$1
 		if [[ $PREP_SEP -eq 0 ]]; then source pars.par; else source pars_$t.par; fi
+		fname="_$t"; wd_raw=$RAW_DIR/$1; 
 	fi
 elif [[ $# -eq 2 ]]; then
 	# 2 inputs, task name and extension name
 	t=$1
-	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t/${wd_dir}; 
 	source step.par
+	fname="_temp_$t$2"; wd_raw=$PREP_DIR/$t/${wd_dir}; 
 else echo "${label} You must input 0-2 arguments: ";
 	echo "${label} 0 (if only one TASK exists!) to create a general pfile.";
 	echo "${label} 1 (if only one TASK exists!) to create a temporary pfile with the inputted extension.";
