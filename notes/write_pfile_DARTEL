@@ -19,6 +19,7 @@ label='[PFILE_DAR]'
 pushd `dirname $0` > /dev/null   # move into this directory, quietly
 
 source ../scripts/globals.par
+source pars.par; 
 
 # set file name and folder based on whether or not this is a temp pfile
 if [[ $# -eq 0 ]] && [[ $NUM_TASKS -eq 1 ]]; then 

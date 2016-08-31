@@ -116,22 +116,22 @@ for t in "${TASKS[@]}"; do
 			# if current step is set to 'none', skip and move on to next step
 			if [[ $p != 'none' ]]; then 
 				# check if current step is QA(BXH) or NORM(DARTEL)
-				if [[ ${par_names[$i]} == 'QA' ]] && [[ $QA == 'BXH' ]]; then continue; fi
-				if [[ ${par_names[$i]} == 'NORM' ]] && [[ $NORM == ${DARTEL} ]]; then 
+				if [[ ${p_name} == 'QA' ]] && [[ $QA == 'BXH' ]]; then continue; fi
+				if [[ ${p_name} == 'NORM' ]] && [[ $NORM == ${DARTEL} ]]; then 
 					# if not last subject, reset step par and ext
-					if [[ $n -ne ${#SUBS[@]}-1 ]]; then reset_step_par; unset ext; fi; 
-					break; 
+					if [[ $n -ne $((${#SUBS[@]} - 1)) ]]; then reset_step_par; unset ext; fi; 
+					continue; 
 				fi
 				# add step extension to current software's (e.g. FSL) extension list and turn on step in step.par
-				ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
-				echo "${p_name}='$curp'" >> ${PROJECT_DIR}/notes/step.par
+				ext=${ext}${e}; curp=${p}; pnames="${pnames} ${p_name}"
+				echo "${p_name}='${curp}'" >> ${PROJECT_DIR}/notes/step.par
 			fi
 			# check if next step uses same software
-			# RUN STEPS
-			if [[ ${sim_array[$(($i + 1))]} -eq 0 ]]; then 
+			# RUN STEP(S)
+			if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
 				echo "${label} $(date) -- running $pnames in $curp analysis on $s --" >> "$logfile"
 				# write out pfile based on step.par
-				bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
+				bash ${PROJECT_DIR}/notes/write_pfile_${curp} ${t} ${ext}
 				script_path="${SCRIPT_DIR_FULL}/${curp}"
 				run_script="${script_path}/run_${curp}_prep"
 				pfile="${script_path}/p_${curp}_temp_${t}${ext}.m"
@@ -164,8 +164,8 @@ for t in "${TASKS[@]}"; do
 		i=$((${#pars_array[@]} - 2))  # set i to NORM index (second to last)
 		p=${pars_array[$i]}; p_name=${par_names[$i]}; e=${p_array[$i]}
 		# add step extension to current extension list and turn step on in step.par
-		ext=${ext}${e}; curp=$p; pnames="${pnames} $p_name"
-		echo "${p_name}='$p'" >> ${PROJECT_DIR}/notes/step.par
+		ext=${ext}${e}; curp=${p}; pnames="${pnames} ${p_name}"
+		echo "${p_name}='${p}'" >> ${PROJECT_DIR}/notes/step.par
 		# if smoothing also uses DARTEL, add s to extensions and turn on smooth in step.par
 		i=$(($i + 1)); 
 		if [[ ${sim_array[$i]} -eq 1 ]] && [[ ${pars_array[$i]} != 'none' ]]; then
@@ -177,10 +177,10 @@ for t in "${TASKS[@]}"; do
 		# RUN DARTEL
 		for s in "${SUBS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
-			echo "${label} $(date) -- running $pnames in $curp analysis --" >> "$logfile"
+			echo "${label} $(date) -- running $pnames in ${curp} analysis --" >> "$logfile"
 		done
-		bash ${PROJECT_DIR}/notes/write_pfile_$curp $t $ext
-		script_path="${SCRIPT_DIR_FULL}/$curp"
+		bash ${PROJECT_DIR}/notes/write_pfile_${curp} ${t} ${ext}
+		script_path="${SCRIPT_DIR_FULL}/${curp}"
 		run_script="${script_path}/run_${curp}_prep"
 		pfile="${script_path}/p_${curp}_temp_${t}${ext}.m"
 		pushd ${script_path} > /dev/null   	# move into software's script directory, quietly

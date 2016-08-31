@@ -21,10 +21,11 @@ logfile=LOG.txt
 pfile=$1
 # second arg is subjectID
 sub=$2; num2subID sub
+subid=$SUBIDS
 
-echo "${label} $(date) Beginning DARTEL analysis of subject ${SUBIDS} with pfile ${pfile}" >> "${logfile}"
+echo "${label} $(date) Beginning DARTEL analysis of subject ${subid} with pfile ${pfile}" >> "${logfile}"
 # run matlab from the command line as part of a submit job
 module load matlab/R2015b
-matlab -nosplash -nodisplay -nodesktop -r "try; SPM12w_preprocess('${SUBIDS[@]}', '${pfile}', '${PKG_DIR}/'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+matlab -nosplash -nodisplay -nodesktop -r "try; SPM12w_preprocess('${subid}', '${pfile}', '${PKG_DIR}/'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
 
 echo "${label} Done. $(date)" >> "${logfile}"
