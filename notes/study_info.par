@@ -47,7 +47,8 @@ PREP_SEP=0                            # Run each task with different preprocessi
 # The localizer actually comes out as three runs, so add ERROR_RUN three times for that one.
 # Your anatomical will simply be named anat 
 # your epi's should be named epi_<taskname>_r<runnumber> (e.g. epi_TSK_r01). Note that the run number should always be 2 digits.
-# Spin echo's are named in the format epi_SE_AP or epi_SE_PA. For task specific spin echo's, use <taskname>_SE_AP/PA (e.g. TSK_SE_AP)
+# Spin echo's are named in the format <taskname>_SE_<direction> (e.g. TSK_SE_AP and TSK_SE_PA). 
+# For spin echo's applicable to multiple tasks use all_SE_AP and all_SE_PA. A task specific SE takes precedence over a general one.
 # Here is a short example run order:
 # ERROR_RUN
 # ERROR_RUN
@@ -55,8 +56,11 @@ PREP_SEP=0                            # Run each task with different preprocessi
 # epi_ABC_r01 130
 # epi_TSK_r01 260
 # epi_TSK_r02 260
-# epi_SE_AP 3
-# epi_SE_PA 3
+# epi_XYZ_r01 109
+# epi_XYZ_r02 109
+# epi_XYZ_r03 109
+# all_SE_AP 3
+# all_SE_PA 3
 # ABC_SE_AP 3
 # ABC_SE_PA 3
 # anat
