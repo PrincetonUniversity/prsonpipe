@@ -40,6 +40,27 @@ PREP_SEP=0                            # Run each task with different preprocessi
                    ##########################
 
 ######--------------------RUN ORDER TEMPLATE-----------------######
+# Between the <<START_RO>> and <<END_RO>> boxes, add the usual order of your scans as a run order template..
+# You will be able to customize each participant's run order when importing the data, but the template will be your starting point.
+# For each run in your protocol add the name of the scan and the number of TRs (optional). 
+# ERROR_RUN is used for each run you do not want to import (like your localizer, or a scan that was aborted midway through).
+# The localizer actually comes out as three runs, so add ERROR_RUN three times for that one.
+# Your anatomical will simply be named anat 
+# your epi's should be named epi_<taskname>_r<runnumber> (e.g. epi_TSK_r01). Note that the run number should always be 2 digits.
+# Spin echo's are named in the format epi_SE_AP or epi_SE_PA. For task specific spin echo's, use <taskname>_SE_AP/PA (e.g. TSK_SE_AP)
+# Here is a short example run order:
+# ERROR_RUN
+# ERROR_RUN
+# ERROR_RUN
+# epi_ABC_r01 130
+# epi_TSK_r01 260
+# epi_TSK_r02 260
+# epi_SE_AP 3
+# epi_SE_PA 3
+# ABC_SE_AP 3
+# ABC_SE_PA 3
+# anat
+
                    ####-DON'T TOUCH THIS-####
                    ###<<START_RO>>        ###
                    ##########################

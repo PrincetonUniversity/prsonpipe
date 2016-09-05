@@ -125,12 +125,12 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
     subdirs=(${TASKS[@]/%/\/${subj}})
     mkdir ${subdirs[@]}   
     for file in $(ls $temp_output_dir); do
-     # the anatomical goes in the first task dir and is then symlinked in the others, so SPMw doesn't get mad
+     # the anatomical goes in the first task dir and is then copied to the others, so SPMw doesn't get mad (matlab will not read symlinks)
       if [[ ${file} == anat.nii ]]; then
         lp=1
         for dir in */; do
           while [[ $lp -eq 1 ]]; do mv "${temp_output_dir}/${file}" "${dir}${subj}/anat.nii"; anatdir="${dir}${subj}"; ((lp+=1)); continue 2; done
-          ln -s ${anatdir}/anat.nii ${dir}${subj}/anat.nii
+          cp ${anatdir}/anat.nii ${dir}${subj}/anat.nii
         done
      #spin echo's go in each dir unless they're specific to a task
       elif [[ ${file} == *SE*.nii ]]; then
