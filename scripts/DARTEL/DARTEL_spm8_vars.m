@@ -265,7 +265,7 @@ for s = 1:length(dosubs)
     % motion correction already run on images in earlier preprocessing steps       
     % Create a mean image
 
-    fprintf('Skipping motion correction. Creating mean image...\n')
+        fprintf('Skipping motion correction. Creating mean image...\n')
     
         for i = 1:numruns
             
@@ -302,39 +302,69 @@ for s = 1:length(dosubs)
         outname = ['mean' outname{end}];
          
         save_untouch_nii(outnii,outname);
+        
+        
+        
+        matlabbatch{1}.spm.spatial.coreg.estimate.ref = mean_func;
+
+        matlabbatch{1}.spm.spatial.coreg.estimate.source = cellstr(mprage);   
+
+        matlabbatch{1}.spm.spatial.coreg.estimate.other{1} = '';
+
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
+
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
+
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
+
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
          
     else
     % run motion correction here
 
-    fprintf('Running motion correction...\n')
+        fprintf('Running motion correction...\n')
+        
+%         notesDir=[swd filesep 'notes']; 
+%         
+%         if exist(notesDir,'dir')
+%             mkdir(notesDir)
+%         end
+%         matlabbatch{1}.cfg_basicio.cfg_cd.dir = cellstr(notesDir);
+        
+
         % Realignment of functionals
 
         % -------------------------------------------------
+        
+        for i = 1:numruns
 
+            matlabbatch{1}.spm.spatial.realign.estwrite.data{i} = filenames_orig{i};
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.quality = 0.9;         % higher quality
+        end
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.sep = 4;               % default is 4
+        matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.quality = 0.9;         % higher quality
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.fwhm = 5;              % default
+        matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.sep = 4;               % default is 4
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.rtm = 1;               % changed from 0 (=realign to first) to 1 (realign to mean) for
+        matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.fwhm = 5;              % default
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.interp = 4;            % default
+        matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.rtm = 1;               % changed from 0 (=realign to first) to 1 (realign to mean) for
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.wrap = [0 0 0];        % default
+        matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.interp = 4;            % default
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.weight = {};           % don't weight
+        matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.wrap = [0 0 0];        % default
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.roptions.which  = [0 1];        % create mean image only when reslicing
+        matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.weight = {};           % don't weight
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.roptions.interp = 4;            % default
+        matlabbatch{1}.spm.spatial.realign.estwrite.roptions.which  = [0 1];        % create mean image only when reslicing
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.roptions.wrap   = [0 0 0];      % no wrap (default)
+        matlabbatch{1}.spm.spatial.realign.estwrite.roptions.interp = 4;            % default
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.roptions.mask   = 1;            % enable masking (default)
+        matlabbatch{1}.spm.spatial.realign.estwrite.roptions.wrap   = [0 0 0];      % no wrap (default)
 
-        matlabbatch{2}.spm.spatial.realign.estwrite.roptions.prefix = 'r';
+        matlabbatch{1}.spm.spatial.realign.estwrite.roptions.mask   = 1;            % enable masking (default)
+
+        matlabbatch{1}.spm.spatial.realign.estwrite.roptions.prefix = 'r';
 
         
 
@@ -342,39 +372,24 @@ for s = 1:length(dosubs)
 %
 %       -------------------------------------------------
 
-        matlabbatch{3}.spm.spatial.coreg.estimate.ref = mean_func;
+        matlabbatch{2}.spm.spatial.coreg.estimate.ref = mean_func;
 
-        matlabbatch{3}.spm.spatial.coreg.estimate.source = cellstr(mprage);   
+        matlabbatch{2}.spm.spatial.coreg.estimate.source = cellstr(mprage);   
 
-        matlabbatch{3}.spm.spatial.coreg.estimate.other{1} = '';
+        matlabbatch{2}.spm.spatial.coreg.estimate.other{1} = '';
 
-        matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
+        matlabbatch{2}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
 
-        matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
+        matlabbatch{2}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
 
-        matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
+        matlabbatch{2}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
 
-        matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
-                  
-    end
+        matlabbatch{2}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
 
+   end
 
-    matlabbatch{1}.spm.spatial.coreg.estimate.ref = mean_func;
-
-    matlabbatch{1}.spm.spatial.coreg.estimate.source = cellstr(mprage);   
-
-    matlabbatch{1}.spm.spatial.coreg.estimate.other{1} = '';
-
-    matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
-
-    matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
-
-    matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
-
-    matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
-
-
-%    % SAVE/RUN UP TO THIS POINT
+    
+    % SAVE/RUN UP TO THIS POINT
 
     % -------------------------------------------------
 
@@ -387,7 +402,6 @@ for s = 1:length(dosubs)
         save(filename,'matlabbatch');                           % save jobs variable in file batch_preproc_MMDDYY_HHMM.mat in subject's base directory
 
     if execTAG==1
-       
 
         spm_jobman('run',matlabbatch);
 
