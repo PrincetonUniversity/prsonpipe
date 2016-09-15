@@ -5,7 +5,7 @@
 #SBATCH -J run_SPMw_prep		# Job name
 #SBATCH --workdir=./			# Set working directory
 #SBATCH -o ../../output/SPMw-%j.out
-#SBATCH -t 01:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
+#SBATCH -t 24:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
 #SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
 
 source ../globals.par

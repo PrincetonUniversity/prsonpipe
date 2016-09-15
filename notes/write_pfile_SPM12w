@@ -69,11 +69,13 @@ if [[ $REALIGN == ${SPMW} ]]; then realign=1; else realign=0; fi
 
 if [[ $UNWARP == ${SPMW} ]]; then unwarp=1; else unwarp=0; fi
 
+if [[ $NORM == ${SPMW} ]]; then norm=spm12; else norm=none; fi
+
 if [[ $SMOOTH_SOFT == ${SPMW} ]]; then smooth=$SMOOTH; else smooth=0; fi
 
-if [[ $SNR == ${SPMW} ]]; then snr=1; else snr=0; fi
+#if [[ $SNR == ${SPMW} ]]; then snr=1; else snr=0; fi
 
-if [[ $SLICES == ${SPMW} ]]; then slices=1; else slices=0; fi
+#if [[ $SLICES == ${SPMW} ]]; then slices=1; else slices=0; fi
 
 
 cat <<EOT > $fname_full
@@ -88,9 +90,10 @@ p.username      = '${USER}'
 % Paths and names
 p.study_dir     = '${PROJECT_DIR}/';
 p.prepdir       = '${PREP_DIR}/${t}/${wd_dir}/';
-p.datadir       = [p.prepdir p.sid];
+p.datadir       = [p.prepdir p.sid '/'];
 p.prep_name     = '${SPMW}';
-p.rawdir        = '${wd_raw}tmp_raw/';
+p.rawdir        = ['${wd_raw}tmp_raw_' p.sid];
+p.qadir         = ['${QA_DIR}/${t}/' p.prep_name '/'];
 
 % Preprocessing Routines - 1=yes 0=no
           
@@ -98,19 +101,19 @@ p.slicetime     = ${slice_time};
 p.realign       = ${realign};        
 p.unwarp        = ${unwarp};            % Unwarping (correct field inhomogeneties)      
 p.smoothing     = ${smooth};            % Size of smoothing kernel in FWHM (0 for no smoothing)
-p.snr           = ${snr};            % make SNR analysis document
-p.slices        = ${slices};        
+p.snr           = 0; %${qa};            % make SNR analysis document
+p.slices        = 0; %${qa};        % calculate slice noise
 p.cleanup       = 1;            % delete intermediate files 0 (keep all), 1 (keep last), 
                                 % 2 (keep last 2), 3 (keep last 2 and originals)
-p.cleanupzip    = 0;            % Zip up the final stages
+p.cleanupzip    = 1;            % Zip up the final stages
 
 % Not currently working
-p.normalize     = 'none';       % Normalize type ('none','epi','spm12','dartel')
+p.normalize     = '${norm}';       % Normalize type ('none','epi','spm12','dartel')
 
 % Uncomment and set equal to 1 or 0 if changing from default
-%p.tripvols     = ;         
-%p.shuffle      = ;         
-%p.despike      = ;
+%p.trimvols     = 0;         
+%p.shuffle      = 1;         
+%p.despike      = 0;
 
 EOT
 

@@ -57,17 +57,14 @@ popd > /dev/null   # return to the previous directory, quietly
 save_dir=${PROJECT_DIR}/${SCRIPT_DIR_DARTEL}
 fname_full=${save_dir}/p_${DARTEL}${fname}.m
 
-
-#if [[ $NORM != 'DARTEL' ]]; then echo "WARNING: DARTEL was not chosen for normalization in /notes/pars.par. Aborting..."; exit; fi
-
 spm8_dir=${PKG_DIR}/SPM8
 NIfTI_dir=${PKG_DIR}/NIfTI
 
+if [[ $REALIGN == ${DARTEL} ]]; then realign=1; else realign=0; fi
+
 if [[ $NORM == ${DARTEL} ]]; then norm=1; else norm=0; fi
 
-if [[ $SMOOTH_SOFT == ${DARTEL} ]]; then	smooth=$SMOOTH; else smooth=0; fi
-
-if [[ $REALIGN == ${DARTEL} ]]; then realign=1; else realign=0; fi
+if [[ $SMOOTH_SOFT == ${DARTEL} ]]; then smooth=$SMOOTH; else smooth=0; fi
 
 cat <<EOT > $fname_full
 % Parameters file for SPM8 DARTEL normalization

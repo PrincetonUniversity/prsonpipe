@@ -2,34 +2,29 @@
 # author: Miriam Weaverdyck 8/1/16
 # Enter the parameters for your project's p_ files below
 
+# Name of preprocessing
 wd_dir='wd'
 
-# QA: 'BXH', 'SPM12w', 'none'
+# QA: 'BXH', 'none'
 QA='none'
 
 # Slice time correction: 'FSL', 'SPM12w', 'none'
 SLICE_TIME='none'
 
-# Realignment/Motion Correction: 'FSL', 'SPM12w', 'DARTEL' (must use DARTEL for normalization too), 'none'
+# Realignment/Motion correction: 'FSL', 'SPM12w', 'DARTEL', 'none'
 REALIGN='none'
 
-# Unwarping: 'FSL' (topup; must have spin echos), 'SPM12w', 'DARTEL'
+# Unwarping: 'FSL' (topup; must have spin echos), 'SPM12w', 'DARTEL', 'none'
+# automatically run if DARTEL used in any step
 UNWARP='none'
 
 # Smoothing: 'FSL', 'SPM12w', 'DARTEL' (must use DARTEL for normalization too), 'none'; size of smoothing kernel in FWHM
 SMOOTH_SOFT='none'
 SMOOTH=8
 
-# # Signal to Noise Ratio output: 'FSL', 'SPM12w'
-# SNR='SPM'
-
-# Slices (SPM12w): yes=1, no=0
-# SLICES=0					# -- FIGURE OUT WHAT THIS DOES
-
-# === DARTEL settings (also read by write_pfile_GLM-MVPA) ===
-
-# Normalization (includes registration to MNI space, unwarping in DARTEL): 'FSL', 'DARTEL', 'none'
-NORM='DARTEL'
+# Normalization: 'SPM12w' (will run SPM12 normalization), 'DARTEL' (run in SPM8),'none'
+# (includes registration to MNI space, unwarping in DARTEL)
+NORM='none'
 
 # voxel size at which to re-sample functionals (isotropic)
 VOX_SIZE=2.0
