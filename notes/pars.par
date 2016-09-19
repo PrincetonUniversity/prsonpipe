@@ -17,16 +17,18 @@ REALIGN='none'
 # Unwarping: 'FSL' (topup; must have spin echos), 'SPM12w', 'DARTEL', 'none'
 # automatically run if DARTEL used in any step
 UNWARP='none'
-
-# Smoothing: 'FSL', 'SPM12w', 'DARTEL' (must use DARTEL for normalization too), 'none'; size of smoothing kernel in FWHM
-SMOOTH_SOFT='none'
-SMOOTH=8
+EPI_ACCEL=1 #acceleration factor (for topup)
+EPI_ECHOSPACING=0.00072 #echo spacing make sure to get correct value from your scanning protocol (for topup)
 
 # Normalization: 'SPM12w' (will run SPM12 normalization), 'DARTEL' (run in SPM8),'none'
 # (includes registration to MNI space, unwarping in DARTEL)
 NORM='none'
 
-# voxel size at which to re-sample functionals (isotropic)
+# Smoothing: 'FSL', 'SPM12w', 'DARTEL' (must use DARTEL for normalization too), 'none'; size of smoothing kernel in FWHM
+SMOOTH_SOFT='none'
+SMOOTH=8
+
+# voxel size at which to re-sample functionals (isotropic) (DARTEL)
 VOX_SIZE=2.0
 
 # === SPMw GLM-MVPA Settings ===
