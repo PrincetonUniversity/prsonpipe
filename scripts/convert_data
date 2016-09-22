@@ -128,20 +128,20 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
     pushd ${output_dir} > /dev/null
     subdirs=(${TASKS[@]/%/\/${subj}})
     mkdir ${subdirs[@]}   
-    for file in $(ls $temp_output_dir); do
+    
+    if [[ $gz -eq 1 ]]; then
+      pigz ${temp_output_dir}/*
+    fi
+
+   for file in $(ls $temp_output_dir); do
      # the anatomical goes in the first task dir and is then copied to the others, so SPMw doesn't get mad (matlab will not read symlinks)
-      if [[ $gz -eq 1 ]]; then
-        pigz $file
-        file="${file}.gz"
-      fi
       if [[ ${file} = anat* ]]; then
         lp=1
-        for dir in */; do
-          while [[ $lp -eq 1 ]]; do mv "${temp_output_dir}/${file}" "${dir}${subj}/"; anatdir="${dir}${subj}"; ((lp+=1)); continue 2; done
-          cp $file ${dir}${subj}/anat
+        for dir in $(ls -1); do
+        echo "${subdirs[@]}/" | xargs -n 1 rsync -avq --ignore-existing "${temp_output_dir}/${file}"
         done
      #spin echo's go in each dir unless they're specific to a task
-      elif [[ ${file} == *SE*${output_ext} ]]; then
+      elif [[ ${file} == *SE* ]]; then
         if [[ $( echo ${file%%/} | cut -d'_' -f 1) == 'ALL' ]]; then
           echo "${subdirs[@]}/" | xargs -n 1 rsync -avq --ignore-existing "${temp_output_dir}/${file}"
         else
