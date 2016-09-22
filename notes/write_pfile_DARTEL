@@ -66,15 +66,16 @@ if [[ $NORM == ${DARTEL} ]]; then norm=1; else norm=0; fi
 
 if [[ $SMOOTH_SOFT == ${DARTEL} ]]; then smooth=$SMOOTH; else smooth=0; fi
 
-cat <<EOT > $fname_full
+cat <<EOT > ${fname_full}
 % Parameters file for SPM8 DARTEL normalization
 % Last updated: August 2016
 % =======1=========2=========3=========4=========5=========6=========7=========8
 
 % SPM packages to load
+p.pkg_dir       = '${pkg_dir}';
 p.spm8_dir      = '${spm8_dir}';
 p.NIfTI_dir     = '${NIfTI_dir}';
-p.scripts_dir   = '${SCRIPT_DIR_DARTEL}';
+p.scripts_dir   = '${PROJECT_DIR}/${SCRIPT_DIR_DARTEL}';
 
 % study directory
 p.proj_dir      = '${PROJECT_DIR}';
@@ -86,8 +87,8 @@ p.execTAG       = 1;
 % customizable preprocessing parameters
 p.vox_size      = ${VOX_SIZE};
 p.smooth        = ${smooth};
-p.normalize	    = ${norm};
-p.realign	    = ${realign};
+p.normalize     = ${norm};
+p.realign       = ${realign};
 
 % subjects directory containing subject folders
 p.subdir        = '${wd_raw}';
@@ -107,7 +108,7 @@ p.funcFormat    = 2;
 p.TPMimg        = '$spm8_dir/toolbox/Seg/TPM.nii';
 
 EOT
-echo "${label} Done. Finished writing $fname_full"
+echo "${label} Done. Finished writing ${fname_full}"
 
 # unset temporary variables so they can be reused
 unset wd_raw

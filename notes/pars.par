@@ -1,9 +1,6 @@
 #!/bin/bash -e/
 # author: Miriam Weaverdyck 8/1/16
-# Enter the parameters for your project's p_ files below
-
-# Name of preprocessing
-wd_dir='wd'
+# Enter the parameters for your analyses below
 
 # QA: 'BXH', 'none'
 QA='none'
@@ -30,6 +27,9 @@ SMOOTH=8
 
 # voxel size at which to re-sample functionals (isotropic) (DARTEL)
 VOX_SIZE=2.0
+
+# Name of preprocessing (do not change)
+wd_dir="a$(echo ${SLICE_TIME^^} | cut -c1)r$(echo ${REALIGN^^} | cut -c1)u$(echo ${UNWARP^^} | cut -c1)w$(echo ${NORM^^} | cut -c1)s$(echo ${SMOOTH_SOFT^^} | cut -c1)"
 
 # === SPMw GLM-MVPA Settings ===
 

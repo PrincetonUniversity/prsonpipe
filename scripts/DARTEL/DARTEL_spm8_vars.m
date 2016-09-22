@@ -13,6 +13,7 @@ function DARTEL_spm8_vars(subs,pfile)
 run(pfile)		
 
 % load packages
+addpath(p.pkg_dir)
 addpath(p.spm8_dir)
 addpath(p.NIfTI_dir)
 addpath(p.scripts_dir)
@@ -60,7 +61,6 @@ TPMimg=p.TPMimg;
 % End User Defined
 
 %================================================%
-%
 
 % move into outer working directory (i.e. project directory)
 cd(owd)
@@ -82,7 +82,7 @@ end
 % number of subjects found
 subnum = length(subnam);
 
-% make list of subjects to run based on indices of all subjects
+% make list of subjects to run
 if strcmp(subTAG,'all')
     dosubs = 1:subnum;
 else

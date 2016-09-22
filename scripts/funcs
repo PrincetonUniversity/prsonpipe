@@ -6,10 +6,12 @@
 # 1) num2subID			:	called by get_subs, converts array to proper subID form (s000)
 # 2) get_subs			:	takes in an array of subjects and returns an array of subject IDs in form s000
 # 3) reset_step_par		:	overwrites pars.par with nothing turned on
-# 4) wait_for_it		:	waits until log file contains "[STEP] Done."
+# ??4) wait_for_it		:	waits until log file contains "[STEP] Done."
 # 5) update_nii			:	updates niftis to their most recently modified formats
 # 6) make_matlab_array	:	makes matlab array of sub nums (000) from bash array (may be matlab-style [1 2 3])
-# 7) make_smatlab_array	:	makes matlab array of sub ids ('s000') from bash array (may be matlab-style [1 2 3])
+# ??7) make_smatlab_array	:	makes matlab array of sub ids ('s000') from bash array (may be matlab-style [1 2 3])
+# 8) unzip_epi_anat		:	unzips all epi*.nii.gz and anat*.nii.gz files based on inputted subs and directory using unpigz
+# ??9) zip_all			:	zips all files based on inputted subs and directory using pigz
 # ------------------------------------------------------------------------------
 
 source globals.par
@@ -206,17 +208,57 @@ function wait_for_it {
 # author Miriam Weaverdyck, August 23, 2016
 # This function updates niftis to their most recently modified formats
 ###########################################
+# Arguments (1 total):
+#  subs[@] 	: bash array of subs
+#  d 		: directory containing sdirs, which contain files to be unzipped
+###########################################
 
 function update_nii {
-	# count number of original epi_r##.nii files there are
-	num_runs="$(find ./ -type f -name 'epi_r*.nii' | wc -l)";
-	# go through and store each of those filenames in runs
-	for ((i=1; i<=${num_runs}; i++)); do runs[$i]="$(find ./ -type f -name 'epi_r*.nii' | head -$i | tail -1 | xargs -n 1 basename)"; done
-	# go through runs and find the most recent version (with prefixes) then update original file to most recent version
-	for r in "${runs[@]}"; do cp "$(find *${r} -type f -printf '%T@ %p\n' | sort -rn | head -n 1 | cut -f2- -d" ")" "$r"; done
-	# go through all other files (in orig_nii) and update those to their most recent versions
-	orig_nii=("anat.nii" "epi_SE_AP.nii" "epi_SE_PA.nii");
-	for n in "${orig_nii[@]}"; do cp "$(find *${n} -type f -printf '%T@ %p\n' | sort -rn | head -n 1 | cut -f2- -d" ")" "$n"; done
+	d=$1 # directory of sdirs
+	steps=$2 # list of prefixes 
+	declare -a subs=("${!3}") # array of subjects
+	num2subID subs[@] # change subs into proper s-format
+
+	# for every subject
+	for s in "${SUBIDS[@]}"; do
+		pushd ${d}/${s} > /dev/null # move into subject folder, quietly
+		pigz *.nii 	# zip all niftis in folder
+
+		# for each character in the list of step prefixes, 
+		for (( i=0; i<${#steps}; i++ )); do 
+			# reverse steps to create the prefix of the nii files to update
+			prefix=${prefix}${steps:${i}:1};
+		done
+
+		# count number of original epi_r##.nii.gz files there are
+		num_runs="$(find ./ -type f -name 'epi_r*.nii.gz' | wc -l)";
+		# go through and store each of those filenames in array runs[@]
+		for ((i=1; i<=${num_runs}; i++)); do runs[$i]="$(find ./ -type f -name 'epi_r*.nii.gz' | head -$i | tail -1 | xargs -n 1 basename)"; done
+		# go through runs[@] and find the most recent version (with prefixes) then update original file to most recent version
+		for r in "${runs[@]}"; do cp "${prefix}${r}" "${r}"; done
+
+		popd > /dev/null # move out of subject folder, quietly
+	done
+
+	# select by recency
+	# d=$1
+	# declare -a subs=("${!2}")
+	# num2subID subs[@]
+	# for s in "${SUBIDS[@]}"; do
+	# 	# move into subject folder, quietly
+	# 	pushd ${d}/${s} > /dev/null
+	# 	# count number of original epi_r##.nii.gz files there are
+	# 	num_runs="$(find ./ -type f -name 'epi_r*.nii.gz' | wc -l)";
+	# 	# go through and store each of those filenames in array runs[@]
+	# 	for ((i=1; i<=${num_runs}; i++)); do runs[$i]="$(find ./ -type f -name 'epi_r*.nii.gz' | head -$i | tail -1 | xargs -n 1 basename)"; done
+	# 	# go through runs[@] and find the most recent version (with prefixes) then update original file to most recent version
+	# 	for r in "${runs[@]}"; do cp "$(find *${r} -type f -printf '%T@ %p\n' | sort -rn | head -n 1 | cut -f2- -d" ")" "$r"; done
+	# 	# go through all other files (in orig_nii) and update those to their most recent versions
+	# 	#orig_nii=("*_SE_AP.nii.gz" "*_SE_PA.nii.gz" );
+	# 	#for n in "${orig_nii[@]}"; do cp "$(find *${n} -type f -printf '%T@ %p\n' | sort -rn | head -n 1 | cut -f2- -d" ")" "$n"; done
+	# 	# move out of subject folder, quietly
+	# 	popd > /dev/null
+	# done
 }
 
 ################################################################################
@@ -294,4 +336,45 @@ function make_smatlab_array {
 		for s in "${SUBIDS[@]}"; do matlab_array="${matlab_array}'${s}' "; done
 		matlab_array="${matlab_array}]"
 	fi
+}
+
+################################################################################
+# 8)
+# unzip_epi_anat
+# author Miriam Weaverdyck, September 15, 2016
+# This function unzips epi*.nii.gz and anat*.nii.gz using parallel gzip
+###########################################
+# Arguments (1 total):
+#  subs[@] 	: bash array of subs
+#  d 		: directory containing sdirs, which contain files to be unzipped
+###########################################
+
+function unzip_epi_anat {
+	d=$1
+	declare -a subs=("${!2}")
+	num2subID subs[@]
+	for s in "${SUBIDS[@]}"; do
+		unpigz ${d}/${s}/anat*.nii.gz
+		unpigz ${d}/${s}/epi*.nii.gz
+	done
+}
+
+################################################################################
+# 9)
+# zip_all
+# author Miriam Weaverdyck, September 15, 2016
+# This function zips all files based on inputted subs and directory using pigz
+###########################################
+# Arguments (1 total):
+#  subs[@] 	: bash array of subs
+#  d 		: directory containing sdirs, which contain files to be unzipped
+###########################################
+
+function zip_all {
+	d=$1
+	declare -a subs=("${!2}")
+	num2subID subs[@]
+	for s in "${SUBIDS[@]}"; do
+		pigz ${d}/${s}/*.nii
+	done
 }
