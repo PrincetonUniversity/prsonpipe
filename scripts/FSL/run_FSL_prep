@@ -1,0 +1,108 @@
+#!/bin/bash
+#
+# Runs FSL analysis based on pfile options. 
+#
+# Arguments:
+# 1) pfile to use
+# 2) subject
+#
+# Global variables used
+#  from globals.par
+#    TASKS
+#SBATCH -J 'FSL_prep'
+#SBATCH -o '../../output/FSL_prep-%j.out'
+#SBATCH -p all
+
+pfile=$1
+subj=$2
+label="[FSL]"
+
+set -e
+
+module load fsl
+
+source ../globals.par
+source $pfile
+
+fsl_prep=${PREP}/${subj}
+task=$TASK
+for epi in ${fsl_prep}/epi_r*.nii*; do
+    #set local variables for this subject and task.
+    epi_name="$(basename $epi)"
+    log_file="${fsl_prep}/fsl_log.txt"
+    
+    time_file="${fsl_prep}/a${epi_name}"
+    motion_file="${fsl_prep}/r${epi_name}"
+    unwarp_file="${fsl_prep}/w${epi_name}"
+    smooth_file="${fsl_prep}/s${epi_name}"
+    SE_AP="${fsl_prep}/${task}_SE_AP.nii*"
+    topup_dir=${PREP_DIR}/topup/${subj}
+    if [ ! -f $SE_AP ]; then 
+    	SE_AP="$(dirname $SE_AP)/ALL_SE_AP.nii*" 
+    	topup_dir=${PREP_DIR}/topup/${subject}
+    fi
+    mkdir -p $topup_dir
+    SE_PA="${SE_AP%AP.nii*}PA.nii*"
+    if [ ! -f ${log_file} ]; then touch ${log_file}; fi
+    
+    if [[ $SLICETIME == 1 ]]; then
+      slicetimer -i "$epi" -o "$time_file" --odd
+      cp $time_file $epi
+      echo "${label} $(date) Ran slicetimer" >> "$log_file"
+#    else 
+#      cp $epi $time_file
+#      echo "$(date) skipped slicetimer and copied raw as $time_file." >> "$log_file"
+    fi
+    
+    if [[ $MOTION == 1 ]]; then
+      mcflirt -in $epi -refvol $SE_AP -o $motion_file -mats -plots
+      cp $motion_file $epi
+      echo "${label} $(date) Ran motion correction" >> "$log_file"
+#     else
+ #      cp $epi $time_file
+  #     echo "$(date) skipped mcflirt and copied $time_file as $motion_file." >> "$log_file"
+    fi
+    
+
+    if [[ $UNWARP == 1 ]]; then
+      
+      if [ ! -f ${topup_dir}/topup_logout ]; then
+      fslmerge -t ${topup_dir}/all_SE_epi ${SE_AP} ${SE_PA}
+      declare -a APinfo=($(fslinfo ${SE_AP})) #make array out of header info for AP epi to use in readout time calculation
+      declare -a PAinfo=($(fslinfo ${SE_PA}))
+      echo 'Generating acqparams file'
+      if [ -e "${topup_dir}/acqparams.txt" ]; then rm -f 'acqparams.txt'; fi
+      readout=(${APinfo[3]}/${EPI_ACCEL}-1)*$EPI_ECHOSPACING
+      readout=$(echo "$readout" | bc -l)
+      for i in $(eval echo "{1..${APinfo[9]}}") ; do
+         cat >> ${topup_dir}/acqparams_epi.txt <<EOF
+0 -1 0 $readout
+EOF
+      done
+      for i in $(eval echo "{1..${APinfo[9]}}"); do
+        cat >> ${topup_dir}/acqparams_epi.txt <<EOF
+0 1 0 $readout
+EOF
+      done
+      echo 'Running topup'
+      topup --imain="${topup_dir}/all_SE_epi" --datain=${topup_dir}/acqparams_epi.txt --config=b02b0.cnf \
+        --out=${topup_dir}/topup_output --iout=${topup_dir}/topup_iout --fout=${topup_dir}/topup_fout --logout=${topup_dir}/topup_logout
+      fi
+      
+      echo 'Applying topup'
+      applytopup --imain=$motion_file --datain=${topup_dir}/acqparams_epi.txt --inindex=1 --topup=${topup_dir}/topup_output \
+        --method=jac --out=${unwarp_file}
+      cp $unwarp_file $epi
+      echo "${label} $(date) Ran topup to unwarp $unwarp_file" >> "$log_file"
+  #  else
+  #    cp $motion_file $unwarp_file
+  #    echo "$(date) Skipped topup. Copied $motion_file to $unwarp_file" >> "$log_file"
+    fi
+    if [[ $SMOOTHING != 0 ]]; then
+      sigma=`echo "2.35482004503*$SMOOTHING" | bc -l` #calculate sigma value needed for FSL smoothing based on FWHM
+      fslmaths $epi -s $sigma $smooth_file
+      cp $smooth_file $epi
+      echo "${label} $(date) Ran smoothing with $SMOOTHING FWHM" >> "$log_file"
+    fi
+done
+
