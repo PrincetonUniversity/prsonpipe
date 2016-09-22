@@ -56,16 +56,18 @@ if [[ $# -ge 1 ]] && [[ -d ${RAW_DIR}/${1} ]]; then TASKS=(${1}); shift; echo "r
 #wait_for_it "CONVERT" "${convert_log}"
 
 for t in "${TASKS[@]}"; do 
-	stepfile=${PROJECT_DIR}/notes/step.par
-	logfile=${wd_dir_full}/LOG.txt
-	echo "${label} $(date) >>> Starting task $t <<<"
+	
 
 	# source task's pars file
 	if [[ $PREP_SEP -eq 0 ]]; then parsfile=pars.par; else parsfile=pars_${t}.par; fi
 	source ${PROJECT_DIR}/notes/${parsfile}
 
 	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
-	if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
+        stepfile=${PROJECT_DIR}/notes/step.par
+	logfile=${wd_dir_full}/LOG.txt
+	echo "${label} $(date) >>> Starting task $t <<<"
+	
+       if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
 	DATE=`date +%Y%m%d`
 	cp ${PROJECT_DIR}/notes/${parsfile} ${wd_dir_full}/${DATE}_${parsfile}
 
@@ -95,14 +97,14 @@ for t in "${TASKS[@]}"; do
 	i=0; for p in "${step_softs[@]}"; do if [[ $p != 'none' ]]; then sim_array[$i]=1; break; fi; i=$(($i + 1)); done
 
 	echo "${label} $(date) ***Running subjects ${SUBS[@]} on the following***" >> "$logfile"
-	echo "${label} QA                    = $QA" >> "$logfile"
+	#echo "${label} QA                    = $QA" >> "$logfile"
 	echo "${label} Slice Time Correction = $SLICE_TIME" >> "$logfile"
 	echo "${label} Motion Correction     = $REALIGN" >> "$logfile"
 	echo "${label} Unwarping             = $UNWARP" >> "$logfile"
 	echo "${label} Normalization         = $NORM" >> "$logfile"
 	echo "${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)" >> "$logfile"
 	
-	# Run each subject, one at a time
+     # Run each subject, one at a time
 	n=0; for s in "${SUBS[@]}"; do
 		if [[ -z $s ]]; then echo "${label} Can't find subject ${s}. Aborting..."; exit; fi
 		first=1;
@@ -123,7 +125,7 @@ for t in "${TASKS[@]}"; do
 			# if current step is set to 'none', skip and move on to next step
 			if [[ $p != 'none' ]]; then 
 				# check if current step is QA(BXH) or NORM(DARTEL)
-				if [[ ${step_name} == 'QA' ]] && [[ $QA == 'BXH' ]]; then continue; fi
+				if [[ ${step_name} == 'QA' ]] && [[ $QA == 'BXH' ]]; then i=$(($i + 1)); continue; fi
 				if [[ ${step_name} == 'NORM' ]] && [[ $NORM == ${DARTEL} ]]; then 
 					# if not last subject, reset step par and ext
 					if [[ $n -ne $((${#SUBS[@]} - 1)) ]]; then reset_step_par; unset ext; fi; 
@@ -166,7 +168,7 @@ for t in "${TASKS[@]}"; do
 	if [[ $NORM == ${DARTEL} ]]; then
 		for s in "${SUBS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
-			echo "${label} $(date) == beginning group preprocessing of ${SUBS[@]} ==" >> "$logfile"
+                        echo "${label} $(date) == beginning group preprocessing of ${SUBS[@]} ==" >> "$logfile"
 		done
 
 		# SET UP FOR DARTEL
