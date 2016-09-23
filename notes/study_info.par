@@ -20,11 +20,12 @@
                    ##########################
 #######--------------------PROJECT SETTINGS-------------------######
 
-PROJECT_NAME=prsonpipe                # ENTER THE STUDY NAME. Should be the same as project dir in /fastscratch/ and jukebox labvolume
-PROJECT_DIR=/jukebox/tamir/prsonpipe  # ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
-USER_EMAIL=prsonlab@gmail.com         # ENTER YOUR EMAIL.  This will be used to send you updates on jobs you run on spock.
-LAB_NAME=tamir                        # SET NAME OF LAB VOLUME ON JUKEBOX
-PKG_DIR=/jukebox/tamir/pkg            # ENTER DIRECTORY OF PACKAGES
+PROJECT_NAME=<my_project>                          # ENTER THE STUDY NAME. Should be the same as project dir in /fastscratch/ and jukebox labvolume
+PROJECT_DIR=/fastscratch/<netid>/<my_project>      # ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
+USER_EMAIL=<netid>@princeton.edu                   # ENTER YOUR EMAIL.  This will be used to send you updates on jobs you run on spock.
+
+LAB_NAME=tamir                                     # name of lab on jukebox
+PKG_DIR=/jukebox/tamir/pkg                         # path to directory containing packages you will load
 
 
 
@@ -59,8 +60,8 @@ PREP_SEP=0                            # Run each task with different preprocessi
 # epi_XYZ_r01 109
 # epi_XYZ_r02 109
 # epi_XYZ_r03 109
-# all_SE_AP 3
-# all_SE_PA 3
+# ALL_SE_AP 3
+# ALL_SE_PA 3
 # ABC_SE_AP 3
 # ABC_SE_PA 3
 # anat
