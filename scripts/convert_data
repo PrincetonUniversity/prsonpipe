@@ -102,7 +102,7 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
     # the sed magic here strips out comments
   {
    while read name num_expected_trs; do
-    if [ $name == $ERROR_FLAG ]; then
+    if [[ $name == $ERROR_FLAG ]]; then
      let "number += 1"
      continue
     fi
@@ -156,7 +156,7 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
         mv ${temp_output_dir}/${file} ${tskname}/${subj}/${filename}
       fi
     done     
-    
+    rm -rf $temp_output_dir    
     echo "[CONVERT] $subj done at $(date)"
 
 done
