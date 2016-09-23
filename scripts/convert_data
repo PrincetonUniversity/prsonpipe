@@ -87,6 +87,7 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
     num_expected_scans=$(wc -l < $stripped_run_order_file)
    if [ $num_actual_scans != $num_expected_scans ]; then
       echo "found $num_actual_scans scans, but $num_expected_scans were described in $run_order_file. check that you're listing enough scans for your circle localizer, etc... because those may convert as more than one scan." >/dev/stderr
+      rm -rf $temp_output_dir
       continue
       #exit $UNEXPECTED_NUMBER_OF_SCANS
     fi
@@ -114,6 +115,7 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
         num_actual_trs=$(fslnvols ${niigz_file_prefix})
         if [ $num_expected_trs -ne $num_actual_trs ]; then
           echo "$name has $num_actual_trs TRs--expected $num_expected_trs" >/dev/stderr
+          rm -rf $temp_output_dir
           continue 2
           #exit $UNEXPECTED_NUMBER_OF_TRS
         fi
