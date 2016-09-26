@@ -88,6 +88,7 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
    if [ $num_actual_scans != $num_expected_scans ]; then
       echo "found $num_actual_scans scans, but $num_expected_scans were described in $run_order_file. check that you're listing enough scans for your circle localizer, etc... because those may convert as more than one scan." >/dev/stderr
       rm -rf $temp_output_dir
+      rm -rf $temp_dicom_dir
       continue
       #exit $UNEXPECTED_NUMBER_OF_SCANS
     fi
@@ -116,6 +117,7 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
         if [ $num_expected_trs -ne $num_actual_trs ]; then
           echo "$name has $num_actual_trs TRs--expected $num_expected_trs" >/dev/stderr
           rm -rf $temp_output_dir
+          rm -rf $temp_dicom_dir
           continue 2
           #exit $UNEXPECTED_NUMBER_OF_TRS
         fi
@@ -157,9 +159,13 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
       fi
     done     
     rm -rf $temp_output_dir    
+    rm -rf $temp_dicom_dir
     echo "[CONVERT] $subj done at $(date)"
 
 done
+
+rm -rf $temp_output_dir
+rm -rf $temp_dicom_dir
 
 echo [CONVERT]
 echo "[CONVERT] Done."
