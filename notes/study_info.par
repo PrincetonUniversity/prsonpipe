@@ -41,7 +41,7 @@ PREP_SEP=0                            # Run each task with different preprocessi
                    ##########################
 
 ######--------------------RUN ORDER TEMPLATE-----------------######
-# Between the <<START_RO>> and <<END_RO>> boxes, add the usual order of your scans as a run order template..
+# Between the START_RO and END_RO boxes, add the usual order of your scans as a run order template..
 # You will be able to customize each participant's run order when importing the data, but the template will be your starting point.
 # For each run in your protocol add the name of the scan and the number of TRs (optional). 
 # ERROR_RUN is used for each run you do not want to import (like your localizer, or a scan that was aborted midway through).
