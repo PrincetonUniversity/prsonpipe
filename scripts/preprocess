@@ -1,13 +1,12 @@
 #!/bin/bash
 #
-# analyze.sh runs the analysis of a subject
-# bash analyze "${var[@]}"
-# bash analyze 1 2
-# bash analyze {1..3}
-# bash analyze s001 s005
+# preprocess runs the preprocessing of a subject
+# bash preprocess TSK
+# bash preprocess TSK s001 02 s102 
+# bash preprocess TSK {1..3}
+# bash preprocess TSK all
 #
-# original author: mason simon (mgsimon@princeton.edu)
-# this script was provided by NeuroPipe. modify it to suit your needs
+# this script was inspired by NeuroPipe. 
 # edited MEW 8/1/16: added conditional statements based on args and added subject loop
 # 8/11/16 MEW: finished adding arrays for all prep steps so that it loops through
 # array per subject.  Can work with 'none' entries, now.  
