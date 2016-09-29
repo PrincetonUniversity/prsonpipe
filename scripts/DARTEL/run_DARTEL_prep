@@ -31,7 +31,7 @@ echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} w
 steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K.*?(?=.m)')
 
 # extract the wd folder location from the pfile by grabbing the quoted section of the line that starts with "p.subdir /whitespace/ = " and ends before ";"
-wd_dir=$(grep -oP 'p.subdir\s*=\s\K'.*?'(?=;)' ${pfile})
+wd_dir=$(grep -oP 'p.subdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
 
 # unzip the epi* and anat files in the subject directories within wd_dir
 unzip_epi_anat ${wd_dir} SUBS[@]
