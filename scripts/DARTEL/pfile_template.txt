@@ -1,0 +1,40 @@
+% Parameters file for SPM8 DARTEL normalization
+% Last updated: August 2016
+% =======1=========2=========3=========4=========5=========6=========7=========8
+
+% SPM packages to load
+p.pkg_dir       = '${pkg_dir}';
+p.spm8_dir      = '${spm8_dir}';
+p.NIfTI_dir     = '${NIfTI_dir}';
+p.scripts_dir   = '${PROJECT_DIR}/${SCRIPT_DIR_DARTEL}';
+
+% study directory
+p.proj_dir      = '${PROJECT_DIR}';
+p.output        = '${OUT_DIR}';
+
+% execute the job immediately? (0 = no, 1 = yes)
+p.execTAG       = 1;
+
+% customizable preprocessing parameters
+p.vox_size      = ${VOX_SIZE};
+p.smooth        = ${smooth};
+p.normalize     = ${norm};
+p.realign       = ${realign};
+
+% subjects directory containing subject folders
+p.subdir        = '${wd_raw}';
+% pattern for finding subject folders (use wildcards)
+p.subID         = 's*';
+% do which subjects? ('all' to do all)
+%p.subTAG        = 'all'; # DARTEL does not currently use subTAG
+% pattern for finding functional run files (use wildcards)
+p.runID         = 'epi_r*';
+% pattern for finding matched-bandwidth image (use wildcards)
+p.mprageID      = 'anat*.nii';
+
+% format of your raw functional images (1=img/hdr, 2=4D nii)
+p.funcFormat    = 2;
+
+% path for tissue probability maps (in spm8/tpm) for 'new segment'
+p.TPMimg        = '$spm8_dir/toolbox/Seg/TPM.nii';
+

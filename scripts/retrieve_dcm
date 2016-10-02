@@ -78,7 +78,7 @@ pushd $tmp_dir_zip/ > /dev/null
 
 for f in *.gz; do
 	STEM=$(basename "${f}" .gz) 
-	gunzip -c "${f}" > $tmp_dir/$SUBJ/"${STEM}"
+	unpigz -c "${f}" > $tmp_dir/$SUBJ/"${STEM}"
 done
 
 popd > /dev/null
@@ -127,7 +127,7 @@ popd > /dev/null
 
 
 pushd $tmp_dir/$SUBJ > /dev/null
-tar --create --gzip --file=$output_file *
+tar --create --use-compress-program=pigz --file=$output_file *
 popd > /dev/null
 mv $tmp_dir/$SUBJ/$output_file $output_dir
 

@@ -57,17 +57,17 @@ if [[ $# -ge 1 ]] && [[ -d ${RAW_DIR}/${1} ]]; then TASKS=(${1}); shift; echo "r
 
 for t in "${TASKS[@]}"; do 
 	
+	echo "${label} $(date) >>> Starting task $t <<<"
 
 	# source task's pars file
 	if [[ $PREP_SEP -eq 0 ]]; then parsfile=pars.par; else parsfile=pars_${t}.par; fi
 	source ${PROJECT_DIR}/notes/${parsfile}
 
 	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
-        stepfile=${PROJECT_DIR}/notes/step.par
+    stepfile=${PROJECT_DIR}/notes/step.par
 	logfile=${wd_dir_full}/LOG.txt
-	echo "${label} $(date) >>> Starting task $t <<<"
 	
-       if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
+    if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
 	DATE=`date +%Y%m%d`
 	cp ${PROJECT_DIR}/notes/${parsfile} ${wd_dir_full}/${DATE}_${parsfile}
 
@@ -142,10 +142,10 @@ for t in "${TASKS[@]}"; do
 			if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
 				echo "${label} $(date) -- running $pnames in $cur_soft analysis on $s --" >> "$logfile"
 				# write out pfile based on step.par
-				bash ${PROJECT_DIR}/notes/write_pfile_${cur_soft} ${t} ${ext}
+				bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}
 				script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
 				run_script="${script_path}/run_${cur_soft}_prep"
-				pfile="${script_path}/p_${cur_soft}_temp_${t}${ext}.m"
+				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 				# run steps in current software
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
@@ -190,10 +190,10 @@ for t in "${TASKS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
 			echo "${label} $(date) -- running $pnames in ${cur_soft} analysis --" >> "$logfile"
 		done
-		bash ${PROJECT_DIR}/notes/write_pfile_${cur_soft} ${t} ${ext}
+		bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}
 		script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
 		run_script="${script_path}/run_${cur_soft}_prep"
-		pfile="${script_path}/p_${cur_soft}_temp_${t}${ext}.m"
+		pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 		pushd ${script_path} > /dev/null   	# move into software's script directory, quietly
 		if [[ $first -eq 1 ]]; then 
 			prev_jobid=$(sbatch -t 01:00:00 "${run_script}" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
@@ -211,10 +211,10 @@ for t in "${TASKS[@]}"; do
 				echo "${step_name}='$p'" >> "$stepfile"
 				logfile=${wd_dir_full}/${s}/LOG.txt
 				echo "${label} $(date) -- running $pnames in $cur_soft analysis --" >> "$logfile"
-				bash ${PROJECT_DIR}/notes/write_pfile_$cur_soft $t $ext
+				bash ${PROJECT_DIR}/notes/write_pfile $cur_soft $t $ext
 				script_path="${SCRIPT_DIR_FULL}/$cur_soft"
 				run_script="${script_path}/run_${cur_soft}_prep"
-				pfile="${script_path}/p_${cur_soft}_temp_${t}${ext}.m"
+				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
 				sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${s}"
 				popd > /dev/null   # return to the previous directory, quietly

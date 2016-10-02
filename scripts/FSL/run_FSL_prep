@@ -16,7 +16,6 @@
 pfile=$1
 subj=$2
 label="[FSL]"
-
 set -e
 
 module load fsl
@@ -36,10 +35,10 @@ for epi in ${fsl_prep}/epi_r*.nii*; do
     unwarp_file="${fsl_prep}/w${epi_name}"
     smooth_file="${fsl_prep}/s${epi_name}"
     SE_AP="${fsl_prep}/${task}_SE_AP.nii*"
-    topup_dir=${PREP_DIR}/topup/${subj}
+    topup_dir="${PREP_DIR}/topup/${subj}"
     if [ ! -f $SE_AP ]; then 
     	SE_AP="$(dirname $SE_AP)/ALL_SE_AP.nii*" 
-    	topup_dir=${PREP_DIR}/topup/${subject}
+    	topup_dir=${PREP_DIR}/topup/${subj}
     fi
     mkdir -p $topup_dir
     SE_PA="${SE_AP%AP.nii*}PA.nii*"
@@ -85,24 +84,27 @@ EOF
 EOF
       done
       echo 'Running topup'
-      topup --imain="${topup_dir}/all_SE_epi" --datain=${topup_dir}/acqparams_epi.txt --config=b02b0.cnf \
-        --out=${topup_dir}/topup_output --iout=${topup_dir}/topup_iout --fout=${topup_dir}/topup_fout --logout=${topup_dir}/topup_logout
+      topup --imain="${topup_dir}/all_SE_epi" --datain=${topup_dir}/acqparams_epi.txt --config=b02b0.cnf --out=${topup_dir}/topup_output --iout=${topup_dir}/topup_iout --fout=${topup_dir}/topup_fout --logout=${topup_dir}/topup_logout
       fi
       
       echo 'Applying topup'
-      applytopup --imain=$motion_file --datain=${topup_dir}/acqparams_epi.txt --inindex=1 --topup=${topup_dir}/topup_output \
-        --method=jac --out=${unwarp_file}
+      outfile=$unwarp_file
+      echo ${outfile%.nii.gz}
+      echo $topup_dir
+      echo $epi
+      applytopup --imain="$epi" --datain="${topup_dir}/acqparams_epi.txt" --inindex=1 --topup="${topup_dir}/topup_output" --method=jac -o "${outfile%.nii.gz}"
       cp $unwarp_file $epi
       echo "${label} $(date) Ran topup to unwarp $unwarp_file" >> "$log_file"
   #  else
   #    cp $motion_file $unwarp_file
   #    echo "$(date) Skipped topup. Copied $motion_file to $unwarp_file" >> "$log_file"
     fi
-    if [[ $SMOOTHING != 0 ]]; then
-      sigma=`echo "2.35482004503*$SMOOTHING" | bc -l` #calculate sigma value needed for FSL smoothing based on FWHM
+    if [[ $FWHM != 0 ]]; then
+      echo "smoothing with kernel $FWHM"
+      sigma=`echo "2.35482004503*$FWHM" | bc -l` #calculate sigma value needed for FSL smoothing based on FWHM
       fslmaths $epi -s $sigma $smooth_file
       cp $smooth_file $epi
-      echo "${label} $(date) Ran smoothing with $SMOOTHING FWHM" >> "$log_file"
+      echo "${label} $(date) Ran smoothing with $FWHM FWHM" >> "$log_file"
     fi
 done
 
