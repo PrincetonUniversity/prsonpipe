@@ -26,18 +26,18 @@ echo
 for task in ${TASKS[@]}; do
   for rawpath in ${PROJECT_DIR}/raw/${task}/*/; do
     subject=$(basename "$rawpath")
-  if [ -e ${PROJECT_DIR}/qa/${subject} ]; then
-    echo "[QA] QA already exists for ${subject}. Skipping ${subject}."
+  if [ -e ${PROJECT_DIR}/qa/${subject}/${task} ]; then
+    echo "[QA] QA already exists for ${subject} on task ${task}. Skipping ${subject}."
     continue
   fi
   echo [QA]
-  for scan in ${rawpath}epi*.nii; do
+  for scan in ${rawpath}epi*.nii*; do
     echo "[QA] Creating BXH header for $scan at $(date)" 
-    analyze2bxh ${scan} ${scan%.nii}.bxh #create bxh header for the first scan
+    analyze2bxh ${scan} ${scan%.nii*}.bxh #create bxh header for the first scan
   done
   echo "[QA] Starting QA for $subject at $(date)"
   mkdir -p "${PROJECT_DIR}/qa/${subject}/"
-  fmriqa_generate.pl --calc meanstddevsfnr,maskedcmass ${rawpath}*.bxh "${PROJECT_DIR}/qa/${subject}/${task}"
+  sbatch -t 2880 bxh_generate $rawpath $PROJECT_DIR $subject $task
   # To run all QA options, remove --calc meanstddevsfnr,maskedcmass. Load bxh module and run fmriqa_generate.pl without arguments for more details.
 done
 done
