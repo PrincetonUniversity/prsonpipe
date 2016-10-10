@@ -103,10 +103,11 @@ for t in "${TASKS[@]}"; do
 	echo "${label} Normalization         = $NORM" >> "$logfile"
 	echo "${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)" >> "$logfile"
 	
-     # Run each subject, one at a time
+
+    # Run each subject, one at a time
 	n=0; for s in "${SUBS[@]}"; do
 		if [[ -z $s ]]; then echo "${label} Can't find subject ${s}. Aborting..."; exit; fi
-		first=1;
+		first_step=1;
 
 		wd_dir_sub=${wd_dir_full}/${s}
 		logfile=${wd_dir_sub}/LOG.txt
@@ -140,23 +141,26 @@ for t in "${TASKS[@]}"; do
 			# RUN STEP(S)
 			if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
 				echo "${label} $(date) -- running $pnames in $cur_soft analysis on $s --" >> "$logfile"
-				# write out pfile based on step.par
-				bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}
+				# if first subject, write out pfile based on step.par
+				if [[ $n -eq 0)) ]]; then bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}; fi
 				script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
 				run_script="${script_path}/run_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 				# run steps in current software
+				# set run_time to 4hrs + 1 hr per step being run
+				run_time=$((${#ext} + 180))
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
-				if [[ $first -eq 1 ]]; then 
-					prev_jobid=$(sbatch -t 01:00:00 "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
+				if [[ $first_step -eq 1 ]]; then 
+					prev_jobid=$(sbatch -t ${run_time} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				else
-					prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
+					prev_jobid=$(sbatch -t ${run_time} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				fi
+				echo "Job ${prev_jobid} submitted for subject ${s}"
 				popd > /dev/null   # return to the previous directory, quietly
 
 				# reset pars for next step
-				reset_step_par; unset ext; first=0; unset pnames;
+				reset_step_par; unset ext; first_step=0; unset pnames;
 			fi
 			i=$(($i + 1))
 		done
@@ -189,34 +193,40 @@ for t in "${TASKS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
 			echo "${label} $(date) -- running $pnames in ${cur_soft} analysis --" >> "$logfile"
 		done
+		# if number of subjects to run is <=30, then set run_time to 48 hours (2880 min).  If >30, run_time=72hrs (4320 min)
+		if [[ ${#SUBS[@]} -le 30 ]]; then run_time=2880; else run_time=4320; fi
 		bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}
 		script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
 		run_script="${script_path}/run_${cur_soft}_prep"
 		pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 		pushd ${script_path} > /dev/null   	# move into software's script directory, quietly
-		if [[ $first -eq 1 ]]; then 
-			prev_jobid=$(sbatch -t 01:00:00 "${run_script}" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
+		if [[ $first_step -eq 1 ]]; then 
+			prev_jobid=$(sbatch -t ${run_time} "${run_script}" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
 		else
-			prev_jobid=$(sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
+			prev_jobid=$(sbatch -t ${run_time} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
 		fi
+		echo "Job ${prev_jobid} submitted for subjects ${SUBS[@]}"
 		popd > /dev/null   					# return to the previous directory, quietly
 
 		# RUN SMOOTHING (if not in DARTEL)
 		if [[ ${sim_array[i]} -eq 0 ]]; then
-			for s in "${SUBS[@]}"; do
+			n=0; for s in "${SUBS[@]}"; do
 				reset_step_par; unset ext; unset pnames
 				p=${step_softs[i]}; step_name=${step_names[$i]}; e=${step_exts[$i]}
 				ext=${ext}${e}; cur_soft=$p; pnames="${pnames} $step_name"
 				echo "${step_name}='$p'" >> "$stepfile"
 				logfile=${wd_dir_full}/${s}/LOG.txt
 				echo "${label} $(date) -- running $pnames in $cur_soft analysis --" >> "$logfile"
-				bash ${PROJECT_DIR}/notes/write_pfile $cur_soft $t $ext
+				# if first subject, write out pfile based on step.par
+				if [[ $n -eq 0)) ]]; then bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}; fi
 				script_path="${SCRIPT_DIR_FULL}/$cur_soft"
 				run_script="${script_path}/run_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
-				sbatch -t 01:00:00 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${s}"
+				prev_jobid=$(sbatch -t 60 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${s}" | grep -o '[0-9]*')
+				echo "Job ${prev_jobid} submitted for subject ${s}"
 				popd > /dev/null   # return to the previous directory, quietly
+				n=$(($n + 1))
 			done
 		fi
 	fi

@@ -2,11 +2,10 @@
 # Author: Miriam
 # 9/19/16 edited by MEW to extract prefix string from pfile name and update_nii
 
-#SBATCH -J dartel				# Job name
-#SBATCH --workdir=./			# Set working directory
-#SBATCH -o ../../output/dartel-%j
-#SBATCH -t 48:00:00				# Set runtime in hh:mm:ss, d-hh, d-hh:mm, mm:ss, or m
-#SBATCH --mem 5120				# Set amount of memory in MB (1GB = 1024 MB)
+#SBATCH -J dartel						# Job name
+#SBATCH --workdir=./					# Set working directory
+#SBATCH -o ../../output/dartel-%j.out 	# Set output file
+#SBATCH --mem-per-cpu=20480				# Set amount of memory in MB (1GB = 1024 MB)
 
 pushd ../ > /dev/null
 source globals.par
