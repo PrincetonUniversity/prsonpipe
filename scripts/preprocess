@@ -22,7 +22,7 @@
 #  funcs
 # Arguments:
 #  none 	: will run all tasks with all NEW subjects (on a task by task basis)
-#  'TSK'	: will run task TSK, if exists (must be first argument, only 1 task)
+#  'TSK'	: will run tasks listed before subids, if exists (must be first arguments)
 #  'subs' 	: subject array -- e.g. (1 {3..5}); "${var[@]}"; s001 02 s005; 'all'
 ################################################################################
 #
@@ -37,37 +37,47 @@ source globals.par
 source funcs
 label='[PREP]'
 
+# CONVERT NEW DATA
 # Convert new subject data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz
 convert_log=${PROJECT_DIR}/arch/LOG.txt
 echo "${label} $(date) -- Converting all dcm files to nii ---" > "${convert_log}"
 bash convert_data
 
-# if only one input argument, check if task name.  If so, only run that task.  If not, move on.
-if [[ $# -ge 1 ]] && [[ -d ${RAW_DIR}/${1} ]]; then TASKS=(${1}); shift; echo "${label} running task $1 ${TASKS[@]}"; fi
+# DETERMINE WHICH TASKS TO RUN
+# if one or more input argument, check if first is task name.  
+if [[ $# -ge 1 ]] && [[ -d ${RAW_DIR}/${1} ]]; then 
+	# If so, start making list of tasks to run
+	TASKS=(${1}); shift;
+	# check other arguments until you get to one that is not a task
+	while [[ $# -ge 1 ]]; do
+		# does the argument name exist in raw?  If so, add to task list and shift to next arg, otherwise break
+		if [[ -d ${RAW_DIR}/${1} ]]; then TASKS=("${TASKS[@]}" ${1}); shift; else break; fi
+	done
+fi
+echo "${label} Running task(s): ${TASKS[@]}"; 
 
+# RUN TASKS
 for t in "${TASKS[@]}"; do 
-	
+	echo "${label}"
 	echo "${label} $(date) >>> Starting task $t <<<"
 
+	# GET PARAMETERS
 	# source task's pars file
 	if [[ $PREP_SEP -eq 0 ]]; then parsfile=pars.par; else parsfile=pars_${t}.par; fi
 	source ${PROJECT_DIR}/notes/${parsfile}
 
+	# STORE PATH/FILE NAMES
 	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
     stepfile=${PROJECT_DIR}/notes/step.par
 	logfile=${wd_dir_full}/LOG.txt
+	logfile_tsk=$logfile
 	
+	# CREATE WORKING DIRECTORY IN PREP
     if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
 	DATE=`date +%Y%m%d`
 	cp ${PROJECT_DIR}/notes/${parsfile} ${wd_dir_full}/${DATE}_${parsfile}
 
-	# call get_subs function
-	if [[ $# -eq 0 ]]; then get_subs $t; elif [[ "$1" == 'all' ]]; then get_subs $t 'all'; 
-	else declare -a subs_array=( "$@" ); get_subs $t subs_array[@]; fi
-
-	# if no subjects in raw/tsk, then move to next task
-	if [[ -z $SUBS ]]; then echo "${label} No subjects found for task $t."; continue; fi
-
+	# SET UP PREPROCESSING STEPS BASED ON PARAMETERS FILE
 	# Create an array (step_names) of all the preprocessing step names (in order of execution)
 	declare -a step_names=("QA" "SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT")
 	# Create an array (step_softs) of all the preprocessing step's software (SPM12w, FSL, DARTEL) (same order as step_names)
@@ -86,33 +96,49 @@ for t in "${TASKS[@]}"; do
 	done
 	i=0; for p in "${step_softs[@]}"; do if [[ $p != 'none' ]]; then sim_array[$i]=1; break; fi; i=$(($i + 1)); done
 
-	echo "${label} $(date) ***Running subjects ${SUBS[@]} on the following***" >> "$logfile"
-	#echo "${label} QA                    = $QA" >> "$logfile"
+	# CREATE LIST OF SUBJECT IDS
+	# call get_subs function
+	if [[ $# -eq 0 ]]; then get_subs $t; elif [[ "$1" == 'all' ]]; then get_subs $t 'all'; 
+	else declare -a subs_array=( "$@" ); get_subs $t subs_array[@]; fi
+	# if no subjects in raw/tsk, then move to next task
+	if [[ -z $SUBS ]]; then echo "${label} No subjects found for task $t. Moving on to next task..."; continue; fi
+
+	# LIST STEPS THAT WILL BE RUN AND SAVE THEM TO THE TASK'S
+	echo "${label}" >> "$logfile"
+	echo "${label} $(date) *** Running subjects ${SUBS[@]} in task $t ***" >> "$logfile"
 	echo "${label} Slice Time Correction = $SLICE_TIME" >> "$logfile"
 	echo "${label} Motion Correction     = $REALIGN" >> "$logfile"
 	echo "${label} Unwarping             = $UNWARP" >> "$logfile"
 	echo "${label} Normalization         = $NORM" >> "$logfile"
 	echo "${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)" >> "$logfile"
 	
-
+	# RUN SUBJECTS
     # Run each subject, one at a time
 	n=0; for s in "${SUBS[@]}"; do
+
+		# CHECK IF SUBJ EXIST IN TSK
+		# if subject does not exist, then exit
 		if [[ -z $s ]]; then echo "${label} Can't find subject ${s}. Aborting..."; exit; fi
 		first_step=1;
 
+		# STORE FILENAMES/PATHS FOR SUBJ
 		wd_dir_sub=${wd_dir_full}/${s}
 		logfile=${wd_dir_sub}/LOG.txt
 
+		# SET UP SUBJ FOLDER IN PREP
 		# copy sub folder from raw/tsk to prep/tsk/wd
 		if [[ -d "${wd_dir_sub}" ]]; then echo "${label} ${wd_dir_sub} already exists. Deleting..."; rm -rf ${wd_dir_sub}; fi
 		echo "${label} Copying ${s}'s raw folder to ${wd_dir_sub}..."
 		cp -r ${RAW_DIR}/${t}/${s} ${wd_dir_sub}
 
 		echo "${label} $(date) == beginning preprocessing of $s ==" >> "$logfile"
+		# empty all variables to start new with this subject
 		reset_step_par; unset ext; unset pnames
 
+		# GO THROUGH STEPS
 		i=0; for p in "${step_softs[@]}"; do
-			# SET UP STEPS
+
+			# SET UP PREPROCESING STEPS
 			step_name=${step_names[$i]}; e=${step_exts[$i]}
 			# if current step is set to 'none', skip and move on to next step
 			if [[ $p != 'none' ]]; then 
@@ -123,8 +149,9 @@ for t in "${TASKS[@]}"; do
 					if [[ $n -ne $((${#SUBS[@]} - 1)) ]]; then reset_step_par; unset ext; fi; 
 					continue; 
 				fi
-				# add step extension to current software's (e.g. FSL) extension list and turn on step in step.par
+				# add step extension to current software's (e.g. FSL) extension list
 				ext=${ext}${e}; cur_soft=${p}; pnames="${pnames} ${step_name}"
+				# turn on step in step.par
 				echo "${step_name}='${cur_soft}'" >> "$stepfile"
 				echo "EPI_ACCEL=${EPI_ACCEL}" >> "$stepfile"
 				echo "EPI_ECHOSPACING=${EPI_ECHOSPACING}" >> "$stepfile"
@@ -133,42 +160,61 @@ for t in "${TASKS[@]}"; do
 			# RUN STEP(S)
 			if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
 				echo "${label} $(date) -- running $pnames in $cur_soft analysis on $s --" >> "$logfile"
+
+				# if all steps were set to none, skip to next task
+				if [[ -z ${pnames} ]]; then  echo "${label} All steps set to 'none'. Moving on to next task...";
+					echo "${label} WARNING: All steps set to 'none'" >> "$logfile_tsk"; break 2; 
+				fi
+
+				# WRITE P_FILE
 				# if first subject, write out pfile based on step.par
 				if [[ $n -eq 0 ]]; then bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}; fi
 				script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
 				run_script="${script_path}/run_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
-				# run steps in current software
+				# RUN STEP/SUBMIT JOB
 				# set run_time to 4hrs + 1 hr per step being run
 				run_time=$((60 * ${#ext} + 180))
-				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
+				# move into software's script directory, quietly
+				pushd ${script_path} > /dev/null   
+				# submit job
 				if [[ $first_step -eq 1 ]]; then 
+					# if first step for this subject, run without the dependency on the previous job
 					prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				else
 					prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				fi
-				echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subject ${s}"
-				echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subject ${s}" >> "$logfile"
+				# save jobid number in logfile
+				jobinfo_str="${label} Job ${prev_jobid} submitted to run ${cpnames} for subject ${s}"
+				echo ${jobinfo_str}
+				echo "${jobinfo_str}" >> "${logfile_tsk}"
 				popd > /dev/null   # return to the previous directory, quietly
 
+				# CLEAR VARS FOR NEXT STEPS
 				# reset pars for next step
 				reset_step_par; unset ext; first_step=0; unset pnames;
 			fi
+			# increase step index by one
 			i=$(($i + 1))
 		done
+		# increase sub index by one
 		n=$(($n + 1))
 	done
 
 	# DARTEL
+	# if normalization is run in DARTEL, run group
 	if [[ $NORM == ${DARTEL} ]]; then
+		# write what is going to happen in subs' logfiles
 		for s in "${SUBS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
-                        echo "${label} $(date) == beginning group preprocessing of ${SUBS[@]} ==" >> "$logfile"
+            echo "${label} $(date) == beginning group preprocessing of ${SUBS[@]} ==" >> "$logfile"
 		done
 
 		# SET UP FOR DARTEL
-		i=$((${#step_softs[@]} - 2))  # set i to NORM index (second to last)
+		# set i to NORM index (second to last)
+		i=$((${#step_softs[@]} - 2))  
+		# store vars
 		p=${step_softs[$i]}; step_name=${step_names[$i]}; e=${step_exts[$i]}
 		# add step extension to current extension list and turn step on in step.par
 		ext=${ext}${e}; cur_soft=${p}; pnames="${pnames} ${step_name}"
@@ -182,7 +228,6 @@ for t in "${TASKS[@]}"; do
 		fi
 
 		# RUN DARTEL
-		
 		# if number of subjects to run is <=30, then set run_time to 48 hours (2880 min).  If >30, run_time=72hrs (4320 min)
 		if [[ ${#SUBS[@]} -le 30 ]]; then run_time=2880; else run_time=4320; fi
 		bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}
@@ -195,15 +240,16 @@ for t in "${TASKS[@]}"; do
 		else
 			prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
 		fi
-		echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subjects ${SUBS[@]}"
+		jobinfo_str="${label} Job ${prev_jobid} submitted to run ${pnames} for subjects ${SUBS[@]}"
+		echo ${jobinfo_str}
 		for s in "${SUBS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
 			echo "${label} $(date) -- running $pnames in ${cur_soft} analysis --" >> "$logfile"
-			echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subjects ${SUBS[@]}" >> "$logfile"
+			echo "${jobinfo_str}" >> "${logfile_tsk}"
 		done
 		popd > /dev/null   					# return to the previous directory, quietly
 
-		# RUN SMOOTHING (if not in DARTEL)
+		# RUN SMOOTHING (iff not in DARTEL)
 		if [[ ${sim_array[i]} -eq 0 ]]; then
 			n=0; for s in "${SUBS[@]}"; do
 				reset_step_par; unset ext; unset pnames
@@ -219,8 +265,9 @@ for t in "${TASKS[@]}"; do
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
 				prev_jobid=$(sbatch -t 60 --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${s}" | grep -o '[0-9]*')
-				echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subject ${s}"
-				echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subject ${s}" >> "$logfile"
+				jobinfo_str="${label} Job ${prev_jobid} submitted to run ${pnames} for subject ${s}"
+				echo ${jobinfo_str}
+				echo "${jobinfo_str}" >> "${logfile_tsk}"
 				popd > /dev/null   # return to the previous directory, quietly
 				n=$(($n + 1))
 			done
@@ -228,8 +275,18 @@ for t in "${TASKS[@]}"; do
 	fi
 	# write '[PREP] Done.' in each subject's LOG.txt file
 	for s in "${SUBS[@]}"; do
-		logfile=${wd_dir_full}/${s}/LOG.txt
-		echo "${label} Done. $(date)" >> "$logfile"
+		# iff the subject's folder exists
+		if [[ -d ${wd_dir_full}/${s} ]]; then
+			logfile=${wd_dir_full}/${s}/LOG.txt
+			echo "${label} Done. $(date)" >> "$logfile"
+		fi
 	done
 done
+
+# Write Done. to task logifle
+echo "${label}" >> "${logfile_tsk}"
+echo "${label} Done. $(date)" >> "${logfile_tsk}"
+echo "${label}" >> "${logfile_tsk}"
+
+echo "${label}"
 echo "${label} Done. $(date)"
