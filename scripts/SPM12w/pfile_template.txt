@@ -11,7 +11,7 @@ p.study_dir     = '${PROJECT_DIR}/';
 p.prepdir       = '${PREP_DIR}/${t}/${wd_dir}/';
 p.datadir       = [p.prepdir p.sid '/'];
 p.prep_name     = '${SPMW}';
-p.rawdir        = ['${wd_raw}tmp_raw_' p.sid];
+p.rawdir        = ['${wd_raw}/tmp_raw_' p.sid];
 p.qadir         = ['${QA_DIR}/${t}/' p.prep_name '/'];
 
 % Preprocessing Routines - 1=yes 0=no

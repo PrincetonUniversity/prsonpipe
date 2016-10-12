@@ -113,7 +113,8 @@ for t in "${TASKS[@]}"; do
 		logfile=${wd_dir_sub}/LOG.txt
 
 		# copy sub folder from raw/tsk to prep/tsk/wd
-		if [[ -d "${wd_dir_sub}" ]]; then echo "${label} ${wd_dir_sub} already exists. Deleting and replacing."; rm -rf ${wd_dir_sub}; fi
+		if [[ -d "${wd_dir_sub}" ]]; then echo "${label} ${wd_dir_sub} already exists. Deleting..."; rm -rf ${wd_dir_sub}; fi
+		echo "${label} Copying ${s}'s raw folder to ${wd_dir_sub}..."
 		cp -r ${RAW_DIR}/${t}/${s} ${wd_dir_sub}
 
 		echo "${label} $(date) == beginning preprocessing of $s ==" >> "$logfile"
@@ -142,21 +143,21 @@ for t in "${TASKS[@]}"; do
 			if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
 				echo "${label} $(date) -- running $pnames in $cur_soft analysis on $s --" >> "$logfile"
 				# if first subject, write out pfile based on step.par
-				if [[ $n -eq 0)) ]]; then bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}; fi
+				if [[ $n -eq 0 ]]; then bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}; fi
 				script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
 				run_script="${script_path}/run_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 				# run steps in current software
 				# set run_time to 4hrs + 1 hr per step being run
-				run_time=$((${#ext} + 180))
+				run_time=$((60 * ${#ext} + 180))
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
 				if [[ $first_step -eq 1 ]]; then 
 					prev_jobid=$(sbatch -t ${run_time} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				else
 					prev_jobid=$(sbatch -t ${run_time} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				fi
-				echo "Job ${prev_jobid} submitted for subject ${s}"
+				echo "${label} Job ${prev_jobid} submitted to run ${ext} for subject ${s}"
 				popd > /dev/null   # return to the previous directory, quietly
 
 				# reset pars for next step
@@ -205,7 +206,7 @@ for t in "${TASKS[@]}"; do
 		else
 			prev_jobid=$(sbatch -t ${run_time} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
 		fi
-		echo "Job ${prev_jobid} submitted for subjects ${SUBS[@]}"
+		echo "${label} Job ${prev_jobid} submitted to run ${ext} for subjects ${SUBS[@]}"
 		popd > /dev/null   					# return to the previous directory, quietly
 
 		# RUN SMOOTHING (if not in DARTEL)
@@ -218,13 +219,13 @@ for t in "${TASKS[@]}"; do
 				logfile=${wd_dir_full}/${s}/LOG.txt
 				echo "${label} $(date) -- running $pnames in $cur_soft analysis --" >> "$logfile"
 				# if first subject, write out pfile based on step.par
-				if [[ $n -eq 0)) ]]; then bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}; fi
+				if [[ $n -eq 0 ]]; then bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}; fi
 				script_path="${SCRIPT_DIR_FULL}/$cur_soft"
 				run_script="${script_path}/run_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
 				prev_jobid=$(sbatch -t 60 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${s}" | grep -o '[0-9]*')
-				echo "Job ${prev_jobid} submitted for subject ${s}"
+				echo "${label} Job ${prev_jobid} submitted to run ${ext} for subject ${s}"
 				popd > /dev/null   # return to the previous directory, quietly
 				n=$(($n + 1))
 			done

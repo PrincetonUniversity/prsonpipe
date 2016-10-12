@@ -17,7 +17,7 @@
 set -e 
 
 label='[PFILE]'
-soft_opts=( 'DARTEL' 'SPM' 'SPMw' 'FSL' )
+soft_opts=( 'DARTEL' 'SPM' 'SPMW' 'FSL' )
 
 pushd $(dirname $0) > /dev/null
 source ../scripts/globals.par
@@ -26,8 +26,8 @@ source ../scripts/globals.par
 soft=$1
 shift
 valid=0
-for opt in ${soft_opts[@]}; do if [[ $opt == $soft ]]; then valid=1; break; fi; done
-if [[ $valid != 1 ]]; then echo "$label invalid software input: $soft. You can choose one of: ${soft_opts[@]}"; exit; fi; 
+for opt in ${soft_opts[@]}; do if [[ ${!opt} == ${soft} ]]; then valid=1; break; fi; done
+if [[ $valid != 1 ]]; then echo "${label} invalid software input: $soft. You can choose one of: ${soft_opts[@]}"; exit; fi; 
 
 # set file name and folder based on whether or not this is a temp pfile
 if [[ $# -eq 1 ]] && [[ $NUM_TASKS -eq 1 ]]; then
@@ -64,25 +64,25 @@ fi
 popd > /dev/null   # return to the previous directory, quietly
 
 #Add software name to directory variable (found in globals.par)
-eval script_dir='$SCRIPT_DIR_'"${soft}"
+#eval script_dir='$SCRIPT_DIR_'"${soft}"
 #get directory and filenames based on soft variable
-save_dir="${PROJECT_DIR}/${script_dir}"
-fname_full=${save_dir}/p_${!soft}${fname}.m
+save_dir="${PROJECT_DIR}/${SCRIPT_DIR}/${soft}"
+fname_full=${save_dir}/p_${soft}${fname}.m
 spm8_dir=${PKG_DIR}/SPM8
 NIfTI_dir=${PKG_DIR}/NIfTI
 
 
-if [[ $QA == ${!soft} ]]; then qa=1; else qa=0; fi
+if [[ $QA == ${soft} ]]; then qa=1; else qa=0; fi
 
-if [[ $SLICE_TIME == ${!soft} ]]; then slice_time=1; else slice_time=0; fi
+if [[ $SLICE_TIME == ${soft} ]]; then slice_time=1; else slice_time=0; fi
 
-if [[ $REALIGN == ${!soft} ]]; then realign=1; else realign=0; fi
+if [[ $REALIGN == ${soft} ]]; then realign=1; else realign=0; fi
 
-if [[ $UNWARP == ${!soft} ]]; then unwarp=1; else unwarp=0; fi
+if [[ $UNWARP == ${soft} ]]; then unwarp=1; else unwarp=0; fi
 
-if [[ $SMOOTH_SOFT == ${!soft} ]]; then smooth=$SMOOTH; else smooth=0; fi
+if [[ $SMOOTH_SOFT == ${soft} ]]; then smooth=$SMOOTH; else smooth=0; fi
 
-if [[ $NORM == ${!soft} ]]; then if [[ $soft == 'SPMw' ]]; then norm=$WNORMTYPE; else norm=1;fi; else norm=0; fi
+if [[ $NORM == ${soft} ]]; then if [[ $soft == $SPMW ]]; then norm=$WNORMTYPE; else norm=1;fi; else norm=0; fi
 
 
 eval "cat << EOF  > $fname_full
