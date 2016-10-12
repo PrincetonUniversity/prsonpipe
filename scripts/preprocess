@@ -37,6 +37,8 @@ source globals.par
 source funcs
 label='[PREP]'
 
+first_jobid=$(sbatch first_job | grep -o '[0-9]*')
+
 # CONVERT NEW DATA
 # Convert new subject data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz
 convert_log=${PROJECT_DIR}/arch/LOG.txt
@@ -119,7 +121,7 @@ for t in "${TASKS[@]}"; do
 		# CHECK IF SUBJ EXIST IN TSK
 		# if subject does not exist, then exit
 		if [[ -z $s ]]; then echo "${label} Can't find subject ${s}. Aborting..."; exit; fi
-		first_step=1;
+		first_step=1; prev_jobid=${first_jobid}
 
 		# STORE FILENAMES/PATHS FOR SUBJ
 		wd_dir_sub=${wd_dir_full}/${s}
@@ -179,12 +181,12 @@ for t in "${TASKS[@]}"; do
 				# move into software's script directory, quietly
 				pushd ${script_path} > /dev/null   
 				# submit job
-				if [[ $first_step -eq 1 ]]; then 
+				#if [[ $first_step -eq 1 ]]; then 
 					# if first step for this subject, run without the dependency on the previous job
-					prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
-				else
+				#	prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
+				#else
 					prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
-				fi
+				#fi
 				# save jobid number in logfile
 				jobinfo_str="${label} Job ${prev_jobid} submitted to run ${cpnames} for subject ${s}"
 				echo ${jobinfo_str}
@@ -235,11 +237,11 @@ for t in "${TASKS[@]}"; do
 		run_script="${script_path}/run_${cur_soft}_prep"
 		pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 		pushd ${script_path} > /dev/null   	# move into software's script directory, quietly
-		if [[ $first_step -eq 1 ]]; then 
-			prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} "${run_script}" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
-		else
+		#if [[ $first_step -eq 1 ]]; then 
+		#	prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} "${run_script}" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
+		#else
 			prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
-		fi
+		#fi
 		jobinfo_str="${label} Job ${prev_jobid} submitted to run ${pnames} for subjects ${SUBS[@]}"
 		echo ${jobinfo_str}
 		for s in "${SUBS[@]}"; do

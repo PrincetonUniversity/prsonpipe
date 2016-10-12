@@ -1,0 +1,8 @@
+#!/bin/bash
+# This script does absolutely nothing.  It is called at the beginning of preprocess so that each subject's first job can use it as a dependency.
+#SBATCH -J first								# Job name
+#SBATCH -o ../output/first-%j.out 		# Output file
+#SBATCH -t 3									# Time : Default time is 48 hours (2880 min)
+#SBATCH -p all                                	# DON'T CHANGE
+
+echo "$(date) first_job for preprocess"
