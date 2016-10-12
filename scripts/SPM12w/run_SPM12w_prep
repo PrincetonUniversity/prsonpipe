@@ -3,12 +3,13 @@
 # sub should be singular subject number or ID
 # 9/19/16 edited by MEW to extract prefix string from pfile name and update_nii
 
-#SBATCH -J run_SPMw_prep				# Job name
-#SBATCH --workdir=./					# Set working directory
-#SBATCH -o ../../output/SPMw-%j.out
-#SBATCH --mem 5120						# Set amount of memory in MB (1GB = 1024 MB)
-#SBATCH --mail-type=END,FAIL			# Set type of emails to send
-#SBATCH -t 1440							# Default time is 24 hours (2880 min)
+#SBATCH -J run_SPMw_prep						# Job name
+#SBATCH --workdir=./							# Working directory
+#SBATCH -o ../../output/SPMw_prep-%j.out 		# Output file
+#SBATCH --mem-per-cpu=20480						# Amount of memory in MB (1GB = 1024 MB)
+#SBATCH --mail-type=ALL							# Type of emails to send
+#SBATCH -t 1440									# Run time : Default time is 24 hours (2880 min)
+#SBATCH -p all                                	# DON'T CHANGE
 
 source ../globals.par
 

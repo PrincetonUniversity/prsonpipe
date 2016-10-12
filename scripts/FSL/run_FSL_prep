@@ -9,10 +9,13 @@
 # Global variables used
 #  from globals.par
 #    TASKS
-#SBATCH -J 'FSL_prep'
-#SBATCH -o '../../output/FSL_prep-%j.out'
-#SBATCH -p all
-#SBATCH --mail-type=END,FAIL      # Set type of emails to send
+#SBATCH -J 'FSL_prep'                         # Job name
+#SBATCH --workdir=./                          # Set working directory
+#SBATCH -o '../../output/FSL_prep-%j.out'     # Output file
+#SBATCH --mem-per-cpu=20480                   # Amount of memory in MB (1GB = 1024 MB)
+#SBATCH --mail-type=ALL                       # Type of emails to send
+#SBATCH -t 1440                               # Run time : Default time is 24 hours (2880 min)
+#SBATCH -p all                                # DON'T CHANGE
 
 pfile=$1
 subj=$2
