@@ -37,22 +37,13 @@ source globals.par
 source funcs
 label='[PREP]'
 
-# Run conversion and QA'ing. These scripts just run on data that has not been done yet, 
-# so no need for subids run this script and store the job ID output returned by SLURM. 
+# Convert new subject data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz
 convert_log=${PROJECT_DIR}/arch/LOG.txt
 echo "${label} $(date) -- Converting all dcm files to nii ---" > "${convert_log}"
 bash convert_data
-#convert_jobid=$(sbatch -t 240  convert_data | grep -o '[0-9]*')
-# runtime set for 240 minutes (time limit for short jobs)
 
-# calculate size of raw folder
-#raw_size=$(du -sb ${RAW_DIR})
-#run_time=$((${raw_size} / 1000000))
-
-# if only one input, check if task name or subject
-if [[ $# -ge 1 ]] && [[ -d ${RAW_DIR}/${1} ]]; then TASKS=(${1}); shift; echo "running task $1 ${TASKS[@]}"; fi
-
-#wait_for_it "CONVERT" "${convert_log}"
+# if only one input argument, check if task name.  If so, only run that task.  If not, move on.
+if [[ $# -ge 1 ]] && [[ -d ${RAW_DIR}/${1} ]]; then TASKS=(${1}); shift; echo "${label} running task $1 ${TASKS[@]}"; fi
 
 for t in "${TASKS[@]}"; do 
 	
@@ -153,11 +144,12 @@ for t in "${TASKS[@]}"; do
 				run_time=$((60 * ${#ext} + 180))
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
 				if [[ $first_step -eq 1 ]]; then 
-					prev_jobid=$(sbatch -t ${run_time} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
+					prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				else
-					prev_jobid=$(sbatch -t ${run_time} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
+					prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				fi
-				echo "${label} Job ${prev_jobid} submitted to run ${ext} for subject ${s}"
+				echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subject ${s}"
+				echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subject ${s}" >> "$logfile"
 				popd > /dev/null   # return to the previous directory, quietly
 
 				# reset pars for next step
@@ -190,10 +182,7 @@ for t in "${TASKS[@]}"; do
 		fi
 
 		# RUN DARTEL
-		for s in "${SUBS[@]}"; do
-			logfile=${wd_dir_full}/${s}/LOG.txt
-			echo "${label} $(date) -- running $pnames in ${cur_soft} analysis --" >> "$logfile"
-		done
+		
 		# if number of subjects to run is <=30, then set run_time to 48 hours (2880 min).  If >30, run_time=72hrs (4320 min)
 		if [[ ${#SUBS[@]} -le 30 ]]; then run_time=2880; else run_time=4320; fi
 		bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}
@@ -202,11 +191,16 @@ for t in "${TASKS[@]}"; do
 		pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 		pushd ${script_path} > /dev/null   	# move into software's script directory, quietly
 		if [[ $first_step -eq 1 ]]; then 
-			prev_jobid=$(sbatch -t ${run_time} "${run_script}" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
+			prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} "${run_script}" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
 		else
-			prev_jobid=$(sbatch -t ${run_time} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
+			prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
 		fi
-		echo "${label} Job ${prev_jobid} submitted to run ${ext} for subjects ${SUBS[@]}"
+		echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subjects ${SUBS[@]}"
+		for s in "${SUBS[@]}"; do
+			logfile=${wd_dir_full}/${s}/LOG.txt
+			echo "${label} $(date) -- running $pnames in ${cur_soft} analysis --" >> "$logfile"
+			echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subjects ${SUBS[@]}" >> "$logfile"
+		done
 		popd > /dev/null   					# return to the previous directory, quietly
 
 		# RUN SMOOTHING (if not in DARTEL)
@@ -224,8 +218,9 @@ for t in "${TASKS[@]}"; do
 				run_script="${script_path}/run_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
-				prev_jobid=$(sbatch -t 60 --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${s}" | grep -o '[0-9]*')
-				echo "${label} Job ${prev_jobid} submitted to run ${ext} for subject ${s}"
+				prev_jobid=$(sbatch -t 60 --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${s}" | grep -o '[0-9]*')
+				echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subject ${s}"
+				echo "${label} Job ${prev_jobid} submitted to run ${cur_soft} for subject ${s}" >> "$logfile"
 				popd > /dev/null   # return to the previous directory, quietly
 				n=$(($n + 1))
 			done

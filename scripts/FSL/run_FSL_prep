@@ -12,6 +12,7 @@
 #SBATCH -J 'FSL_prep'
 #SBATCH -o '../../output/FSL_prep-%j.out'
 #SBATCH -p all
+#SBATCH --mail-type=END,FAIL      # Set type of emails to send
 
 pfile=$1
 subj=$2

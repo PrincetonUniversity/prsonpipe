@@ -6,6 +6,8 @@
 #SBATCH --workdir=./					# Set working directory
 #SBATCH -o ../../output/dartel-%j.out 	# Set output file
 #SBATCH --mem-per-cpu=20480				# Set amount of memory in MB (1GB = 1024 MB)
+#SBATCH --mail-type=END,FAIL			# Set type of emails to send
+#SBATCH -t 2880							# Default time is 48 hours (2880 min)
 
 pushd ../ > /dev/null
 source globals.par
