@@ -81,11 +81,11 @@ for t in "${TASKS[@]}"; do
 
 	# SET UP PREPROCESSING STEPS BASED ON PARAMETERS FILE
 	# Create an array (step_names) of all the preprocessing step names (in order of execution)
-	declare -a step_names=("QA" "SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT")
+	declare -a step_names=("SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT")
 	# Create an array (step_softs) of all the preprocessing step's software (SPM12w, FSL, DARTEL) (same order as step_names)
-	declare -a step_softs=("$QA" "$SLICE_TIME" "$REALIGN" "$UNWARP" "$NORM" "$SMOOTH_SOFT" )
+	declare -a step_softs=("$SLICE_TIME" "$REALIGN" "$UNWARP" "$NORM" "$SMOOTH_SOFT" )
 	# Create an array (step_exts) of all the preprocessing prefixes (same order as step_names)
-	declare -a step_exts=('q' 'a' 'r' 'u' 'w' 's')
+	declare -a step_exts=('a' 'r' 'u' 'w' 's')
 
 	# Create a similarity array (sim_array) of all the preprocessing parameters, such that:
 	# 0 means the parameter uses a different software than the previous step
@@ -102,7 +102,9 @@ for t in "${TASKS[@]}"; do
 	# call get_subs function
 	if [[ $# -eq 0 ]]; then get_subs $t; elif [[ "$1" == 'all' ]]; then get_subs $t 'all'; 
 	else declare -a subs_array=( "$@" ); get_subs $t subs_array[@]; fi
-	# if no subjects in raw/tsk, then move to next task
+	# Remove subjects in $EXCLUDE_SUBS from subject array
+        for s in "${EXCLUDE_SUBS[@]}";do SUBS=(${SUBS[@]//*$s*}); done
+        # if no subjects in raw/tsk, then move to next task
 	if [[ -z $SUBS ]]; then echo "${label} No subjects found for task $t. Moving on to next task..."; continue; fi
 
 	# LIST STEPS THAT WILL BE RUN AND SAVE THEM TO THE TASK'S

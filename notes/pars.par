@@ -11,9 +11,9 @@ SLICE_TIME='none'
 # Realignment/Motion correction: 'FSL', 'SPM12w', 'DARTEL', 'none'
 REALIGN='none'
 
-# Unwarping: 'FSL' (topup; must have spin echos), 'SPM12w', 'DARTEL', 'none'
-# automatically run if DARTEL used in any step
+# Unwarping: 'FSL' (topup; must have spin echos), 'SPM12w', 'none'
 UNWARP='none'
+# if using topup:
 EPI_ACCEL=1 #acceleration factor (for topup)
 EPI_ECHOSPACING=0.00072 #echo spacing make sure to get correct value from your scanning protocol (for topup)
 
@@ -30,6 +30,10 @@ VOX_SIZE=2.0
 
 # Name of preprocessing (do not change)
 wd_dir="a$(echo ${SLICE_TIME^^} | cut -c1)r$(echo ${REALIGN^^} | cut -c1)u$(echo ${UNWARP^^} | cut -c1)w$(echo ${NORM^^} | cut -c1)s$(echo ${SMOOTH_SOFT^^} | cut -c1)"
+
+# subject IDs to exclude from analysis (format: s000), e.g. for missing runs
+EXCLUDE_SUBS=(s000 s999)
+
 
 # === SPMw GLM-MVPA Settings ===
 
