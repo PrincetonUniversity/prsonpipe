@@ -193,7 +193,11 @@ for t in "${TASKS[@]}"; do
 				jobinfo_str="${label} Job ${prev_jobid} submitted to run ${cpnames} for subject ${s}"
 				echo ${jobinfo_str}
 				echo "${jobinfo_str}" >> "${logfile_tsk}"
-				popd > /dev/null   # return to the previous directory, quietly
+				
+                                #Append job ID to list of job IDs DARTEL has to wait for
+                                all_jobs+=":${prev_jobid}"
+
+                                popd > /dev/null   # return to the previous directory, quietly
 
 				# CLEAR VARS FOR NEXT STEPS
 				# reset pars for next step
@@ -205,7 +209,7 @@ for t in "${TASKS[@]}"; do
 		# increase sub index by one
 		n=$(($n + 1))
 	done
-
+        all_jobs=${all_jobs#:} #remove the leading : from all_jobs list so sbatch can use it
 	# DARTEL
 	# if normalization is run in DARTEL, run group
 	if [[ $NORM == ${DARTEL} ]]; then
@@ -242,7 +246,7 @@ for t in "${TASKS[@]}"; do
 		#if [[ $first_step -eq 1 ]]; then 
 		#	prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} "${run_script}" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
 		#else
-			prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
+			prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${all_jobs} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
 		#fi
 		jobinfo_str="${label} Job ${prev_jobid} submitted to run ${pnames} for subjects ${SUBS[@]}"
 		echo ${jobinfo_str}
