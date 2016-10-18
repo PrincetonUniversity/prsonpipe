@@ -172,7 +172,7 @@ for t in "${TASKS[@]}"; do
 
 				# WRITE P_FILE
 				# if first subject, write out pfile based on step.par
-				if [[ $n -eq 0 ]]; then bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}; fi
+				if [[ $n -eq 0 ]]; then bash ${PROJECT_DIR}/scripts/write_pfile ${cur_soft} ${t} ${ext}; fi
 				script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
 				run_script="${script_path}/run_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
@@ -238,7 +238,7 @@ for t in "${TASKS[@]}"; do
 		# RUN DARTEL
 		# if number of subjects to run is <=30, then set run_time to 48 hours (2880 min).  If >30, run_time=72hrs (4320 min)
 		if [[ ${#SUBS[@]} -le 30 ]]; then run_time=2880; else run_time=4320; fi
-		bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}
+		bash ${PROJECT_DIR}/scripts/write_pfile ${cur_soft} ${t} ${ext}
 		script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
 		run_script="${script_path}/run_${cur_soft}_prep"
 		pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
@@ -267,7 +267,7 @@ for t in "${TASKS[@]}"; do
 				logfile=${wd_dir_full}/${s}/LOG.txt
 				echo "${label} $(date) -- running $pnames in $cur_soft analysis --" >> "$logfile"
 				# if first subject, write out pfile based on step.par
-				if [[ $n -eq 0 ]]; then bash ${PROJECT_DIR}/notes/write_pfile ${cur_soft} ${t} ${ext}; fi
+				if [[ $n -eq 0 ]]; then bash ${PROJECT_DIR}/scripts/write_pfile ${cur_soft} ${t} ${ext}; fi
 				script_path="${SCRIPT_DIR_FULL}/$cur_soft"
 				run_script="${script_path}/run_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
