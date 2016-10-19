@@ -214,29 +214,43 @@ function wait_for_it {
 ###########################################
 
 function update_nii {
+	unset prefix;
 	d=$1 # directory of sdirs
 	steps=$2 # list of prefixes 
 	declare -a subs=("${!3}") # array of subjects
 	num2subID subs[@] # change subs into proper s-format
+	label_func='[UPDATE_NII]'
+
+	# for each character in the list of step prefixes, 
+	for (( i=0; i<${#steps}; i++ )); do 
+		step="${steps:$i:1}";
+		#skip realignment
+		if [[ $step == r ]]; then continue; fi;
+		# reverse steps to create the prefix of the nii files to update
+		prefix=${step}${prefix};
+	done
 
 	# for every subject
 	for s in "${SUBIDS[@]}"; do
 		pushd ${d}/${s} > /dev/null # move into subject folder, quietly
+		log=LOG.txt
 		pigz *.nii 	# zip all niftis in folder
-
-		# for each character in the list of step prefixes, 
-		for (( i=0; i<${#steps}; i++ )); do 
-			# reverse steps to create the prefix of the nii files to update
-			prefix=${prefix}${steps:${i}:1};
-		done
+		echo "${label_func} $(date) all nii files zipped using pigz." >> "${log}"
 
 		# count number of original epi_r##.nii.gz files there are
 		num_runs="$(find ./ -type f -name 'epi_r*.nii.gz' | wc -l)";
 		# go through and store each of those filenames in array runs[@]
-		for ((i=1; i<=${num_runs}; i++)); do runs[$i]="$(find ./ -type f -name 'epi_r*.nii.gz' | head -$i | tail -1 | xargs -n 1 basename)"; done
+		for ((i=1; i<=${num_runs}; i++)); do 
+			runs[$i]="$(find ./ -type f -name 'epi_r*.nii.gz' | head -$i | tail -1 | xargs -n 1 basename)"; 			
+		done
 		# go through runs[@] and find the most recent version (with prefixes) then update original file to most recent version
-		for r in "${runs[@]}"; do cp "${prefix}${r}" "${r}"; done
-
+		for r in "${runs[@]}"; do 
+			new_nii=${prefix}${r}
+			cp "${new_nii}" "${r}"; 
+			mod_date="$(stat -c %y ${new_nii} | cut -d ' ' -f1)";
+			echo "${label_func} $(date) ${r} updated to version: ${new_nii} from ${mod_date}" >> "${log}";
+		done
+		echo "{label_func} Done. $(date)" >> "${log}"
 		popd > /dev/null # move out of subject folder, quietly
 	done
 
