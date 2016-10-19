@@ -190,7 +190,7 @@ for t in "${TASKS[@]}"; do
 					prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				#fi
 				# save jobid number in logfile
-				jobinfo_str="${label} Job ${prev_jobid} submitted to run ${cpnames} for subject ${s}"
+				jobinfo_str="${label} Job ${prev_jobid} submitted to run ${pnames} for subject ${s}"
 				echo ${jobinfo_str}
 				echo "${jobinfo_str}" >> "${logfile_tsk}"
 				

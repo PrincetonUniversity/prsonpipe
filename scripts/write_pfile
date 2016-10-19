@@ -20,7 +20,8 @@ label='[PFILE]'
 soft_opts=( 'DARTEL' 'SPM' 'SPMW' 'FSL' )
 
 pushd $(dirname $0) > /dev/null
-source ../scripts/globals.par
+source globals.par
+NOTES_DIR=${PROJECT_DIR}/notes
 
 #first input argument is always software package:
 soft=$1
@@ -33,25 +34,25 @@ if [[ $valid != 1 ]]; then echo "${label} invalid software input: $soft. You can
 if [[ $# -eq 1 ]] && [[ $NUM_TASKS -eq 1 ]]; then
         # no inputs, only 1 task
         t=$TASKS
-        if [[ $PREP_SEP -eq 0 ]]; then source pars.par; else source pars_${t}.par; fi
+        if [[ $PREP_SEP -eq 0 ]]; then source ${NOTES_DIR}/pars.par; else source ${NOTES_DIR}/pars_${t}.par; fi
         fname=''; wd_raw=${RAW_DIR}/$t;
 elif [[ $# -eq 1 ]]; then
         # 1 input
         if [[ $NUM_TASKS -eq 1 ]]; then
                 # only 1 task, so input must be extension
                 t=$TASKS
-                source step.par
+                source ${NOTES_DIR}/step.par
                 fname="_$t$1"; wd_raw=$PREP_DIR/$t/${wd_dir};
         else
                 # more than 1 task, so input must be task name
                 t=$1
-                if [[ $PREP_SEP -eq 0 ]]; then source pars.par; else source pars_$t.par; fi
+                if [[ $PREP_SEP -eq 0 ]]; then source ${NOTES_DIR}/pars.par; else source ${NOTES_DIR}/pars_$t.par; fi
                 fname="_$t"; wd_raw=$RAW_DIR/$1;
         fi
 elif [[ $# -eq 2 ]]; then
         # 2 inputs, task name and extension name
         t=$1
-        source step.par
+        source ${NOTES_DIR}/step.par
         fname="_$t$2"; wd_raw=$PREP_DIR/$t/${wd_dir};
 else echo "${label} You must input 1-3 arguments: ";
         echo "${label} 1 (if only one TASK exists!) to create a general pfile.";
