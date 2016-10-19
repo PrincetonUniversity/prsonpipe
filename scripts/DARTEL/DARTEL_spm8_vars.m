@@ -575,9 +575,9 @@ if normalize == 1
 
     for s = 1:length(dosubs)
 
-        matlabbatch{3}.spm.tools.dartel.mni_norm.data.subj(s).flowfield{1} = allu_rc1{dosubs(s)};
+        matlabbatch{3}.spm.tools.dartel.mni_norm.data.subj(s).flowfield{1} = allu_rc1{s};
 
-        matlabbatch{3}.spm.tools.dartel.mni_norm.data.subj(s).images = allfuncs{dosubs(s)};
+        matlabbatch{3}.spm.tools.dartel.mni_norm.data.subj(s).images = allfuncs{s};
 
     end                                              
 
