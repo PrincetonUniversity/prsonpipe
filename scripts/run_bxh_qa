@@ -24,7 +24,12 @@ GLOBIGNORE=*_SE_* #exclude spin echo's from search for epi's. BXH tools will thr
 
 echo
 for task in ${TASKS[@]}; do
-  source ${PROJECT_DIR}/notes/pars_${task}.par
+   if [[ $NUM_TASKS -eq 1 ]] || [[ $PREP_SEP -eq 0 ]]; then
+       source pars.par;
+   else
+       source pars_${task}.par
+   fi
+
   for rawpath in ${PROJECT_DIR}/raw/${task}/*/; do
     subject=$(basename "$rawpath")
  
