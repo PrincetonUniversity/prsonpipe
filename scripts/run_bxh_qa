@@ -24,9 +24,13 @@ GLOBIGNORE=*_SE_* #exclude spin echo's from search for epi's. BXH tools will thr
 
 echo
 for task in ${TASKS[@]}; do
+  source ${PROJECT_DIR}/notes/pars_${task}.par
   for rawpath in ${PROJECT_DIR}/raw/${task}/*/; do
     subject=$(basename "$rawpath")
-  if [ -e ${PROJECT_DIR}/qa/${subject}/${task} ]; then
+ 
+    for exclude in ${EXCLUDE_SUBS[@]}; do if [[ $exclude == $subject ]]; then continue 2; fi; done
+
+  if [ -e ${PROJECT_DIR}/qa/${task}/${subject} ]; then
     echo "[QA] QA already exists for ${subject} on task ${task}. Skipping ${subject}."
     continue
   fi
@@ -36,10 +40,14 @@ for task in ${TASKS[@]}; do
     analyze2bxh ${scan} ${scan%.nii*}.bxh #create bxh header for the first scan
   done
   echo "[QA] Starting QA for $subject at $(date)"
-  mkdir -p "${PROJECT_DIR}/qa/${subject}/"
-  sbatch -t 2880 bxh_generate $rawpath $PROJECT_DIR $subject $task
-  # To run all QA options, remove --calc meanstddevsfnr,maskedcmass. Load bxh module and run fmriqa_generate.pl without arguments for more details.
-done
+  mkdir -p "${PROJECT_DIR}/qa/${task}/"
+  sbatch -t 240 bxh_generate $rawpath $PROJECT_DIR $subject $task 
+  # To run all QA options, remove --calc meanstddevsfnr,maskedcmass (from bxh_generate). Load bxh module and run fmriqa_generate.pl without arguments for more details.
+
+  done
+
+
+
 done
 
 echo "[QA] Done. $(date)"
