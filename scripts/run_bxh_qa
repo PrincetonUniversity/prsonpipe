@@ -25,33 +25,37 @@ GLOBIGNORE=*_SE_* #exclude spin echo's from search for epi's. BXH tools will thr
 echo
 for task in ${TASKS[@]}; do
    if [[ $NUM_TASKS -eq 1 ]] || [[ $PREP_SEP -eq 0 ]]; then
-       source ${PROJECT_DIR}/notes/pars.par;
+       source ../notes/pars.par;
    else
-       source ${PROJECT_DIR}/notes/pars_${task}.par
+       source ../notes/pars_${task}.par
    fi
 
-  for rawpath in ${PROJECT_DIR}/raw/${task}/*/; do
-    subject=$(basename "$rawpath")
+   for rawpath in ${PROJECT_DIR}/raw/${task}/*/; do
+      subject=$(basename "$rawpath")
  
-    for exclude in ${EXCLUDE_SUBS[@]}; do if [[ $exclude == $subject ]]; then continue 2; fi; done
+      for exclude in ${EXCLUDE_SUBS[@]}; do if [[ $exclude == $subject ]]; then continue 2; fi; done
 
-  if [ -e ${PROJECT_DIR}/qa/${task}/${subject} ]; then
-    echo "[QA] QA already exists for ${subject} on task ${task}. Skipping ${subject}."
-    continue
-  fi
-  echo [QA]
-  for scan in ${rawpath}epi*.nii*; do
-    echo "[QA] Creating BXH header for $scan at $(date)" 
-    analyze2bxh ${scan} ${scan%.nii*}.bxh #create bxh header for the first scan
+    if [ -e ${PROJECT_DIR}/qa/${task}/${subject} ]; then
+      echo "[QA] QA already exists for ${subject} on task ${task}. Skipping ${subject}."
+      continue
+    fi
+    echo [QA]
+    echo "[QA] Starting QA for $subject at $(date)"
+    for scan in ${rawpath}epi*.nii*; do
+      echo "[QA] Creating BXH header for $scan at $(date)" 
+      analyze2bxh ${scan} ${scan%.nii*}.bxh #create bxh header for the first scan
+    done
+    mkdir -p "${PROJECT_DIR}/qa/${task}/"
+    jobid=$(sbatch -t 240 BXH_QA/bxh_generate $rawpath $PROJECT_DIR $subject $task | grep -o "[0-9]*")
+    # To run all QA options, remove --calc meanstddevsfnr,maskedcmass (from bxh_generate). Load bxh module and run fmriqa_generate.pl without arguments for more details.
+    all_jobs+=":$jobid" 
   done
-  echo "[QA] Starting QA for $subject at $(date)"
-  mkdir -p "${PROJECT_DIR}/qa/${task}/"
-  sbatch -t 240 bxh_generate $rawpath $PROJECT_DIR $subject $task 
-  # To run all QA options, remove --calc meanstddevsfnr,maskedcmass (from bxh_generate). Load bxh module and run fmriqa_generate.pl without arguments for more details.
 
-  done
+unset dependency_flag
+all_jobs=${all_jobs#:} #remove the leading : from all_jobs list so sbatch can use it
+if [[ -n $all_jobs ]]; then dependency_flag="--dependency=afterok:${all_jobs}"; fi
 
-
+sbatch -t 5 -o ../output/bxh_sfnr-%j.out $dependency_flag BXH_QA/overview_generate ${PROJECT_DIR} ${task}
 
 done
 

@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# Run QA script for a certain subject and task
+# Input arguments:
+# rawpath
+# PROJECT_DIR
+# subject
+# task
+#SBATCH -J bxh_qa
+#SBATCH -o ../output/bxh_qa-%j.out
+#SBATCH -p all
+
+rawpath=$1
+PROJECT_DIR=$2
+subject=$3
+task=$4
+
+
+module load bxh
+
+fmriqa_generate.pl --calc meanstddevsfnr,maskedcmass ${rawpath}*.bxh "${PROJECT_DIR}/qa/${task}/${subject}"
+
+
