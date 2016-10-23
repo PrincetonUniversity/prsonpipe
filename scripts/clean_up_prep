@@ -65,6 +65,8 @@ for t in "${tsk[@]}"; do
 				slogfile=LOG.txt
 				# for every file that we don't want to keep...
 				for f in $(ls --ignore=epi_*.nii* --ignore=*anat*.nii* --ignore=LOG.txt --ignore=rp_* --ignore=*.par --ignore=*SE*.nii* |xargs -n 1 basename); do
+					# skip if directory
+					if [[ -d $f ]]; then continue; fi
 					# delete that file (f)
 					rm $f
 					# note deletion in logfile
@@ -82,9 +84,11 @@ for t in "${tsk[@]}"; do
 			bu_dir=${BACKUP_DIR}/prep/${t}
 			# create a task folder in backup/prep
 			if [[ ! -d ${bu_dir} ]]; then mkdir ${bu_dir}; fi
-			bu_dir=${bu_dir}/${w}
+			bu_dir=${bu_dir}/${w}.tar.gz
+			# if backup of this folder already exists, delete it and replace it with current folder
 			if [[ -d ${bu_dir} ]]; then rm -r ${bu_dir}; fi
-			cp -r ${w} ${bu_dir}
+			# tar and zip folder and save to backup directory
+			tar -I pigz -cvf ${bu_dir} ${w}
 			echo "${label} $(date) copied $(pwd)/${w} to ${bu_dir}" >> "${tlogfile}"
 			echo "${label} $(date) done with backup of ${t}/${w}"
 		else
