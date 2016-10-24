@@ -13,7 +13,7 @@ function SPM12w_preprocess(sub,pfile,pkg_dir)
     p.sid=sub;
     run(pfile);
     tmp_rawdir=p.rawdir;
-    movefile(p.datadir,tmp_rawdir);
+    movefile([p.prepdir p.sid],tmp_rawdir);
     
     % run spm12w_preprocess
     spm12w_preprocess('sid',sub,'para_file',pfile);

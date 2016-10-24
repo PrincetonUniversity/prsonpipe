@@ -22,7 +22,7 @@ p.unwarp        = ${unwarp};            % Unwarping (correct field inhomogenetie
 p.smoothing     = ${smooth};            % Size of smoothing kernel in FWHM (0 for no smoothing)
 p.snr           = 0; %${qa};            % make SNR analysis document
 p.slices        = 0; %${qa};        % calculate slice noise
-p.cleanup       = 1;            % delete intermediate files 0 (keep all), 1 (keep last), 
+p.cleanup       = 3;            % delete intermediate files 0 (keep all), 1 (keep last), 
                                 % 2 (keep last 2), 3 (keep last 2 and originals)
 p.cleanupzip    = 1;            % Zip up the final stages
 
