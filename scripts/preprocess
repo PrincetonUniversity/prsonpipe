@@ -209,7 +209,10 @@ for t in "${TASKS[@]}"; do
 		# increase sub index by one
 		n=$(($n + 1))
 	done
+        unset dependency_flag
         all_jobs=${all_jobs#:} #remove the leading : from all_jobs list so sbatch can use it
+	if [[ -n $all_jobs ]]; then dependency_flag="--dependency=afterok:${all_jobs}"; fi 
+
 	# DARTEL
 	# if normalization is run in DARTEL, run group
 	if [[ $NORM == ${DARTEL} ]]; then
