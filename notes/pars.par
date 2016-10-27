@@ -36,6 +36,7 @@ NORM='none'
 anat_bet_flag='-R -f 0.2' #flags added to anat skull stripping (bet) 
 epi_bet_flag='-F' #flags added to functional skull stripping (bet)
 # More info on bet: http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET
+module load fsl
 fsl_template="${FSLDIR}/data/standard/MNI152_T1_2mm_brain" #MNI template to normalize to. 
   #Can change to 1mm if necessary 
 
