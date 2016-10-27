@@ -173,9 +173,9 @@ for t in "${TASKS[@]}"; do
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 				# RUN STEP/SUBMIT JOB
-				# set run_time to 3hrs + 1 hr per step being run
+				# set run_time to 3hrs + 1 hr per step being run. Add another hour per run if normalization is selected
 				run_time=$((60 * ${#ext} + 180))
-                                if [[ ${ext[@]} =~ w ]]; then add_time=$((60*"$RUNS")); run_time=$((${run_time}+${add_time})); fi
+                                if [[ ${ext[@]} =~ w ]]; then add_time=$((60*$RUNS)); run_time=$((${run_time}+${add_time})); fi
 				# move into software's script directory, quietly
 				pushd ${script_path} > /dev/null   
 				# submit job
