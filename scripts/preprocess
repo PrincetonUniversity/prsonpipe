@@ -72,20 +72,13 @@ for t in "${TASKS[@]}"; do
 	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
     stepfile=${PROJECT_DIR}/notes/step.par
 	logfile=${wd_dir_full}/LOG.txt
-	logfile_tsk=$logfile
+	logfile_tsk=${logfile}
 	
 	# CREATE WORKING DIRECTORY IN PREP
     if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
 	DATE=`date +%Y%m%d`
 	cp ${PROJECT_DIR}/notes/${parsfile} ${wd_dir_full}/${DATE}_${parsfile}
 
-	# SET UP PREPROCESSING STEPS BASED ON PARAMETERS FILE
-	# Create an array (step_names) of all the preprocessing step names (in order of execution)
-	declare -a step_names=("SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT")
-	# Create an array (step_softs) of all the preprocessing step's software (SPM12w, FSL, DARTEL) (same order as step_names)
-	declare -a step_softs=("$SLICE_TIME" "$REALIGN" "$UNWARP" "$NORM" "$SMOOTH_SOFT" )
-	# Create an array (step_exts) of all the preprocessing prefixes (same order as step_names)
-	declare -a step_exts=('a' 'r' 'u' 'w' 's')
 
 	# Create a similarity array (sim_array) of all the preprocessing parameters, such that:
 	# 0 means the parameter uses a different software than the previous step
@@ -108,13 +101,13 @@ for t in "${TASKS[@]}"; do
 	if [[ -z $SUBS ]]; then echo "${label} No subjects found for task $t. Moving on to next task..."; continue; fi
 
 	# LIST STEPS THAT WILL BE RUN AND SAVE THEM TO THE TASK'S
-	echo "${label}" >> "$logfile"
-	echo "${label} $(date) *** Running subjects ${SUBS[@]} in task $t ***" >> "$logfile"
-	echo "${label} Slice Time Correction = $SLICE_TIME" >> "$logfile"
-	echo "${label} Motion Correction     = $REALIGN" >> "$logfile"
-	echo "${label} Unwarping             = $UNWARP" >> "$logfile"
-	echo "${label} Normalization         = $NORM" >> "$logfile"
-	echo "${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)" >> "$logfile"
+	echo "${label}" | tee -a "$logfile"
+	echo "${label} $(date) *** Running subjects ${SUBS[@]} in task $t ***" | tee -a "$logfile"
+	echo "${label} Slice Time Correction = $SLICE_TIME" | tee -a "$logfile"
+	echo "${label} Motion Correction     = $REALIGN" | tee -a "$logfile"
+	echo "${label} Unwarping             = $UNWARP" | tee -a "$logfile"
+	echo "${label} Normalization         = $NORM" | tee -a "$logfile"
+	echo "${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)" | tee -a "$logfile"
 	
 	# RUN SUBJECTS
     # Run each subject, one at a time
@@ -127,13 +120,15 @@ for t in "${TASKS[@]}"; do
 
 		# STORE FILENAMES/PATHS FOR SUBJ
 		wd_dir_sub=${wd_dir_full}/${s}
-		logfile=${wd_dir_sub}/LOG.txt
 
 		# SET UP SUBJ FOLDER IN PREP
 		# copy sub folder from raw/tsk to prep/tsk/wd
-		if [[ -d "${wd_dir_sub}" ]]; then echo "${label} ${wd_dir_sub} already exists. Deleting..."; rm -rf ${wd_dir_sub}; fi
-		echo "${label} Copying ${s}'s raw folder to ${wd_dir_sub}..."
+		if [[ -d "${wd_dir_sub}" ]]; then echo "${label} ${wd_dir_sub} already exists. Deleting..." | tee -a "$logfile"; rm -rf ${wd_dir_sub}; fi
+		echo "${label} Copying ${s}'s raw folder to ${wd_dir_sub}..." | tee -a "$logfile"
 		cp -r ${RAW_DIR}/${t}/${s} ${wd_dir_sub}
+
+		# START LOGFILE
+		logfile=${wd_dir_sub}/LOG.txt
 
 		echo "${label} $(date) == beginning preprocessing of $s ==" >> "$logfile"
 		# empty all variables to start new with this subject
@@ -163,11 +158,11 @@ for t in "${TASKS[@]}"; do
 			# check if next step uses same software
 			# RUN STEP(S)
 			if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
-				echo "${label} $(date) -- running $pnames in $cur_soft analysis on $s --" >> "$logfile"
+				echo "${label} $(date) running ${pnames} in ${cur_soft} on ${s}" | tee -a "$logfile"
 
 				# if all steps were set to none, skip to next task
 				if [[ -z ${pnames} ]]; then  echo "${label} All steps set to 'none'. Moving on to next task...";
-					echo "${label} WARNING: All steps set to 'none'" >> "$logfile_tsk"; break 2; 
+					echo "${label} WARNING: All steps set to 'none'" | tee -a "$logfile_tsk"; break 2; 
 				fi
 
 				# WRITE P_FILE
@@ -178,24 +173,20 @@ for t in "${TASKS[@]}"; do
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 				# RUN STEP/SUBMIT JOB
-				# set run_time to 4hrs + 1 hr per step being run
+				# set run_time to 3hrs + 1 hr per step being run
 				run_time=$((60 * ${#ext} + 180))
+                                if [[ ${ext[@]} =~ w ]]; then add_time=$((60*"$RUNS")); run_time=$((${run_time}+${add_time})); fi
 				# move into software's script directory, quietly
 				pushd ${script_path} > /dev/null   
 				# submit job
-				#if [[ $first_step -eq 1 ]]; then 
-					# if first step for this subject, run without the dependency on the previous job
-				#	prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
-				#else
-					prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
-				#fi
+				prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				# save jobid number in logfile
 				jobinfo_str="${label} Job ${prev_jobid} submitted to run ${pnames} for subject ${s}"
-				echo ${jobinfo_str}
-				echo "${jobinfo_str}" >> "${logfile_tsk}"
+				echo "${jobinfo_str}" | tee -a "${logfile_tsk}"
 				
                                 #Append job ID to list of job IDs DARTEL has to wait for
                                 all_jobs+=":${prev_jobid}"
+                                if [[ ${cur_soft} == ${DARTEL} ]]; then dartel_jobs[${#dartel_jobs[@]}]="${prev_jobid}"; fi
 
                                 popd > /dev/null   # return to the previous directory, quietly
 
@@ -209,8 +200,9 @@ for t in "${TASKS[@]}"; do
 		# increase sub index by one
 		n=$(($n + 1))
 	done
-        unset dependency_flag
-        all_jobs=${all_jobs#:} #remove the leading : from all_jobs list so sbatch can use it
+	# setup dependency flag for DARTEL
+    unset dependency_flag
+    all_jobs=${all_jobs#:} #remove the leading : from all_jobs list so sbatch can use it
 	if [[ -n $all_jobs ]]; then dependency_flag="--dependency=afterok:${all_jobs}"; fi 
 
 	# DARTEL
@@ -219,7 +211,7 @@ for t in "${TASKS[@]}"; do
 		# write what is going to happen in subs' logfiles
 		for s in "${SUBS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
-            echo "${label} $(date) == beginning group preprocessing of ${SUBS[@]} ==" >> "$logfile"
+            echo "${label} $(date) == beginning group preprocessing of ${SUBS[@]} ==" | tee -a "$logfile"
 		done
 
 		# SET UP FOR DARTEL
@@ -241,44 +233,47 @@ for t in "${TASKS[@]}"; do
 		# RUN DARTEL
 		# if number of subjects to run is <=30, then set run_time to 48 hours (2880 min).  If >30, run_time=72hrs (4320 min)
 		if [[ ${#SUBS[@]} -le 30 ]]; then run_time=2880; else run_time=4320; fi
+		# write pfile for DARETL
 		bash ${PROJECT_DIR}/scripts/write_pfile ${cur_soft} ${t} ${ext}
+		# path names
 		script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
 		run_script="${script_path}/run_${cur_soft}_prep"
 		pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
-		pushd ${script_path} > /dev/null   	# move into software's script directory, quietly
-		#if [[ $first_step -eq 1 ]]; then 
-		#	prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} "${run_script}" "$pfile" "${SUBS[@]}" | grep -o '[0-9]*')
-		#else
-			prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} --dependency=afterok:${all_jobs} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
-		#fi
+		# move into software's script directory, quietly
+		pushd ${script_path} > /dev/null   	
+		# submit job
+		prev_jobid=$(sbatch -t ${run_time} --mail-user=${USER_EMAIL} ${dependency_flag} "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
+		# print jobid to console
 		jobinfo_str="${label} Job ${prev_jobid} submitted to run ${pnames} for subjects ${SUBS[@]}"
 		echo ${jobinfo_str}
+		# write to each sub's logfiles
 		for s in "${SUBS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
-			echo "${label} $(date) -- running $pnames in ${cur_soft} analysis --" >> "$logfile"
+			echo "${label} $(date) running ${pnames} in ${cur_soft} on ${s}" | tee -a "$logfile"
 			echo "${jobinfo_str}" >> "${logfile_tsk}"
 		done
+		# add jobid to dartel_jobs
+		dartel_jobs[${#dartel_jobs[@]}]="${prev_jobid}"
 		popd > /dev/null   					# return to the previous directory, quietly
 
 		# RUN SMOOTHING (iff not in DARTEL)
-		if [[ ${sim_array[i]} -eq 0 ]]; then
+		if [[ ${sim_array[$i]} -eq 0 ]]; then
 			n=0; for s in "${SUBS[@]}"; do
 				reset_step_par; unset ext; unset pnames
-				p=${step_softs[i]}; step_name=${step_names[$i]}; e=${step_exts[$i]}
+				p=${step_softs[$i]}; step_name=${step_names[$i]}; e=${step_exts[$i]}
 				ext=${ext}${e}; cur_soft=$p; pnames="${pnames} $step_name"
-				echo "${step_name}='$p'" >> "$stepfile"
+				echo "${step_name}='$p'" | tee -a "$stepfile"
 				logfile=${wd_dir_full}/${s}/LOG.txt
-				echo "${label} $(date) -- running $pnames in $cur_soft analysis --" >> "$logfile"
+				echo "${label} $(date) running ${pnames} in ${cur_soft} on ${s}" | tee -a "$logfile"
 				# if first subject, write out pfile based on step.par
 				if [[ $n -eq 0 ]]; then bash ${PROJECT_DIR}/scripts/write_pfile ${cur_soft} ${t} ${ext}; fi
-				script_path="${SCRIPT_DIR_FULL}/$cur_soft"
+				script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
 				run_script="${script_path}/run_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
 				prev_jobid=$(sbatch -t 60 --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${s}" | grep -o '[0-9]*')
 				jobinfo_str="${label} Job ${prev_jobid} submitted to run ${pnames} for subject ${s}"
-				echo ${jobinfo_str}
-				echo "${jobinfo_str}" >> "${logfile_tsk}"
+				echo "${jobinfo_str}" | tee -a "${logfile_tsk}"
 				popd > /dev/null   # return to the previous directory, quietly
 				n=$(($n + 1))
 			done
@@ -291,13 +286,18 @@ for t in "${TASKS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
 			echo "${label} Done. $(date)" >> "$logfile"
 		fi
-	done
+	done	
+	## COPY DARTEL'S SLURM OUTPUT TO WD_DIR
+	# for j in "${dartel_jobs[@]}"; do d_jobs+=":${j}"; done
+	# unset dependency_flag
+	# d_jobs=${d_jobs#:} #remove the leading : from all_jobs list so sbatch can use it
+	# if [[ -n $d_jobs ]]; then 
+	# 	dependency_flag="--dependency=afterok:${d_jobs}"; 
+	# 	sbatch -t 5 ${dependency_flag} copy_dartel_output "${wd_dir_full}" "${dartel_jobs[@]}"; 
+	# fi 
+
+	# Write Done. to task logifle
+	echo "${label}" | tee -a "${logfile_tsk}"
+	echo "${label} Done. $(date)" | tee -a "${logfile_tsk}"
+	echo "${label}" >> "${logfile_tsk}"
 done
-
-# Write Done. to task logifle
-echo "${label}" >> "${logfile_tsk}"
-echo "${label} Done. $(date)" >> "${logfile_tsk}"
-echo "${label}" >> "${logfile_tsk}"
-
-echo "${label}"
-echo "${label} Done. $(date)"

@@ -6,6 +6,7 @@
 # Packages used:
 #    FSL
 #    MicroGL (dcm2niix)
+#    BXH
 # Arguments:    
 #   None
 #SBATCH -J "convert"
@@ -20,6 +21,7 @@ set -e  # fail immediately on error
 
 module load mricrogl # Make sure all necessary packages are available (spock) -JNM
 module load fsl
+module load bxh
 
 source globals.par
 SUBID_LIST=${PROJECT_DIR}/arch/subid_list.txt
@@ -139,7 +141,8 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
 
    for file in $(ls $temp_output_dir); do
      # the anatomical goes in the first task dir and is then copied to the others, so SPMw doesn't get mad (matlab will not read symlinks)
-      if [[ ${file} = anat* ]]; then
+     bxhreorient --overwrite --orientation=LAS "${temp_output_dir}/${file}" "${temp_output_dir}/${file}" 
+     if [[ ${file} = anat* ]]; then
         lp=1
         for dir in $(ls -1); do
         echo "${subdirs[@]}/" | xargs -n 1 rsync -avq --ignore-existing "${temp_output_dir}/${file}"
