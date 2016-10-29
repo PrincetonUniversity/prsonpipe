@@ -224,8 +224,6 @@ function update_nii {
 	# for each character in the list of step prefixes, 
 	for (( i=0; i<${#steps}; i++ )); do 
 		step="${steps:$i:1}";
-		#skip realignment
-		if [[ $step == r ]]; then continue; fi;
 		# reverse steps to create the prefix of the nii files to update
 		prefix=${step}${prefix};
 	done

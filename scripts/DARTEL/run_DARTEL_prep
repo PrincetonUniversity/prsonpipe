@@ -16,7 +16,6 @@ source funcs
 popd > /dev/null 
 
 label='[DARTEL]'
-logfile=LOG.txt
 
 # first arg is pfile
 pfile=$1
@@ -24,25 +23,44 @@ pfile=$1
 shift 
 SUBS=( "$@" )
 
-# turn SUBS into a matlab array of numbers (not subIDs)
-make_matlab_array SUBS[@]
-
-echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" >> "${logfile}"
+# extract the wd folder location from the pfile by grabbing the quoted section of the line that starts with "p.subdir /whitespace/ = " and ends before ";"
+wd_dir=$(grep -oP 'p.subdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
 
 # extract prefix list from parameters file by finding the string between 3 uppercase letters and .m
 steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K.*?(?=.m)')
 
-# extract the wd folder location from the pfile by grabbing the quoted section of the line that starts with "p.subdir /whitespace/ = " and ends before ";"
-wd_dir=$(grep -oP 'p.subdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
+# get wd dartel logfile
+# if normalization is in steps, logfile should be in wd folder (group processesing). If not, then only one subject so log to sdir
+if [[ ${steps} =~ w ]]; then logfile=${wd_dir}/LOG_dartel.txt; 
+else 
+	logfile=${wd_dir}/${SUBS}/LOG_dartel.txt; 
+	if [[ ${#SUBS[@]} -gt 1 ]]; then echo "${label} WARNING: More than one subject being run without normalization.  Logfile = ${logfile}"; fi
+fi
+
+logfile_wd=${wd_dir}/LOG.txt
+
+# turn SUBS into a matlab array of numbers (not subIDs)
+make_matlab_array SUBS[@]
+
+echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" | tee -a "${logfile_wd}"
 
 # unzip the epi* and anat files in the subject directories within wd_dir
 unzip_epi_anat ${wd_dir} SUBS[@]
 
 # load matlab script
 module load matlab/R2015b
-matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars(${matlab_array},'$pfile'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars(${matlab_array},'$pfile'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
+
+unset $prefix
+for (( i=0; i<${#steps}; i++ )); do
+    step="${steps:$i:1}";
+    #skip realignment and unwarping 
+    if [[ $step == r ]] || [[ $step == u ]]; then continue; fi;
+    prefix=${prefix}${step};
+done
+steps=$prefix
 
 # update epi_r##.nii* files to their most recent versions
 update_nii ${wd_dir} ${steps} SUBS[@]
 
-echo "${label} Done. $(date)" >> "${logfile}"
+echo "${label} Done. $(date)" | tee -a "${logfile_wd}"

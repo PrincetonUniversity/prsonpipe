@@ -89,7 +89,15 @@ if [[ $UNWARP == ${soft} ]]; then unwarp=1; else unwarp=0; fi
 
 if [[ $SMOOTH_SOFT == ${soft} ]]; then smooth=$SMOOTH; else smooth=0; fi
 
-if [[ $NORM == ${soft} ]]; then if [[ $soft == $SPMW ]]; then norm=$WNORMTYPE; else norm=1;fi; else norm=0; fi
+if [[ $NORM == ${soft} ]]; then norm=1; else norm=0; fi
+
+if [[ $soft == $SPMW ]]; then
+    if [[ $norm -eq 1 ]]; then
+        norm=$NORMTYPE
+    else
+        norm='none'
+    fi
+fi
 
 
 eval "cat << EOF  > $fname_full

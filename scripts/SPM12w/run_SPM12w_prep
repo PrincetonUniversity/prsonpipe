@@ -11,14 +11,12 @@
 #SBATCH -t 1440									# Run time : Default time is 24 hours (2880 min)
 #SBATCH -p all                                	# DON'T CHANGE
 
-source ../globals.par
-
 pushd ../ > /dev/null
+source globals.par
 source funcs
 popd > /dev/null 
 
 label='[SPM12W]'
-logfile=LOG.txt
 
 # first arg is pfile
 pfile=$1
@@ -26,22 +24,23 @@ pfile=$1
 sub=$2; num2subID sub
 subid=$SUBIDS
 
-echo "${label} $(date) Beginning SPM12w analysis of subject ${subid} with pfile ${pfile}" >> "${logfile}"
+# extract the wd and wd/sdir folder location from the pfile by grabbing the quoted section of the line that starts with "p.prepdir /whitespace/ = " and ends before ";"
+wd_dir=$(grep -oP 'p.prepdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
+logfile=${wd_dir}/${subid}/LOG_spmw.txt
+
+echo "${label} $(date) Beginning SPM12w analysis of subject ${subid} with pfile ${pfile}" | tee -a "${logfile}"
 
 # extract prefix list from parameters file by finding the string between 3 uppercase letters and .m
 steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K.*?(?=.m)')
-
-# extract the wd folder location from the pfile by grabbing the quoted section of the line that starts with "p.subdir /whitespace/ = " and ends before ";"
-wd_dir=$(grep -oP 'p.prepdir\s*=\s\K'.*?'(?=;)' ${pfile})
 
 # unzip the epi* and anat files in the subject directories within wd_dir
 unzip_epi_anat ${wd_dir} SUBS[@]
 
 # run matlab from the command line as part of a submit job
 module load matlab/R2015b
-matlab -nosplash -nodisplay -nodesktop -r "try; SPM12w_preprocess('${subid}', '${pfile}', '${PKG_DIR}/'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit"
+matlab -nosplash -nodisplay -nodesktop -r "try; SPM12w_preprocess('${subid}', '${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
 
 # update epi_r##.nii* files to their most recent versions
 update_nii ${wd_dir} ${steps} SUBS[@]
 
-echo "${label} Done. $(date)" >> "${logfile}"
+echo "${label} Done. $(date)" | tee -a "${logfile}"
