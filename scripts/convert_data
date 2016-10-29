@@ -6,9 +6,8 @@
 # Packages used:
 #    FSL
 #    MicroGL (dcm2niix)
-#    BXH
 # Arguments:    
-#   None
+#   1. subject
 #SBATCH -J "convert"
 #SBATCH -o ../output/convert_%j.out
 #SBATCH -p all
@@ -21,10 +20,13 @@ set -e  # fail immediately on error
 
 module load mricrogl # Make sure all necessary packages are available (spock) -JNM
 module load fsl
-module load bxh
 
 source globals.par
-SUBID_LIST=${PROJECT_DIR}/arch/subid_list.txt
+subj=$1
+full_subj=$2
+dicom_archive="${PROJECT_DIR}/arch/dicom/raw_${full_subj}.tar.gz"
+output_dir="${PROJECT_DIR}/raw/"
+run_order_file="${PROJECT_DIR}/arch/subpars/runorders/${full_subj}.txt"
 ERROR_FLAG=ERROR_RUN
 PREFIX=scan
 output_ext=.nii #If changing the extension, make sure to also change the dcm2niix conversion flag
@@ -33,47 +35,30 @@ label="[CONVERT]"
 
 FSLOUTPUTTYPE=NIFTI #Convert 16-bit scans to FLOAT32 data type to retain UINT16 range
 
-echo
+  echo "${label} Unpacking $subj at $(date)"
 
-exec 9<> $SUBID_LIST #open file descriptor for subid_list.txt file -JNM
-while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, assign them to variables, and loop through subid_list
-  echo [CONVERT]
-  if [[ $imgtype != 'dicom' ]]; then #test if imagetype in subid_list is dicom. Could support other types in the future
-    echo "[CONVERT] No dicom data available for subject $full_subj" 
-    continue; 
-  fi 
-  if [[ $full_subj = '' ]]; then continue; fi
-  output_prefix=$subj  
-  # set necessary variables and check if prerequisites exist. -JNM
-  dicom_archive="${PROJECT_DIR}/arch/dicom/raw_${full_subj}.tar.gz"
-  if [[ ! -f $dicom_archive ]]; then echo "[CONVERT] ${dicom_archive} does not exist. Skipping $full_subj."; continue; fi
-  output_dir="${PROJECT_DIR}/raw/"
-  if [[ -n $(find $output_dir -name $subj) ]]; then echo "[CONVERT] $subj already converted. Skipping $full_subj"; continue; fi
-  run_order_file="${PROJECT_DIR}/arch/subpars/runorders/${full_subj}.txt"
-  if [[ ! -f $run_order_file ]]; then echo "[CONVERT] ${run_order_file} does not exist. Skipping $full_subj."; continue; fi
-
-  echo "[CONVERT] Unpacking $subj at $(date)"
+    echo "${label} Unpacking $subj at $(date)"
   #unpack and convert data to nifti
   temp_dicom_dir=$(mktemp -d -t tmp.XXXXXX)
   temp_output_dir=$(mktemp -d -t tmp.XXXXXX)
   tar --extract --gunzip --file=$dicom_archive --directory=$temp_dicom_dir
-  echo "[CONVERT] Converting to nifti at $(date)"
+  echo "${label} Converting to nifti at $(date)"
   dcm2niix -z n -o $temp_output_dir -f ${PREFIX}_%2s $temp_dicom_dir 1>/dev/null
-  
+
 #make sure naming scheme does not output too many leading zeros (bug in dcm2niix)
   for filename in $temp_output_dir/*${output_ext}; do
     file_suf=$(echo ${filename%${output_ext}} | egrep -o '\_.*$' | tr -d \._)
-    if [ ${#file_suf} -le 3 ]; then continue; fi 
+    if [ ${#file_suf} -le 3 ]; then continue; fi
     newname="${temp_output_dir}/${PREFIX}_${file_suf:(-2)}${output_ext}"
     if [ "$filename" != "newname" ] && [ -e $newname ]; then
-     mv $filename ${newname%${output_ext}}x${output_ext}      
+     mv $filename ${newname%${output_ext}}x${output_ext}
     elif [ "$filename" != "$newname" ] && [ ! -e $newname ]; then
-      mv $filename $newname; 
+      mv $filename $newname;
     fi
   done
-  
-  echo "[CONVERT] Converting to 32-bit and renaming at $(date)"
-  
+
+  echo "${label} Converting to 32-bit and renaming at $(date)"
+
   for nifti in $(ls -1 $temp_output_dir); do
      fslmaths $temp_output_dir/$nifti $temp_output_dir/$nifti -odt float
   done
@@ -88,7 +73,7 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
     num_actual_scans=$(find $temp_output_dir/*${output_ext} -maxdepth 1 -type f | wc -l)
     num_expected_scans=$(wc -l < $stripped_run_order_file)
    if [ $num_actual_scans != $num_expected_scans ]; then
-      echo "found $num_actual_scans scans, but $num_expected_scans were described in $run_order_file. check that you're listing enough scans for your circle localizer, etc... because those may convert as more than one scan." >/dev/stderr
+      echo "${label} found $num_actual_scans scans, but $num_expected_scans were described in $run_order_file. check that you're listing enough scans for your circle localizer, etc... because those may convert as more than one scan." >/dev/stderr
       rm -rf $temp_output_dir
       rm -rf $temp_dicom_dir
       continue
@@ -112,12 +97,12 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
     # convert the scan
     niigz_file_prefix="${temp_output_dir}/${name}"
     mv "${file_array[$number]}" ${niigz_file_prefix}${output_ext}
-    
+
 
       if [ -n "$num_expected_trs" ]; then
         num_actual_trs=$(fslnvols ${niigz_file_prefix})
         if [ $num_expected_trs -ne $num_actual_trs ]; then
-          echo "$name has $num_actual_trs TRs--expected $num_expected_trs" >/dev/stderr
+          echo "${label} $name has $num_actual_trs TRs--expected $num_expected_trs" >/dev/stderr
           rm -rf $temp_output_dir
           rm -rf $temp_dicom_dir
           continue 2
@@ -129,20 +114,19 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
     } < $stripped_run_order_file
     rm -f $temp_output_dir/${PREFIX}*
     rm -f $stripped_run_order_file
-    
+
 #move the nifti's to the right directory
     pushd ${output_dir} > /dev/null
     subdirs=(${TASKS[@]/%/\/${subj}})
-    mkdir ${subdirs[@]}   
-    
+    mkdir ${subdirs[@]}
+
     if [[ $gz -eq 1 ]]; then
       pigz ${temp_output_dir}/*
     fi
 
    for file in $(ls $temp_output_dir); do
      # the anatomical goes in the first task dir and is then copied to the others, so SPMw doesn't get mad (matlab will not read symlinks)
-     bxhreorient --overwrite --orientation=LAS "${temp_output_dir}/${file}" "${temp_output_dir}/${file}" 
-     if [[ ${file} = anat* ]]; then
+      if [[ ${file} = anat* ]]; then
         lp=1
         for dir in $(ls -1); do
         echo "${subdirs[@]}/" | xargs -n 1 rsync -avq --ignore-existing "${temp_output_dir}/${file}"
@@ -157,21 +141,14 @@ while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, a
         fi
       else
         tskname=$(echo $file | cut -d'_' -f 2)
-        filename=$(echo $file | cut -d'_' -f 1,3)
+                filename=$(echo $file | cut -d'_' -f 1,3)
         mv ${temp_output_dir}/${file} ${tskname}/${subj}/${filename}
       fi
-    done     
-    rm -rf $temp_output_dir    
+    done
+    rm -rf $temp_output_dir
     rm -rf $temp_dicom_dir
-    echo "[CONVERT] $subj done at $(date)"
+    echo "${label} $subj done at $(date)"
 
-done
 
 rm -rf $temp_output_dir
-rm -rf $temp_dicom_dir
-
-echo [CONVERT]
-echo "[CONVERT] Done."
-echo
-
-exec 9>&- #close subid_list.txt. file -JNM
+rm -rf $temp_dicom_dir                                                                                                                                                   

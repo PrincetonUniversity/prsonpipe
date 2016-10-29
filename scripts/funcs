@@ -183,21 +183,29 @@ EOT
 #  label 	: the label written in the logfile (must be all caps in logfile)
 #  logfile	: the logfile to search in
 ###########################################
-
 function wait_for_it {
 	label_func='[WAIT]'
 	if [[ ! $# -eq 2 ]]; then 
 		echo "${label_func} Please specify a step_label_func to search for and a logfile to search in. Aborting..."; exit; 
 	fi
 
-	step_label_func=${1^^}
+	step_label_func=$(echo $1 | cut -d "[" -f2 | cut -d "]" -f1)
 	logfile=$2
-	SLEEP_INTERVAL=10   # this is in seconds
-
-	while [ -z "$(grep [${step_label_func}] Done. $logfile)" ]; do
+	SLEEP_INTERVAL=5   # this is in seconds
+        load_interval=$(($SLEEP_INTERVAL/5))
+	while [ -z $(grep "\[${step_label_func}\] Done." "$logfile") ]; do
 		# still running...
-		sleep $SLEEP_INTERVAL
-	done
+                printf "${label_func} Waiting for ${step_label_func}.    \r"
+                sleep $load_interval
+                printf "${label_func} Waiting for ${step_label_func}..   \r"
+                sleep $load_interval
+                printf "${label_func} Waiting for ${step_label_func}...  \r"
+                sleep $load_interval
+                printf "${label_func} Waiting for ${step_label_func}.... \r"
+                sleep $load_interval
+                printf "${label_func} Waiting for ${step_label_func}.....\r"
+                sleep $load_interval
+ 	done
 
 	echo "${label_func} ${step_label_func} finished (based on logfile $logfile). Moving on..."
 }

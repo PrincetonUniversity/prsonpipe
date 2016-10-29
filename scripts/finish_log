@@ -1,0 +1,18 @@
+#!/bin/env bash
+#
+# prints ${label} done to the convert logfile, to make wait_for_it continue
+#
+#SBATCH -t 1
+#SBATCH -J finish
+#SBATCH -p all
+
+
+label=$1
+logfile=$2
+
+echo "${label}" | tee -a $logfile
+echo "${label} Done. $(date)" | tee -a $logfile
+
+
+
+
