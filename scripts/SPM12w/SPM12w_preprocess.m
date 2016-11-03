@@ -14,7 +14,8 @@ function SPM12w_preprocess(sub,pfile)
     addpath(p.r2agui_dir)
     
     % create temp raw directory
-    tmp_rawdir=[p.prepdir 'SPMw_temp_raw/' p.sid '/'];
+    tmpdir=[p.prepdir 'SPMw_temp_raw/'];
+    tmp_rawdir=[tmpdir p.sid '/'];
     mkdir(tmp_rawdir);
     orig_prep=[p.prepdir p.sid];
     disp([label 'Moving sub directory ' p.prepdir p.sid ' to ' tmp_rawdir '...'])
@@ -58,3 +59,10 @@ function SPM12w_preprocess(sub,pfile)
         rmdir(tmp_rawdir)
     end
     disp([label 'Done moving files from ' tmp_rawdir ' to ' p.datadir])
+    if isempty(dir([tmpdir '*']))
+         rmdir(tmpdir)
+         disp([label 'Deleted ' tmpdir])
+    else
+        disp([label 'WARNING: ' tmpdir ' is not empty:'])
+        disp(dir([tmpdir '*']))
+    end
