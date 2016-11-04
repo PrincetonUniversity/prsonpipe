@@ -6,7 +6,7 @@
 # 1) num2subID			:	called by get_subs, converts array to proper subID form (s000)
 # 2) get_subs			:	takes in an array of subjects and returns an array of subject IDs in form s000
 # 3) reset_step_par		:	overwrites pars.par with nothing turned on
-# ??4) wait_for_it		:	waits until log file contains "[STEP] Done."
+# 4) wait_for_it		:	waits until log file contains "[STEP] Done."
 # 5) update_nii			:	updates niftis to their most recently modified formats
 # 6) make_matlab_array	:	makes matlab array of sub nums (000) from bash array (may be matlab-style [1 2 3])
 # ??7) make_smatlab_array	:	makes matlab array of sub ids ('s000') from bash array (may be matlab-style [1 2 3])
@@ -222,7 +222,7 @@ function wait_for_it {
 ###########################################
 
 function update_nii {
-	label_func='[UPDATE_NII]'
+	label_f='[UPDATE_NII]'
 	unset prefix;
 	if [[ ! $# -ge 3 ]]; then 
 		echo "${label_func} Please specify a prep working directory (that contains subdirs), the steps to update to, and an array of subs to update. Aborting..."; exit; 
@@ -232,6 +232,7 @@ function update_nii {
 	declare -a subs=("${!3}") # array of subjects
 	num2subID subs[@] # change subs into proper s-format
 	log="${wd}/LOG.txt"
+	label_func=${label_f}
 
 	# for each character in the list of step prefixes, 
 	for (( i=0; i<${#steps}; i++ )); do 
@@ -247,9 +248,16 @@ function update_nii {
 		pushd ${wd}/${s} > /dev/null # move into subject folder, quietly
 		# select their logfile
 		log=LOG.txt
-		pigz *.nii 	# zip all niftis in folder
-		echo "${label_func} $(date) all ${s}'s nii files zipped using pigz." | tee -a "${log}"
-
+		for n in $(ls *.nii); do
+			echo ${n}
+			echo ${n}.gz
+			if [[ ! -z ${n}.gz ]]; then 
+				echo "${label_func} ${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
+			else
+				pigz ${n} 	# zip all niftis in folder
+				echo "${label_func} $(date) ${s}/${n} nii zipped using pigz." | tee -a "${log}"
+			fi
+		done
 		# count number of original epi_r##.nii.gz files there are
 		num_runs="$(find ./ -type f -name 'epi_r*.nii.gz' | wc -l)";
 		# go through and store each of those filenames in array runs[@]
