@@ -5,7 +5,7 @@ function SPM12w_preprocess(sub,pfile)
 
     p.sid=sub;
     run(pfile);
-    label='[SPMW.M] '
+    label='[SPMW.M] ';
 
     % add packages
     addpath(p.spm12_dir)
@@ -39,7 +39,7 @@ function SPM12w_preprocess(sub,pfile)
 	    else 
 	    	new_fname=fname;
 	    end
-        % if ./ or ../, do not move, otherwise move to sdir with new_fname
+        % if not ./ or ../, move to sdir with new_fname
 	    d=regexp(fname,'\.');
 	    if (isempty(d) || d(1) ~= 1)
 	        movefile([tmp_rawdir '/' fname],[p.datadir new_fname]);
@@ -59,10 +59,10 @@ function SPM12w_preprocess(sub,pfile)
         rmdir(tmp_rawdir)
     end
     disp([label 'Done moving files from ' tmp_rawdir ' to ' p.datadir])
-    if isempty(dir([tmpdir '*']))
+    if length(dir([tmpdir '*'])) <= 2
          rmdir(tmpdir)
          disp([label 'Deleted ' tmpdir])
     else
         disp([label 'WARNING: ' tmpdir ' is not empty:'])
-        disp(dir([tmpdir '*']))
+        disp(dir([tmpdir '*']).name)
     end

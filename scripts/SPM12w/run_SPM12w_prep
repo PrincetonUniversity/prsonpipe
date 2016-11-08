@@ -49,14 +49,14 @@ steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K.*?(?=.m)')
 module load matlab/R2015b
 matlab -nosplash -nodisplay -nodesktop -r "try; SPM12w_preprocess('${subid}', '${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
 
-unset $prefix
-for (( i=0; i<${#steps}; i++ )); do
-    step="${steps:$i:1}";
-    #skip realignment and unwarping 
-    if [[ $step == r ]]; then continue; fi;
-    prefix=${prefix}${step};
-done
-steps=$prefix
+# unset $prefix
+# for (( i=0; i<${#steps}; i++ )); do
+#     step="${steps:$i:1}";
+#     #skip realignment and unwarping 
+#     if [[ $step == r ]]; then continue; fi;
+#     prefix=${prefix}${step};
+# done
+# steps=$prefix
 
 # update epi_r##.nii* files to their most recent versions
 update_nii ${wd_dir} ${steps} SUBIDS[@]
