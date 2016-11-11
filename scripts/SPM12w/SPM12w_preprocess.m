@@ -27,6 +27,7 @@ function SPM12w_preprocess(sub,pfile)
     spm12w_preprocess('sid',sub,'para_file',pfile);
     
     % ONCE SPM12W PREPROCESS IS DONE, MOVE OLD AND NEW FILES BACK FROM TEMP_RAW TO SDIR
+    disp([label 'Done running spm12w_preprocess. Moving original files back to sub's folder'])
     % move files (except for ./ and ../) from tmp_raw back to subject folder
     files=dir(tmp_rawdir);
     for i = 1:length(files)

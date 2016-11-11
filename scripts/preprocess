@@ -74,7 +74,7 @@ for t in "${TASKS[@]}"; do
 	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
     stepfile=${PROJECT_DIR}/notes/step.par
 	logfile=${wd_dir_full}/LOG.txt
-	logfile_tsk=${logfile}
+	logfile_wd=${logfile}
 	
 	# CREATE WORKING DIRECTORY IN PREP
     if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
@@ -104,13 +104,13 @@ for t in "${TASKS[@]}"; do
         echo "${label} Excluding subjects: ${EXCLUDE_SUBS[@]}"
 
 	# LIST STEPS THAT WILL BE RUN AND SAVE THEM TO THE TASK'S
-	echo "${label}" | tee -a "$logfile"
-	echo "${label} $(date) *** Running subjects ${SUBS[@]} in task $t ***" | tee -a "$logfile"
-	echo "${label} Slice Time Correction = $SLICE_TIME" | tee -a "$logfile"
-	echo "${label} Motion Correction     = $REALIGN" | tee -a "$logfile"
-	echo "${label} Unwarping             = $UNWARP" | tee -a "$logfile"
-	echo "${label} Normalization         = $NORM" | tee -a "$logfile"
-	echo "${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)" | tee -a "$logfile"
+	echo "${label}" | tee -a "$logfile_wd"
+	echo "${label} $(date) *** Running subjects ${SUBS[@]} in task $t ***" | tee -a "$logfile_wd"
+	echo "${label} Slice Time Correction = $SLICE_TIME" | tee -a "$logfile_wd"
+	echo "${label} Motion Correction     = $REALIGN" | tee -a "$logfile_wd"
+	echo "${label} Unwarping             = $UNWARP" | tee -a "$logfile_wd"
+	echo "${label} Normalization         = $NORM" | tee -a "$logfile_wd"
+	echo "${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)" | tee -a "$logfile_wd"
 	echo "${label}"
 	echo "${label} writing prep files to ${wd_dir_full}"
 	
@@ -130,8 +130,8 @@ for t in "${TASKS[@]}"; do
 
 		# SET UP SUBJ FOLDER IN PREP
 		# copy sub folder from raw/tsk to prep/tsk/wd
-		if [[ -d "${wd_dir_sub}" ]]; then echo "${label} ${wd_dir_sub} already exists. Deleting..." | tee -a "$logfile"; rm -rf ${wd_dir_sub}; fi
-		echo "${label} Copying ${s}'s raw folder to ${wd_dir_sub}..." | tee -a "$logfile"
+		if [[ -d "${wd_dir_sub}" ]]; then echo "${label} ${wd_dir_sub} already exists. Deleting..." | tee -a "$logfile_wd"; rm -rf ${wd_dir_sub}; fi
+		echo "${label} $(date) Copying ${s}'s raw folder to ${wd_dir_sub}..." | tee -a "$logfile_wd"
 		cp -r ${RAW_DIR}/${t}/${s} ${wd_dir_sub}
 
 		# START LOGFILE
@@ -168,7 +168,7 @@ for t in "${TASKS[@]}"; do
 
 				# if all steps were set to none, skip to next task
 				if [[ -z ${pnames} ]]; then  echo "${label} All steps set to 'none'. Moving on to next task...";
-					echo "${label} WARNING: All steps set to 'none'" | tee -a "$logfile_tsk"; break 2; 
+					echo "${label} WARNING: All steps set to 'none'" | tee -a "$logfile_wd"; break 2; 
 				fi
 
 				# WRITE P_FILE
@@ -192,7 +192,7 @@ for t in "${TASKS[@]}"; do
 				prev_jobid=$(sbatch -t ${run_time} -J ${run_name} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				# save/print jobid number
 				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject ${s}"
-				echo "${jobinfo_str}" | tee -a "${logfile_tsk}"
+				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
 				
                 #Append job ID to list of job IDs DARTEL has to wait for
                 all_jobs+=":${prev_jobid}"
@@ -262,7 +262,7 @@ for t in "${TASKS[@]}"; do
 		for s in "${SUBS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
 			#echo "${label} $(date) running ${pnames} in ${cur_soft} on ${s}" >> "$logfile"
-			echo "${jobinfo_str}" >> "${logfile_tsk}"
+			echo "${jobinfo_str}" >> "${logfile_wd}"
 		done
 		popd > /dev/null   					# return to the previous directory, quietly
 
@@ -292,7 +292,7 @@ for t in "${TASKS[@]}"; do
 				pushd ${script_path} > /dev/null   # move into software's script directory, quietly
 				prev_jobid=$(sbatch -t 60 -J ${run_name} --mail-user=${USER_EMAIL} --dependency=afterok:${prev_jobid} "${run_script}" "$pfile" "${s}" | grep -o '[0-9]*')
 				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject ${s}"
-				echo "${jobinfo_str}" | tee -a "${logfile_tsk}"
+				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
 				popd > /dev/null   # return to the previous directory, quietly
 
 				# increase sub index by one
@@ -311,7 +311,7 @@ for t in "${TASKS[@]}"; do
 	done
 
 	# Write Done. to task logifle
-	echo "${label}" | tee -a "${logfile_tsk}"
-	echo "${label} Done. $(date)" | tee -a "${logfile_tsk}"
-	echo "${label}" >> "${logfile_tsk}"
+	echo "${label}" | tee -a "${logfile_wd}"
+	echo "${label} Done. $(date)" | tee -a "${logfile_wd}"
+	echo "${label}" >> "${logfile_wd}"
 done

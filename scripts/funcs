@@ -214,11 +214,12 @@ function wait_for_it {
 # 5)
 # update_nii
 # author Miriam Weaverdyck, August 23, 2016
-# This function updates niftis to their most recently modified formats
+# This function updates niftis based on prefix input
 ###########################################
 # Arguments (1 total):
-#  subs[@] 	: bash array of subs
 #  wd 		: full directory containing sdirs, which contain files to be unzipped
+#  steps  	: the prefix (in original order) of the epi that should be copied
+#  subs[@] 	: bash array of subs
 ###########################################
 
 function update_nii {
@@ -231,7 +232,7 @@ function update_nii {
 	steps=$2 # list of prefixes 
 	declare -a subs=("${!3}") # array of subjects
 	num2subID subs[@] # change subs into proper s-format
-	log="${wd}/LOG.txt"
+	log_wd="${wd}/LOG.txt"
 	label_func=${label_f}
 
 	# for each character in the list of step prefixes, 
@@ -241,21 +242,23 @@ function update_nii {
 		prefix=${step}${prefix};
 	done
 
-	echo "${label_func} $(date) updating sub(s) ${SUBIDS[@]} epi runs with prefix '${prefix}"'' | tee -a "${log}"
+	#echo "${label_func} $(date) updating sub(s) ${SUBIDS[@]} epi runs with prefix '${prefix}'" | tee -a "${log}"
 
 	# for every subject
 	for s in "${SUBIDS[@]}"; do
 		pushd ${wd}/${s} > /dev/null # move into subject folder, quietly
 		# select their logfile
 		log=LOG.txt
+		echo "${label_func} $(date) updating $s epi runs with prefix '${prefix}'" | tee -a "${log}" "${log_wd}"
+
 		for n in $(ls *.nii); do
-			echo ${n}
-			echo ${n}.gz
-			if [[ ! -z ${n}.gz ]]; then 
-				echo "${label_func} ${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
+			#echo ${n}
+			#echo ${n}.gz
+			if [[ -f ${n}.gz ]]; then 
+				echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" #| tee -a "${log}";
 			else
 				pigz ${n} 	# zip all niftis in folder
-				echo "${label_func} $(date) ${s}/${n} nii zipped using pigz." | tee -a "${log}"
+				echo "${label_func} $(date) ${s}/${n} nifti zipped using pigz." #| tee -a "${log}"
 			fi
 		done
 		# count number of original epi_r##.nii.gz files there are
@@ -264,7 +267,7 @@ function update_nii {
 		for ((i=1; i<=${num_runs}; i++)); do 
 			runs[$i]="$(find ./ -type f -name 'epi_r*.nii.gz' | head -$i | tail -1 | xargs -n 1 basename)"; 			
 		done
-		# go through runs[@] and find the most recent version (with prefixes) then update original file to most recent version
+		# go through runs[@] and find the corresponding epis with prefixes, then update original file
 		for r in "${runs[@]}"; do 
 			new_nii=${prefix}${r}
 			cp "${new_nii}" "${r}"; 

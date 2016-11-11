@@ -32,6 +32,8 @@ EPI_ECHOSPACING=0.00072 #echo spacing
 ### Normalization: 'SPM12w' (will run SPM12 normalization), 'DARTEL' (run in SPM8),'none'
 # (includes registration to MNI space, unwarping in DARTEL)
 NORM='none'
+## SPM12w normalization parameters ##
+# SPM12w normalization options: 'epi', 'spm12', ('dartel' - not currently working)
 NORMTYPE='SPM12'
 ## FSL normalization parameters ## 
 anat_bet_flag='-R -f 0.2' #flags added to anat skull stripping (bet) 
