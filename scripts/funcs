@@ -252,13 +252,11 @@ function update_nii {
 		echo "${label_func} $(date) updating $s epi runs with prefix '${prefix}'" | tee -a "${log}" "${log_wd}"
 
 		for n in $(ls *.nii); do
-			#echo ${n}
-			#echo ${n}.gz
 			if [[ -f ${n}.gz ]]; then 
-				echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" #| tee -a "${log}";
+				echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
 			else
 				pigz ${n} 	# zip all niftis in folder
-				echo "${label_func} $(date) ${s}/${n} nifti zipped using pigz." #| tee -a "${log}"
+				echo "${label_func} $(date) ${s}/${n} nifti zipped using pigz." | tee -a "${log}"
 			fi
 		done
 		# count number of original epi_r##.nii.gz files there are
@@ -394,9 +392,25 @@ function unzip_epi_anat {
 	num2subID subs[@]
 	echo "unzipping subjects: ${SUBIDS[@]}"
 	for s in "${SUBIDS[@]}"; do
-		unpigz ${d}/${s}/anat*.nii.gz
-		unpigz ${d}/${s}/epi*.nii.gz
+		pushd ${d}/${s} > /dev/null # move into subject folder, quietly
+		for n in $(ls anat*.nii.gz); do
+			if [[ -f ${n%.gz} ]]; then 
+				echo "${n%.gz} already exists, not unzipping ${n}" #| tee -a "${log}";
+			else
+				unpigz ${d}/${s}/${n} 	# zip all niftis in folder
+				echo "${n} nifti unzipped using unpigz." #| tee -a "${log}"
+			fi
+		done
+		for n in $(ls epi*.nii.gz); do
+			if [[ -f ${n%.gz} ]]; then 
+				echo "${n%.gz} already exists, not unzipping ${n}" #| tee -a "${log}";
+			else
+				unpigz ${d}/${s}/${n} 	# zip all niftis in folder
+				echo "${n} nifti unzipped using unpigz." #| tee -a "${log}"
+			fi
+		done
 		echo "unzipped $s zipped niftis"
+		popd > /dev/null
 	done
 }
 
@@ -416,6 +430,15 @@ function zip_all {
 	declare -a subs=("${!2}")
 	num2subID subs[@]
 	for s in "${SUBIDS[@]}"; do
-		pigz ${d}/${s}/*.nii
+		pushd ${wd}/${s} > /dev/null # move into subject folder, quietly
+		for n in $(ls *.nii); do
+			if [[ -f ${n}.gz ]]; then 
+				echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
+			else
+				pigz ${n} 	# zip all niftis in folder
+				echo "${label_func} $(date) ${s}/${n} nifti zipped using pigz." | tee -a "${log}"
+			fi
+		done
+		popd > /dev/null
 	done
 }

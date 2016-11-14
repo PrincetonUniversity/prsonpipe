@@ -28,7 +28,7 @@
 #
 # SBATCH -J prep-%j
 # SBATCH -o ../output/prep-%j.out
-# SBATCH -t 00:01:00						# hh:mm:ss
+# SBATCH -t 60
 
 set -e # stop immediately when an error occurs
 
@@ -69,6 +69,46 @@ for t in "${TASKS[@]}"; do
 	# source task's pars file
 	if [[ $PREP_SEP -eq 0 ]]; then parsfile=pars.par; else parsfile=pars_${t}.par; fi
 	source ${PROJECT_DIR}/notes/${parsfile}
+
+	# make sure that all steps are correct
+	# DARTEL: must run normalization, if used at all
+	# FSL: if u=FSL, then r=FSL
+	# SPM12w: if w=SPM12w, then r=SPM12w
+	i=0
+	for p in "${step_softs[@]}"; do
+		step_name=${step_names[$i]}
+		# check if $p is a valid software
+		snum=0
+		if [[ $p != 'none' ]]; then
+			for s in "${PREP_SOFTS[@]}"; do 
+				if [[ $s == $p ]]; then break; fi
+				snum=$((${snum} + 1))
+			done
+			if [[ ${snum} -eq ${#PREP_SOFTS[@]} ]]; then
+				echo "${label} ERROR: ${step_name}=$p is not a valid software choice. Each step must be set to one of the following: none ${PREP_SOFTS[@]}";
+				exit
+			fi
+		fi
+		# DARTEL
+		if [[ $p == ${DARTEL} ]]; then 
+			if [[ ${NORM} != 'NORM' ]]; then
+				echo "${label} ERROR: ${step_name}=${p} but NORM=${NORM}. In ${DARTEL}, NORM must always be used. Aborting...";
+				exit
+			fi
+		fi
+		i=$(($i + 1))
+	done
+	# FSL
+	if [[ ${UNWARP} == ${FSL} ]] && [[ ${REALIGN} != ${FSL} ]]; then 
+		echo "${label} ERROR: UNWARP=${UNWARP} but REALIGN=${REALIGN}. In ${FSL}, if UNWARP is used, then REALIGN must be as well. Aborting..."
+		exit
+	fi
+	# SPM12w
+	if [[ ${NORM} == ${SPMW} ]] && [[ ${REALIGN} != ${SPMW} ]]; then 
+		echo "${label} ERROR: NORM=${NORM} but REALIGN=${REALIGN}. In ${SPMW}, if NORM is used, then REALIGN must be as well. Aborting..."
+		exit
+	fi
+
 
 	# STORE PATH/FILE NAMES
 	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
@@ -148,7 +188,7 @@ for t in "${TASKS[@]}"; do
 			# if current step is set to 'none', skip and move on to next step
 			if [[ $p != 'none' ]]; then 
 				# check if current step is QA(BXH) or NORM(DARTEL)
-				if [[ ${step_name} == 'QA' ]] && [[ $QA == 'BXH' ]]; then i=$(($i + 1)); continue; fi
+				#if [[ ${step_name} == 'QA' ]] && [[ $QA == 'BXH' ]]; then i=$(($i + 1)); continue; fi
 				if [[ ${step_name} == 'NORM' ]] && [[ $NORM == ${DARTEL} ]]; then 
 					# if not last subject, reset step par and ext
 					if [[ $n -ne $((${#SUBS[@]} - 1)) ]]; then reset_step_par; unset ext; fi; 
@@ -262,7 +302,7 @@ for t in "${TASKS[@]}"; do
 		for s in "${SUBS[@]}"; do
 			logfile=${wd_dir_full}/${s}/LOG.txt
 			#echo "${label} $(date) running ${pnames} in ${cur_soft} on ${s}" >> "$logfile"
-			echo "${jobinfo_str}" >> "${logfile_wd}"
+			echo "${jobinfo_str}" >> "${logfile}"
 		done
 		popd > /dev/null   					# return to the previous directory, quietly
 
