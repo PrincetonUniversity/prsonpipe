@@ -91,7 +91,7 @@ for t in "${TASKS[@]}"; do
 		fi
 		# DARTEL
 		if [[ $p == ${DARTEL} ]]; then 
-			if [[ ${NORM} != 'NORM' ]]; then
+			if [[ ${NORM} != ${DARTEL} ]]; then
 				echo "${label} ERROR: ${step_name}=${p} but NORM=${NORM}. In ${DARTEL}, NORM must always be used. Aborting...";
 				exit
 			fi
