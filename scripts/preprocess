@@ -71,7 +71,7 @@ for t in "${TASKS[@]}"; do
 	source ${PROJECT_DIR}/notes/${parsfile}
 
 	# make sure that all steps are correct
-	# DARTEL: must run normalization, if used at all
+	# DARTEL: must run normalization, if used at all, if r used, then u='none'
 	# FSL: if u=FSL, then r=FSL
 	# SPM12w: if w=SPM12w, then r=SPM12w
 	i=0
@@ -93,6 +93,10 @@ for t in "${TASKS[@]}"; do
 		if [[ $p == ${DARTEL} ]]; then 
 			if [[ ${NORM} != ${DARTEL} ]]; then
 				echo "${label} ERROR: ${step_name}=${p} but NORM=${NORM}. In ${DARTEL}, NORM must always be used. Aborting...";
+				exit
+			fi
+			if [[ ${REALIGN} == ${DARTEL} ]] && [[ ${UNWARP} != 'none' ]]; then
+				echo "${label} ERROR: ${step_name}=${p} but UNWARP=${UNWARP}. In ${DARTEL}, if REALIGN is used, then UNWARP must be set to 'none'. Aborting...";
 				exit
 			fi
 		fi
