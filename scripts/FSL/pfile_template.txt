@@ -1,0 +1,13 @@
+PREP="${PREP_DIR}/${t}/${wd_dir}"
+TASK=$1
+SLICETIME=$slice_time
+MOTION=$realign
+UNWARP=$unwarp
+FWHM=$smooth
+NORM=$norm
+anat_bet_flag="$anat_bet_flag"
+epi_bet_flag="$epi_bet_flag"
+fsl_template="$fsl_template"
+
+EPI_ACCEL=$EPI_ACCEL
+EPI_ECHOSPACING=$EPI_ECHOSPACING

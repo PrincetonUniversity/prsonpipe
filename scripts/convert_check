@@ -1,0 +1,56 @@
+#!/bin/env bash
+#
+#Author: Judith Mildner
+#
+# This script checks which subjects need to be converted and calls the scripts
+# to convert them if necessary
+#
+#
+###############################################################################
+
+set -e
+
+source globals.par
+SUBID_LIST=${PROJECT_DIR}/arch/subid_list.txt
+label="[CONVERT]"
+[[ -z $1 ]] && logfile=${ROJECT_DIR}/arch/LOG_convert.txt || logfile=$1
+
+echo $logfile
+rm $logfile
+
+echo
+
+exec 9<> $SUBID_LIST #open file descriptor for subid_list.txt file -JNM
+while read -r -u 9 full_subj subj imgtype; do  #read in lines from subid_list, assign them to variables, and loop through subid_list
+  echo "${label}" | tee -a $logfile
+  if [[ $imgtype != 'dicom' ]]; then #test if imagetype in subid_list is dicom. Could support other types in the future
+    echo "${label} No dicom data available for subject $full_subj" | tee -a $logfile
+    continue;
+  fi
+  if [[ $full_subj = '' ]]; then continue; fi
+  output_prefix=$subj
+  # set necessary variables and check if prerequisites exist. -JNM
+  dicom_archive="${PROJECT_DIR}/arch/dicom/raw_${full_subj}.tar.gz"
+  if [[ ! -f $dicom_archive ]]; then echo "${label} ${dicom_archive} does not exist. Skipping $full_subj." | tee -a $logfile; continue; fi
+  output_dir="${PROJECT_DIR}/raw/"
+  if [[ -n $(find $output_dir -name $subj) ]]; then echo "${label} $subj already converted. Skipping $full_subj" | tee -a $logfile; continue; fi
+  run_order_file="${PROJECT_DIR}/arch/subpars/runorders/${full_subj}.txt"
+  if [[ ! -f $run_order_file ]]; then echo "${label} ${run_order_file} does not exist. Skipping $full_subj." | tee -a $logfile; continue; fi
+  job_id=$(sbatch -t 60 convert_data $subj $full_subj | grep -o '[0-9]*')
+  jobs+=":$job_id"
+done
+
+unset dependency_flag
+jobs=${jobs#:}
+[[ ! -z "$jobs" ]] && dependency_flag="--dependency=afterok:$jobs"
+
+sbatch -t 1 -J finish_convert -p all $dependency_flag finish_log ${label} ${logfile}
+
+
+
+
+
+exec 9>&- #close subid_list.txt. file -JNM   
+
+
+

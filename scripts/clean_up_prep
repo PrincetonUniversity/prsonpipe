@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# clean_up_prep
+# Cleans up the prep folder by deleting intermediate files
+################################################################################
+# Packages used:
+#  none
+# Files sourced:
+#  globals.par
+#  funcs
+# Arguments (2 required):
+#  TSK			: will clean up subjects in TSK folder (keyword 'all')
+#  aNrNuNwNsN 	: will clean up specified wd folders (keyword 'all')
+################################################################################ 
+
+source globals.par
+source funcs
+label='[CLEAN]'
+
+if [[ $# -ne 2 ]]; then 
+	echo "${label} ABORT: 2 arguments required: task working_directory."; 
+	echo "${label} Possible tasks and working_directories: ";
+	echo "";
+	for tsk in ${TASKS[@]}; do echo "${tsk}:";
+		echo "$(ls -d ${PREP_DIR}/${tsk}/*/ | xargs -n 1 basename)";
+		echo "";
+	done
+	exit; 
+fi
+
+if [[ $1 == 'all' ]]; then tsk="${TASKS[@]}"; else tsk=$1; fi
+
+echo "${label} $(date) task(s) to clean up: ${tsk[@]}"
+
+for t in "${tsk[@]}"; do 
+	if [[ $2 == 'all' ]]; then
+		# All wd directories in current task
+		i=0
+		for d in $(ls -d ${PREP_DIR}/${t}/*/ | xargs -n 1 basename); do
+			wd[$i]=$d
+			i=$(($i + 1))
+		done
+	else
+		wd=$2
+	fi
+	echo "${label} $(date) working directories to cleanup/backup in ${t}: ${wd[@]}"
+	# move into task direcotry
+	pushd ${PREP_DIR}/${t}/ > /dev/null
+	tlogfile=LOG.txt
+	echo "${label} $(date) Cleanup and Backup of following directories for ${t}: ${wd[@]}" >> "${tlogfile}"
+	# for each working directory (w) in list of working directories to cleanup (wd[@])...
+	for w in "${wd[@]}"; do
+		# if working directory (w) exists...
+		if [[ -d $w ]]; then
+			# move into w
+			pushd ${w} > /dev/null
+			subs="$(ls -d */ |xargs -n 1 basename)"
+			echo "${label} $(date) cleaning up ${t}/${w}. Included subjects:"
+			echo "${subs[@]}"
+			# for each subject in w
+			for s in ${subs[@]}; do 
+				echo "${label} $(date) deleting files for ${t}/${w}/${s}..."
+				# move into subject's directory
+				pushd ${s} > /dev/null
+				# select s's logfile
+				slogfile=LOG.txt
+				# for every file that we don't want to keep...
+				for f in $(ls --ignore=epi_*.nii* --ignore=*anat*.nii* --ignore=LOG.txt --ignore=rp_* --ignore=*.par --ignore=*SE*.nii* |xargs -n 1 basename); do
+					# skip if directory
+					if [[ -d $f ]]; then continue; fi
+					# delete that file (f)
+					rm $f
+					# note deletion in logfile
+					echo "${label} $(date) $f deleted" >> "${slogfile}"
+				done
+				# step out of subject's directory and move on to next sub
+				popd >/dev/null
+			done
+			# done with all subjects, move out of w directory and move on to next working directory
+			popd >/dev/null
+			echo "${label} $(date) done with cleanup of ${t}/${w}"
+			# BACKUP
+			echo "${label} $(date) backing up ${t}/${w} to ${BACKUP_DIR}/prep/${t}/${w}"
+			# copy w to backup directory /jukebox/<study>/prep/
+			bu_dir=${BACKUP_DIR}/prep/${t}
+			# create a task folder in backup/prep
+			if [[ ! -d ${bu_dir} ]]; then mkdir ${bu_dir}; fi
+			bu_dir=${bu_dir}/${w}.tar.gz
+			# if backup of this folder already exists, delete it and replace it with current folder
+			if [[ -d ${bu_dir} ]]; then rm -r ${bu_dir}; fi
+			# tar and zip folder and save to backup directory
+			tar -I pigz -cvf ${bu_dir} ${w}
+			echo "${label} $(date) copied $(pwd)/${w} to ${bu_dir}" >> "${tlogfile}"
+			echo "${label} $(date) done with backup of ${t}/${w}"
+		else
+			# w does not exist in this task, move on to next working directory
+			echo "${label} $w does not exist in ${t}. Moving on..."
+		fi
+		# done with all working directories
+	done
+	# done with all tasks
+done
+echo "${label} Done. $(date)"
+echo "${label} Done. $(date)" >> "${tlogfile}"

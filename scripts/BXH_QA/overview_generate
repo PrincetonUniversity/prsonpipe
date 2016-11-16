@@ -1,0 +1,52 @@
+#!/bin/bash
+#
+# Author: Judith Mildner, October 23, 2016
+#
+# This script creates an overview of the max SFNR values in the QA output
+# NOTE: this is based on the order of the values, so may not work if default
+#   BXH options are changed in "bxh_generate" script.
+#
+###############################################################################
+# Arguments:
+#  1: Project dir
+#  2: task
+#
+#SBATCH -J bxh_sfnr
+#SBATCH -p all
+#SBATCH -t 5
+
+source "$1/scripts/globals.par"
+
+task=$2
+
+all_file="${QA_DIR}/${task}/sfnr_all.csv"
+low_file="${QA_DIR}/${task}/sfnr_low100.csv"
+rm -f $all_file
+rm -f $low_file
+
+for sub in $(ls -d1 ${QA_DIR}/${task}/s*/); do
+
+  subject=$(basename $sub)
+
+  new_line=$(python ${PROJECT_DIR}/scripts/BXH_QA/sfnr.py -i "${QA_DIR}/${task}/${subject}/index.html" -p $PKG_DIR)
+
+  #Add the new line to the overview file and sort the file by sub number
+  echo "${subject},${new_line}" >> "$all_file"
+
+done
+
+# sort the new csv for readability
+sort -k1 -n -t, "$all_file" -o "$all_file"
+
+# grab every line with a sfnr < 100 and put them in low csv
+while IFS=, read -a line; do
+  for value in ${line[@]:1:${#line[@]}-1}; do 
+    test=$(echo "$value<100" | bc);
+    if [[ $test -eq 1 ]]; then 
+      csv_line=$(IFS=, ; echo "${line[*]}")
+      echo $csv_line >> "$low_file"
+      continue 2
+    fi
+   done
+done < "$all_file"
+

@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# type: sbatch -J name script.sh sub
+# sub should be singular subject number or ID
+# 9/19/16 edited by MEW to extract prefix string from pfile name and update_nii
+###########################################
+# Arguments (2 total):
+#  pfile 	: pfile for SPM12w to use
+#  sub 		: subject to run
+###########################################
+
+#SBATCH -J SPMw_prep							# Job name
+#SBATCH --workdir=./							# Working directory
+#SBATCH -o ../../output/SPMw_prep-%j.out 		# Output file
+#SBATCH --mem-per-cpu=20480						# Amount of memory in MB (1GB = 1024 MB)
+#SBATCH --mail-type=ALL							# Type of emails to send
+#SBATCH -t 1440									# Run time : Default time is 24 hours (2880 min)
+#SBATCH -p all                                	# DON'T CHANGE
+
+set -e
+
+pushd ../ > /dev/null
+source globals.par
+source funcs
+popd > /dev/null 
+
+label='[SPM12W]'
+
+if [[ ! $# -eq 2 ]]; then 
+	echo "${label} 2 input arguments needed: pfile and one subject. Aborting..."; exit; 
+fi
+
+# first arg is pfile
+pfile=$1
+# second arg is subjectID
+sub=$2; num2subID sub
+subid=$SUBIDS
+
+# extract the wd and wd/sdir folder location from the pfile by grabbing the quoted section of the line that starts with "p.prepdir /whitespace/ = " and ends before ";"
+wd_dir=$(grep -oP 'p.prepdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
+logfile=${wd_dir}/${subid}/LOG_spmw.txt
+
+echo "${label} $(date) Beginning SPM12w analysis of subject ${subid} with pfile ${pfile}" | tee -a "${logfile}"
+
+# extract prefix list from parameters file by finding the string between 3 uppercase letters and .m
+steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K.*?(?=.m)')
+
+# unzip the epi* and anat files in the subject directories within wd_dir
+#unzip_epi_anat ${wd_dir} SUBIDS[@]
+
+# run matlab from the command line as part of a submit job
+module load matlab/R2015b
+matlab -nosplash -nodisplay -nodesktop -r "try; SPM12w_preprocess('${subid}', '${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
+
+# if unwarp AND normalization are on, skip 'r' prefix (not written out if both of these steps are included)
+uw=$(echo "${steps}" | grep -Po 'u' || true)
+uw=${uw}$(echo "${steps}" | grep -Po 'w' || true)
+if [[ ${#uw} == 'uw' ]]; then
+	unset prefix
+	for (( i=0; i<${#steps}; i++ )); do
+	    step="${steps:$i:1}";
+	    #skip realignment
+	    if [[ $step == r ]]; then continue; fi;
+	    prefix=${prefix}${step};
+	done
+	steps=$prefix
+	echo "${label} 'r' removed. steps=$steps"
+fi
+
+# update epi_r##.nii* files to their most recent versions
+update_nii ${wd_dir} ${steps} SUBIDS[@]
+
+echo "${label} Done. $(date)" | tee -a "${logfile}"

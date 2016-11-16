@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# copy_dartel_output copies the slurm output from DARTEL jobs to the wd folder so you can see what happened.
+################################################################################
+# Packages used:
+#  none
+# Files sourced:
+#  none
+# Arguments:
+#  'wd_dir'		: full destination of the copy
+#  "${jobids[@]}" 	: jobid array
+################################################################################
+#
+#SBATCH -J cp_dartel
+#SBATCH -o ../output/cp_dartel
+#SBATCH -t 5
+
+wd_dir=${1}
+shift
+jobids=( "$@" )
+
+for j in "${jobids[@]}"; do
+    cp ../output/*${j}* "${wd_dir}/"
+done

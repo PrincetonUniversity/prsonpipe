@@ -1,0 +1,160 @@
+#!/bin/bash
+#
+# Runs FSL analysis based on pfile options. 
+#
+# Arguments:
+# 1) pfile to use
+# 2) subject
+#
+# Global variables used
+#  from globals.par
+#    TASKS
+#SBATCH -J 'FSL_prep'                         # Job name
+#SBATCH --workdir=./                          # Set working directory
+#SBATCH -o '../../output/FSL_prep-%j.out'     # Output file
+#SBATCH --mem-per-cpu=30720
+#SBATCH --mail-type=ALL                       # Type of emails to send
+#SBATCH -t 1440                               # Run time : Default time is 24 hours (2880 min)
+#SBATCH -p all                                # DON'T CHANGE
+
+
+pfile=$1
+subj=$2
+label="[FSL]"
+set -e
+
+module load fsl
+
+source ../globals.par
+source $pfile
+
+fsl_prep=${PREP}/${subj}
+task=$TASK
+
+anat=${fsl_prep}/anat.nii.gz
+anat_base=${fsl_prep}/anat
+anat_brain=${fsl_prep}/anat_brain.nii.gz
+std_anat=${fsl_prep}/std_anat
+log_file="${fsl_prep}/fsl_log.txt"
+# Prepare anatmoical for normalization, if necessary
+if [[ $NORM == 1 ]]; then
+  if [[ ! -f $anat ]]; then 
+  echo "$label $(date) Anatomical $anat not found in $fsl_prep" | tee -a "$log_file" 
+  exit 1; fi
+  echo "$label $(date) Preparing anatomical for normalization." | tee -a "$log_file"
+  #Skull strip (remove excess neck tissue first)
+  standard_space_roi $anat "$std_anat"
+  bet "$std_anat" $anat_brain $anat_bet_flag
+  #Linear registration of anat_brain to MNI template
+  echo "$label $(date) Registering anatomical to MNI space." | tee -a "$log_file"
+  flirt -ref "$fsl_template" -in "$anat_brain" -omat anat_affine_transf.mat -o "${anat_base}2MNI"
+  #Non-linear registration of anat_brain to template
+  fnirt --in=$anat_brain --aff=anat_affine_transf.mat --cout=anat_nonlinear_transf \
+         --config=T1_2_MNI152_2mm --iout=nonlinear_anat2MNI
+  echo "$label $(date) Prepared anatomical for normalization." | tee -a "$log_file"
+fi
+for epi in ${fsl_prep}/epi_r*.nii*; do
+    #set local variables for this subject and task.
+    epi_name="$(basename $epi)"
+    time_file="${fsl_prep}/a${epi_name}"
+    motion_file="${fsl_prep}/r${epi_name}"
+    unwarp_file="${fsl_prep}/u${epi_name}"
+    smooth_file="${fsl_prep}/s${epi_name}"
+    normalize_file="${fsl_prep}/w${epi_name}"
+    SE_AP="${fsl_prep}/${task}_SE_AP.nii*"
+    topup_dir="${PREP_DIR}/topup/${subj}"
+    if [ ! -f $SE_AP ]; then 
+    	SE_AP="$(dirname $SE_AP)/ALL_SE_AP.nii*" 
+    	topup_dir=${PREP_DIR}/topup/${subj}
+    fi
+    mkdir -p $topup_dir
+    SE_PA="${SE_AP%AP.nii*}PA.nii*"
+    if [ ! -f ${log_file} ]; then touch ${log_file}; fi
+    
+    if [[ $SLICETIME == 1 ]]; then
+      echo "$label $(date) Running slice timing $epi" | tee -a "$log_file"
+      slicetimer -i "$epi" -o "$time_file" --odd
+      cp $time_file $epi
+      echo "${label} $(date) Ran slicetimer on $epi" | tee -a "$log_file"
+#    else 
+#      cp $epi $time_file
+#      echo "$(date) skipped slicetimer and copied raw as $time_file." >> "$log_file"
+    fi
+    
+    if [[ $MOTION == 1 ]]; then
+      echo "$label $(date) Running motion correction on $epi." | tee -a "$log_file"
+      mcflirt -in $epi -refvol $SE_AP -o $motion_file -mats -plots
+      cp $motion_file $epi
+      echo "${label} $(date) Ran motion correction on $epi" | tee -a "$log_file"
+#     else
+ #      cp $epi $time_file
+  #     echo "$(date) skipped mcflirt and copied $time_file as $motion_file." >> "$log_file"
+    fi
+    
+
+    if [[ $UNWARP == 1 ]]; then
+      
+      if [ ! -f ${topup_dir}/topup_logout ]; then
+      echo "$label $(date) Starting topup." | tee -a "$log_file"
+      fslmerge -t ${topup_dir}/all_SE_epi ${SE_AP} ${SE_PA}
+      declare -a APinfo=($(fslinfo ${SE_AP})) #make array out of header info for AP epi to use in readout time calculation
+      declare -a PAinfo=($(fslinfo ${SE_PA}))
+      echo 'Generating acqparams file' | tee -a "$log_file"
+      if [ -e "${topup_dir}/acqparams.txt" ]; then rm -f 'acqparams.txt'; fi
+      readout=(${APinfo[3]}/${EPI_ACCEL}-1)*$EPI_ECHOSPACING
+      readout=$(echo "$readout" | bc -l)
+      for i in $(eval echo "{1..${APinfo[9]}}") ; do
+         cat >> ${topup_dir}/acqparams_epi.txt <<EOF
+0 -1 0 $readout
+EOF
+      done
+      for i in $(eval echo "{1..${APinfo[9]}}"); do
+        cat >> ${topup_dir}/acqparams_epi.txt <<EOF
+0 1 0 $readout
+EOF
+      done
+      echo '$label $(date) Running topup' | tee -a "$log_file"
+      topup --imain="${topup_dir}/all_SE_epi" --datain=${topup_dir}/acqparams_epi.txt --config=b02b0.cnf --out=${topup_dir}/topup_output --iout=${topup_dir}/topup_iout --fout=${topup_dir}/topup_fout --logout=${topup_dir}/topup_logout
+      fi
+      
+      echo "$label $(date) Applying topup" | tee -a "$log_file"
+      outfile=$unwarp_file
+      applytopup --imain="$epi" --datain="${topup_dir}/acqparams_epi.txt" --inindex=1 --topup="${topup_dir}/topup_output" --method=jac -o "${outfile%.nii.gz}"
+      cp $unwarp_file $epi
+      echo "${label} $(date) Ran topup to unwarp $unwarp_file" | tee -a "$log_file"
+  #  else
+  #    cp $motion_file $unwarp_file
+  #    echo "$(date) Skipped topup. Copied $motion_file to $unwarp_file" >> "$log_file"
+    fi
+    
+    if [[ $NORM == 1 ]]; then
+    # Normalize to MNI space
+     #requires anatomical
+     echo "$label $(date) Normalizing ${epi}.." | tee -a $log_file
+    # 1. skull strip
+      bet ${epi} "${epi%.nii*}_brain" $epi_bet_flag
+     echo "$label $(date) Registering ${epi} to structural.." | tee -a $log_file
+    # 2. register epi to structural
+      epi_reg --epi="${epi%.nii*}_brain" --t1=$anat --t1brain=$anat_brain --out="${epi%.nii*}_brain2struct"      
+    # 3. apply struct2MNI nonlinear warp
+     echo "$label $(date) Registering ${epi} to MNI space.." | tee -a $log_file
+      applywarp --ref="$fsl_template" --in="${epi%.nii*}_brain" --warp=anat_nonlinear_transf --premat="${epi%.nii*}_brain2struct.mat" --out="$normalize_file"
+    
+      cp $normalize_file $epi
+     echo "$label $(date) Normalized ${epi} to MNI space.." | tee -a $log_file
+    
+    fi
+  #smoothing 
+    if [[ $FWHM != 0 ]]; then
+      echo "$label $(date) smoothing $epi with kernel $FWHM" | tee -a "$log_file"
+      sigma=`echo "2.35482004503*$FWHM" | bc -l` #calculate sigma value needed for FSL smoothing based on FWHM
+      fslmaths $epi -s $sigma $smooth_file
+      cp $smooth_file $epi
+      echo "${label} $(date) Ran smoothing with $FWHM FWHM" | tee -a "$log_file"
+    fi
+
+    
+
+
+done
+

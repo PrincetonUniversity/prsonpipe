@@ -1,0 +1,59 @@
+#!/bin/bash
+# 
+# ------------------------------------------------------------------------------
+# this script sets up global variables for the analysis of the current subject
+# edited 8/1/16 MEW added SCRIPT_DIR* vars for write_pfile scripts
+# 26 July 2016, Judith Mildner (JNM) added vars for retrieve-data-labvol.sh script
+# 8/8/16, MEW, added vars for setup_backup_dirs and cleaned up
+
+
+set -e # stop immediately when an error occurs
+
+<<STUDY_INFO_VARS_HERE>>
+
+BACKUP_DIR=/jukebox/${LAB_NAME}/${PROJECT_NAME}
+
+####retrieve script uses these#### edited to source from study_info
+RUNORDER_FILE=${PROJECT_DIR}/arch/subpars/runorders/$SUBJ*
+###################################
+
+# prep software names
+FSL=FSL
+DARTEL=DARTEL
+SPMW=SPM12w
+PREP_SOFTS=("${FSL}" "${DARTEL}" "${SPMW}")
+
+RAW_DIR=${PROJECT_DIR}/raw
+PREP_DIR=${PROJECT_DIR}/prep
+QA_DIR=${PROJECT_DIR}/qa
+OUT_DIR=${PROJECT_DIR}/output
+
+SCRIPT_DIR_FULL=${PROJECT_DIR}/scripts
+
+SCRIPT_DIR=scripts
+SCRIPT_DIR_FSL=${SCRIPT_DIR}/FSL
+SCRIPT_DIR_DARTEL=${SCRIPT_DIR}/DARTEL
+SCRIPT_DIR_SPM=${SCRIPT_DIR}/SPM12
+SCRIPT_DIR_SPMw=${SCRIPT_DIR}/SPM12w
+
+#FSF_DIR=fsf
+DICOM_ARCHIVE=${PROJECT_DIR}/arch/nifti/raw.tar.gz
+
+# add necessary directories to the system path
+#export BXH_DIR=/jukebox/tamir/pkg/bxh_xcede_tools*/bin
+#export MAGICK_HOME=/jukebox/ntb/packages/ImageMagick-6.5.9-9
+#export BIAC_HOME=/jukebox/ntb/packages/BIAC_matlab/mr
+
+#BEHAVIORAL_DATA_DIR=behav
+#FIRSTLEVEL_DIR=analysis/firstlevel
+#SECONDLEVEL_DIR=analysis/secondlevel
+#EV_DIR=design
+#BEHAVIORAL_OUTPUT_DIR=output/behavioral
+#
+## Fill in below variables to fit your roi analysis -- all are used in roi.sh or scripts called within it
+#ROI_COORDS_FILE=design/roi.txt
+#LOCALIZER_DIR=analysis/firstlevel/localizer_hrf.feat
+#ROI_DIR=results/roi
+#ROI_KERNEL_TYPE=sphere
+#ROI_KERNEL_SIZE=4
+

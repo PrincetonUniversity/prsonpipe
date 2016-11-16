@@ -1,0 +1,87 @@
+#!/bin/bash -e/
+# author: Miriam Weaverdyck 8/1/16
+# Enter the parameters for your analyses below
+#
+######################GENERAL#############################
+
+## acquisition parameters
+# TR (sec)
+TR=2.25
+# Number of TRs per Run
+NTR=209
+# Number of Runs
+RUNS=12
+
+## subject IDs to exclude from analysis (format: s000), e.g. for missing data
+EXCLUDE_SUBS=(s000 s999)
+
+####################PREPROCESSING#########################
+
+### Slice time correction: 'FSL', 'SPM12w', 'none'
+SLICE_TIME='none'
+
+### Realignment/Motion correction: 'FSL', 'SPM12w', 'DARTEL', 'none'
+REALIGN='none'
+
+### Unwarping: 'FSL' (topup; must have spin echos), 'SPM12w', 'none'
+UNWARP='none'
+# if using topup (FSL) make sure to get these values from your scanning protocol:
+EPI_ACCEL=1 #acceleration factor
+EPI_ECHOSPACING=0.00072 #echo spacing 
+
+### Normalization: 'SPM12w' (will run SPM12 normalization), 'DARTEL' (run in SPM8),'none'
+# (includes registration to MNI space, unwarping in DARTEL)
+NORM='none'
+## SPM12w normalization parameters ##
+# SPM12w normalization options: 'epi', 'spm12', ('dartel' - not currently working)
+NORMTYPE='SPM12'
+## FSL normalization parameters ## 
+anat_bet_flag='-R -f 0.2' #flags added to anat skull stripping (bet) 
+epi_bet_flag='-F' #flags added to functional skull stripping (bet)
+# More info on bet: http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET
+module load fsl
+fsl_template="${FSLDIR}/data/standard/MNI152_T1_2mm_brain" #MNI template to normalize to. 
+  #Can change to 1mm if necessary 
+
+
+# Smoothing: 'FSL', 'SPM12w', 'DARTEL' (must use DARTEL for normalization too), 'none' size of smoothing kernel in FWHM
+SMOOTH_SOFT='none'
+SMOOTH=8
+
+# voxel size at which to re-sample functionals (isotropic) (DARTEL)
+VOX_SIZE=2.0
+
+
+####(do not change)###(do not change)###(do not change)###(do not change)###
+### Name of preprocessing (do not change)
+wd_dir="a$(echo ${SLICE_TIME^^} | cut -c1)r$(echo ${REALIGN^^} | cut -c1)u$(echo ${UNWARP^^} | cut -c1)w$(echo ${NORM^^} | cut -c1)s$(echo ${SMOOTH_SOFT^^} | cut -c1)"
+# SET UP PREPROCESSING STEPS BASED ON PARAMETERS FILE
+# create arrays of step names, softwares, extensions in the order of execution
+# Create an array (step_names) of all the preprocessing step names
+declare -a step_names=("SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT")
+# Create an array (step_softs) of all the preprocessing step's software
+declare -a step_softs=("$SLICE_TIME" "$REALIGN" "$UNWARP" "$NORM" "$SMOOTH_SOFT" )
+# Create an array (step_exts) of all the preprocessing prefixes 
+declare -a step_exts=('a' 'r' 'u' 'w' 's')
+###########################################################################
+################## GLM -- level 1 ####################
+
+# --GLM Conditions--
+# Number of conditions
+NUM_EVENTS=4
+# Conditions: wrap the all in double quotes ("..."), each condition in single quotes ('.'), and separate with a comma
+EVENTS="'human','animal','vegetable','mineral'"
+
+##########33####### GLM -- MVPA ######################
+# === SPMw GLM-MVPA Settings ===
+
+# --GLM Onset File Specifications--
+# Seperate GLM per run: yes=1, no=0
+RUNSPLIT=0
+# Include outlier as nuissance in GLM
+OUTLIERS=0
+# Event/Block Duration (same units as TIME) (dur files will override)
+DURATION=0
+
+####################### level 2 #######################
+

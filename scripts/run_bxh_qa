@@ -1,0 +1,63 @@
+#!/bin/bash
+#This script runs QA on converted data in raw and puts it in qa. 
+#Standard version only runs SFNR and masked center of mass on epi's (excluding spin echos'). See below for other QA options
+# August 5, 2016 Judith Mildner
+###########################################
+# Packages used:
+#  BXH
+# Arguments:
+#  None
+#
+###########################################
+#SBATCH -J "bxh_qa"
+#SBATCH -o ../output/bxh_qa_%j.out
+#SBATCH -p all
+#SBATCH --mail-type=FAIL
+
+
+set -e
+
+source globals.par
+
+module load bxh
+GLOBIGNORE=*_SE_* #exclude spin echo's from search for epi's. BXH tools will throw an error if you try to QA these
+
+echo
+for task in ${TASKS[@]}; do
+   if [[ $NUM_TASKS -eq 1 ]] || [[ $PREP_SEP -eq 0 ]]; then
+       source ../notes/pars.par;
+   else
+       source ../notes/pars_${task}.par
+   fi
+
+   for rawpath in ${PROJECT_DIR}/raw/${task}/*/; do
+      subject=$(basename "$rawpath")
+ 
+      for exclude in ${EXCLUDE_SUBS[@]}; do if [[ $exclude == $subject ]]; then continue 2; fi; done
+
+    if [ -e ${PROJECT_DIR}/qa/${task}/${subject} ]; then
+      echo "[QA] QA already exists for ${subject} on task ${task}. Skipping ${subject}."
+      continue
+    fi
+    echo [QA]
+    echo "[QA] Starting QA for $subject at $(date)"
+    for scan in ${rawpath}epi*.nii*; do
+      echo "[QA] Creating BXH header for $scan at $(date)" 
+      analyze2bxh ${scan} ${scan%.nii*}.bxh #create bxh header for the first scan
+    done
+    mkdir -p "${PROJECT_DIR}/qa/${task}/"
+    jobid=$(sbatch -t 240 BXH_QA/bxh_generate $rawpath $PROJECT_DIR $subject $task | grep -o "[0-9]*")
+    # To run all QA options, remove --calc meanstddevsfnr,maskedcmass (from bxh_generate). Load bxh module and run fmriqa_generate.pl without arguments for more details.
+    all_jobs+=":$jobid" 
+  done
+
+unset dependency_flag
+all_jobs=${all_jobs#:} #remove the leading : from all_jobs list so sbatch can use it
+if [[ -n $all_jobs ]]; then dependency_flag="--dependency=afterok:${all_jobs}"; fi
+
+sbatch -t 5 -o ../output/bxh_sfnr-%j.out $dependency_flag BXH_QA/overview_generate ${PROJECT_DIR} ${task}
+
+done
+
+echo "[QA] Done. $(date)"
+echo

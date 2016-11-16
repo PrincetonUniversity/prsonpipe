@@ -1,0 +1,12 @@
+# turn off everything
+QA='none'
+SLICE_TIME='none'
+REALIGN='none'
+UNWARP='none'
+SMOOTH_SOFT='none'
+SMOOTH=8
+SNR='none'
+SLICES=0
+
+# turn on steps:
+NORM='DARTEL'

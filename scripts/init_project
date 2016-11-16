@@ -1,0 +1,102 @@
+#!/bin/bash
+#
+# This script sets up all the necessary paths and files to initialize a new project.
+# Run it from the scripts dir after filling out notes/study_info
+# JNM August 11, 2016
+# JNM August 23, 2016 copying pars.par for each task. Check number of task names (if empty add TSK, if not matching # of tasks error)
+#    Create backup of globals.par when entering study_info vars (.bak_globals.par) use this backup when overwriting.
+###########################################
+#  Arguments:
+#    None or overwrite      #To overwrite and delete previous setup in the project dir. 
+#                           #WILL LOSE EXISTING DATA if overwrite is chosen.
+############################################
+set -e 
+
+if [[ -n $1 && $1 != 'overwrite' ]]; then
+  echo "Unknown input argument $1"
+  exit 1
+fi
+
+if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../arch/subpars/runorders/run-order.txt || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
+  echo "[INIT] This project has already been initialized." 
+  echo "[INIT] If you really want to proceed, and overwrite your previous work, run init_project overwrite"
+  exit 1
+fi
+
+if [[ $1 == 'overwrite' ]]; then
+  mv .globals.par.bak globals.par
+fi
+
+
+
+#Source the project settings lines of study_info
+source /dev/stdin <<EOF
+$(sed -n '/-PROJECT\ SETTINGS-/,/-TASKS-/p' ../notes/study_info.par | head -n -1 | tail -n +2)
+EOF
+
+
+#append all the text between the vars delimiters to globals.pr (excluding the first and last 2 lines containing comments)
+cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 >> ${PROJECT_DIR}/scripts/temp.txt
+sed --in-place='.bak' -e '/<<STUDY_INFO_VARS_HERE>>/{r temp.txt' -e 'd}' "${PROJECT_DIR}/scripts/globals.par"
+rm ${PROJECT_DIR}/scripts/temp.txt
+mv globals.par.bak .globals.par.bak
+#same for runorders, but overwrite instead of append
+cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 | tail -n +3 > ${PROJECT_DIR}/arch/subpars/runorders/run-order.txt
+
+source ${PROJECT_DIR}/scripts/globals.par
+
+#check task names
+if [[ ${#TASKS[@]} -eq 0 ]]; then
+  TASKS[0]=TSK
+fi
+
+#Check if the number of tasks (NUM_TASKS) matches task names
+if [[ $NUM_TASKS -ne ${#TASKS[@]} ]]; then
+  echo "Number of tasks does not match number of task names. Aborting." >&2
+  exit 1
+fi
+# 3 letters & allcaps?
+i=0
+for name in ${TASKS[@]}; do
+  if ! [[ $name == [A-Z][A-Z][A-Z] ]]; then
+    echo "[INIT] Task ${name} does not follow the correct naming convention (3 uppercase letters). Converting."
+    newname=$(echo ${name} | sed 's/[0-9]*//g') #strip digits from name
+    newname=${newname:0:3} #cut to three chars if longer
+    newname=$(echo $newname | tr [a-z] [A-Z]) #convert to uppercase if lower
+    while [[ ${#newname} -lt 3 ]]; do newname=${newname}X; done #Append X's if too short until it's 3 chars
+    if [[ $newname == [A-Z][A-Z][A-Z] ]]; then
+      TASKS[$i]=$newname
+      echo "[INIT] Changed $name to $newname"
+    else
+      echo "[INIT] Could not convert task name $name. Please change it in notes/study_info.par"
+      exit 1
+    fi      	
+    ((i+=1))
+  else
+  	((i+=1))
+  fi
+done
+
+# Unique?
+if printf '%s\n' "${TASKS[@]}" | sort | uniq -c | grep -q [2-9]; then 
+  echo "[INIT] Check your task names. They are not unique: ${TASKS[@]}"
+  exit 1 
+fi
+#############################################################
+
+if [[ $1 == 'overwrite' ]]; then rm -fr "${PROJECT_DIR}/raw/*"; rm -fr "${PROJECT_DIR}/prep/*"; rm -fr "${PROJECT_DIR}/qa/*"; fi
+
+#Create project dirs
+echo "[INIT] Running scripts/setup_backup_dirs to make sure backup directories exist on lab volume"
+bash ${PROJECT_DIR}/scripts/setup_backup_dirs
+echo "[INIT] Copying your file structure and scripts to your backup dir"
+rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* --exclude=.git ${PROJECT_DIR} /jukebox/${LAB_NAME}/${PROJECT_NAME}/scripts
+for name in ${TASKS[@]}; do
+  mkdir -p ${PROJECT_DIR}/raw/${name}/
+  mkdir -p ${PROJECT_DIR}/prep/${name}/
+  if [[ $PREP_SEP -eq 1 ]]; then
+  cp "${PROJECT_DIR}/notes/pars.par" "${PROJECT_DIR}/notes/pars_${name}.par"
+  fi
+done
+
+echo "[INIT] Completed."
