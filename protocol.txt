@@ -1,1 +1,0 @@
-Fill this file in with a description of your data collection protocol. It should contain all the info someone else would need to understand how to use your data.
