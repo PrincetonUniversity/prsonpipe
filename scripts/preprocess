@@ -39,13 +39,14 @@ label='[PREP]'
 
 first_jobid=$(sbatch first_job | grep -o '[0-9]*')
 
+if [[ $1 == "no-convert" ]]; then shift; else
 # CONVERT NEW DATA
 # Convert new subject data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz
 convert_log=${PROJECT_DIR}/arch/LOG_convert.txt
 echo "${label} $(date) -- Converting all dcm files to nii ---" | tee -a "${convert_log}"
 bash convert_check $convert_log
 wait_for_it '[CONVERT]' $convert_log
-
+fi
 
 # DETERMINE WHICH TASKS TO RUN
 # if one or more input argument, check if first is task name.  
