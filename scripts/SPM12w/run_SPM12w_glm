@@ -1,0 +1,60 @@
+#!/bin/env bash
+#
+# Run first level glm for all non-excluded subjects in prep dir for specified
+# task and wd. Uses pfile specified (pfile should be saved in scripts/SPM12w)
+# in SPM12w analysis. If move is turned on, the script will grab *.par files
+# from preprocessing. 
+#
+###############################################################################
+# Arguments:
+#  1. task
+#  2. prep wd name (e.g. aFrFuFwDsD)
+#  3. pfile name
+#################
+# Modules:
+#  MATLAB
+###############################################################################
+
+set -e
+
+source ../globals.par
+
+if [[ $# -ne 3 ]]; then
+ echo "Please provide 3 arguments: task, wd, pfile name"
+ exit 1
+fi
+
+module load matlab
+TSK=$1
+wd=$2
+pfile=${PROJECT_DIR}/${SCRIPT_DIR_SPMw}/$3
+
+#If there is only one task, set prep sep to 0 so pars.par gets sourced instead of pars_TSK.par
+[[ $NUM_TASKS -eq 1 ]] && PREP_SEP=0
+[[ $PREP_SEP -eq 0 ]] && source ${PROJECT_DIR}/notes/pars.par || source ${PROJECT_DIR}/notes/pars_${TSK}.par
+
+logfile=${PROJECT_DIR}/analysis/LOG_glmlvl1_${TSK}_${wd}.txt
+
+for subdir in $(ls -1d ${PREP_DIR}/${TSK}/${wd}/s*/); do
+  subject=$(basename $subdir)
+  prep_dir=$(dirname $subdir)
+  if [[ ${EXCLUDE_SUBS[@]} =~ $subject ]]; then
+    echo "Skipping excluded subject $subject" | tee -a $logfile
+    continue
+  fi
+  echo "Beginning level 1 GLM analysis of $subject for $TSK with pfile $pfile" | tee -a $logfile
+
+  sbatch -t 100 --mail-user=$USER_EMAIL --mail-type=FAIL SPM12w_glm_sbatch $subject $pfile $PKG_DIR $prep_dir $logfile
+ # matlab -nosplash -nodisplay -nodesktop -r \
+  # "try; SPM12w_glm('${subject}','${pfile}', '${PKG_DIR}', '${prep_dir}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
+  
+  echo "Started job for level 1 GLM for $subject" | tee -a ${logfile}
+done
+
+
+
+
+
+
+
+

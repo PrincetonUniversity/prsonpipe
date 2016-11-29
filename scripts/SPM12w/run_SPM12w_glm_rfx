@@ -1,0 +1,18 @@
+#!/bin/env bash
+#
+# Run SPM12w's rfx analysis (one sample t test only)
+#
+################################################################################
+# Arguments:
+#  1. pfile name
+################################################################################
+source ../globals.par
+pfile=${PROJECT_DIR}/${SCRIPT_DIR_SPMw}/$1
+logfile=${PROJECT_DIR}/analysis/LOG_glmrfx_${1}.txt
+
+module load matlab
+
+matlab -nosplash -nodisplay -nodesktop -r \
+ "try; addpath('${PKG_DIR}/spm12'); addpath('${PKG_DIR}/spm12w'); spm12w_glm_rfx('glm_file','${pfile}', 'sids', {'allsids'}); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" \
+ | tee -a ${logfile}
+

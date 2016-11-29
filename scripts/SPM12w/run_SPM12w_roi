@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# Run SPM12w roi analysis. With settings as specified in pfile (arg 1)
+################################################################################
+# Arguments:
+#  1. pfile name
+################################################################################
+
+source ../globals.par
+pfile=${PROJECT_DIR}/scripts/SPM12w/${1}
+logfile=${PROJECT_DIR}/analysis/LOG_roi_${1}.txt
+
+module load matlab
+
+matlab -nosplash -nodisplay -nodesktop -r "try; addpath('${PKG_DIR}/spm12'); addpath('${PKG_DIR}/spm12w'); spm12w_roitool('roi_file', '$pfile', 'sids', {'allsids'}); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
+
+
+

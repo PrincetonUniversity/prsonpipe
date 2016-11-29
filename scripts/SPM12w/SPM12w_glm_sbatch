@@ -1,0 +1,21 @@
+#!/bin/env bash
+#
+# Run level 1 in matlab
+#
+#
+#SBATCH -J glm_SPM12w
+#SBATCH -o ../../output/glm_SPM12w-%j.out
+#SBATCH -p all
+#SBATCH -t 30
+#
+
+subject=$1
+pfile=$2
+PKG_DIR=$3
+prep_dir=$4
+logfile=$5
+module load matlab
+
+  matlab -nosplash -nodisplay -nodesktop -r \
+   "try; SPM12w_glm('${subject}','${pfile}', '${PKG_DIR}', '${prep_dir}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" \
+   | tee -a "${logfile}"
