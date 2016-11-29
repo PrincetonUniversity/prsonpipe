@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+#author: Judith Mildner, 10/29/2016
+#
+# Loop through subjects in behavdir and get onsets and durs into auxil
+#
+###############################################################################
+# Arguments:
+#  1. task (in name of behavioral output file)
+#  2. TSK (in study_info and pars)
+#  3. path to behavioral raw data file
+##############################################################################
+set -e
+
+source globals.par
+
+if [[ $# -ne 3 ]]; then 
+  echo "Please provide 3 arguments (task in behav filename, TSK, path to behav dir)"
+  exit
+fi
+
+task=$1
+TSK=$2
+behavpath=$3
+# If there is only one task, set prep sep to 0 so pars.par gets sourced instead of pars_TSK.par
+[[ $NUM_TASKS -eq 1 ]] && PREP_SEP=0
+[[ $PREP_SEP -eq 0 ]] && source ../notes/pars.par || source ../notes/pars_${TSK}.par
+
+for subject in $(ls -1 $RAW_DIR/$TSK/); do
+python onsets.py -t $task -T $TSK -s $subject -tr $TR -v $NTR
+done
