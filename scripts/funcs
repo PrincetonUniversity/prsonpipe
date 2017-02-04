@@ -193,7 +193,7 @@ function wait_for_it {
 	logfile=$2
 	SLEEP_INTERVAL=5   # this is in seconds
         load_interval=$(($SLEEP_INTERVAL/5))
-	while [[ -z $(grep "\[${step_label_func}\] Done." "$logfile") ]]; do
+	while [[ -z $(grep "\[${step_label_func}\] Done." "$logfile" -s) ]]; do
 		# still running...
                 printf "${label_func} Waiting for ${step_label_func}.    \r"
                 sleep $load_interval
