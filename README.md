@@ -1,7 +1,6 @@
 Welcome to Data Analysis Modules for Neuroimaging:  
 Princeton Social Neuroscience Lab's fMRI analysis pipeline.
 =========================================== 
-## Princeton Social Neuroscience Lab's fMRI analysis pipeline.
 
 README.txt's are still under construction.
 
