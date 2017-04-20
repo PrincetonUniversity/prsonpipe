@@ -15,10 +15,8 @@
 #SBATCH -t 2880									# Time : Default time is 48 hours (2880 min)
 #SBATCH -p all                                	# DON'T CHANGE
 
-pushd ../ > /dev/null
 source globals.par
-source funcs
-popd > /dev/null 
+pushd ${SCRIPT_DIR_UTIL} > /dev/null; source funcs; popd > /dev/null
 
 label='[DARTEL]'
 
@@ -49,16 +47,16 @@ fi
 logfile_wd=${wd_dir}/LOG.txt
 
 # turn SUBIDS into a matlab array of numbers (not subIDs)
-make_matlab_array SUBIDS[@]
+make_matlab_array ${SUBIDS[@]}
 
 echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" | tee -a "${logfile_wd}"
 
 # unzip the epi* and anat files in the subject directories within wd_dir
-unzip_epi_anat ${wd_dir} SUBIDS[@]
+unzip_epi_anat ${wd_dir} ${SUBIDS[@]}
 
 # load matlab script
 module load matlab/R2015b
-matlab -nosplash -nodisplay -nodesktop -r "try; DARTEL_spm8_vars(${matlab_array},'$pfile'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
+matlab -nosplash -nodisplay -nodesktop -r "try; matlab_DARTEL_prep(${matlab_array},'${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
 
 unset $prefix
 for (( i=0; i<${#steps}; i++ )); do
@@ -70,6 +68,6 @@ done
 steps=$prefix
 
 # update epi_r##.nii* files to their most recent versions
-update_nii ${wd_dir} ${steps} SUBIDS[@]
+update_nii ${wd_dir} ${steps} ${SUBIDS[@]}
 
 echo "${label} Done. $(date)" | tee -a "${logfile_wd}"

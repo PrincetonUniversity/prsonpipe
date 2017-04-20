@@ -1,0 +1,37 @@
+#!/bin/env bash
+#
+# authors: Miriam Weaverdyck & Judith Mildner
+#---------------------------------------------------------------------------------
+# This script writes out the parameters to the parameter file in the appropriate analysis
+# package's scripts directory as p_<package>_<TSK><analysis prefixes>.m (e.g. p_DARTEL_TSKuws.m)
+###################################################################################
+# Requires  1, 2 or 3 input arguments
+# Arguments:
+#  If only one task listed in study_info.par:
+#    package (e.g. 'FSL')                        : creates a general pfile for the specified package based on pars.par
+#    preprocessing prefixes (e.g. 'DARTEL' 'uw') : creates a pfile for those specific steps with extension
+#  If more than one task in study_info.par:
+#    'DARTEL' 'TSK'          : creates a general pfile for task TSK and read form that task's pars_<TSK>.par file
+#    'FSL' 'TSK' '<prefixes>' (e.g. DARTEL TSK uw) : creates a pfile with extendion '_TSKuw' and reads from step.par
+
+set -e 
+
+label='[PFILE]'
+soft_opts=( 'DARTEL' 'SPM' 'SPMW' 'FSL' )
+
+pushd ../ > /dev/null
+source globals.par
+popd > /dev/null   # return to the previous directory, quietly
+
+
+save_dir="${PROJECT_DIR}/${SCRIPT_DIR}"
+fname_full=${save_dir}/p_globals.m
+
+eval "cat << EOF  > $fname_full
+$(<${save_dir}/p_globals_template.txt)
+EOF"
+
+
+echo "${label} Done. Finished writing ${fname_full}"
+
+  

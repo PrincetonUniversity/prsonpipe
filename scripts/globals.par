@@ -1,11 +1,8 @@
 #!/bin/bash
+# globals.par
 # 
-# ------------------------------------------------------------------------------
-# this script sets up global variables for the analysis of the current subject
-# edited 8/1/16 MEW added SCRIPT_DIR* vars for write_pfile scripts
-# 26 July 2016, Judith Mildner (JNM) added vars for retrieve-data-labvol.sh script
-# 8/8/16, MEW, added vars for setup_backup_dirs and cleaned up
-
+# this script sets up global variables for the entire analysis of this project
+################################################################################----------
 
 set -e # stop immediately when an error occurs
 
@@ -21,24 +18,32 @@ RUNORDER_FILE=${PROJECT_DIR}/arch/subpars/runorders/$SUBJ*
 FSL=FSL
 DARTEL=DARTEL
 SPMW=SPM12w
+SPM=SPM12
 PREP_SOFTS=("${FSL}" "${DARTEL}" "${SPMW}")
+
+PARS_DIR=${PROJECT_DIR}/auxil/a_parameters
 
 RAW_DIR=${PROJECT_DIR}/raw
 PREP_DIR=${PROJECT_DIR}/prep
 QA_DIR=${PROJECT_DIR}/qa
 OUT_DIR=${PROJECT_DIR}/output
+SCRIPT_DIR=${PROJECT_DIR}/scripts   # CHANGED TO BE CONSISTENT!!
 
-SCRIPT_DIR_FULL=${PROJECT_DIR}/scripts
+#SCRIPT_DIR_FULL=${PROJECT_DIR}/scripts
 
-SCRIPT_DIR=scripts
-SCRIPT_DIR_FSL=${SCRIPT_DIR}/FSL
-SCRIPT_DIR_DARTEL=${SCRIPT_DIR}/DARTEL
-SCRIPT_DIR_SPM=${SCRIPT_DIR}/SPM12
-SCRIPT_DIR_SPMw=${SCRIPT_DIR}/SPM12w
+SCRIPT_DIR_SHORT=scripts
+SCRIPT_DIR_FSL=${SCRIPT_DIR}/${FSL}
+SCRIPT_DIR_DARTEL=${SCRIPT_DIR}/${DARTEL}
+SCRIPT_DIR_SPM=${SCRIPT_DIR}/${SPM}
+SCRIPT_DIR_SPMw=${SCRIPT_DIR}/${SPMw}
+SCRIPT_DIR_UTIL=${SCRIPT_DIR}/util
 
 #FSF_DIR=fsf
-DICOM_ARCHIVE=${PROJECT_DIR}/arch/nifti/raw.tar.gz
+DICOM_ARCHIVE=${PROJECT_DIR}/auxil/archive/nifti/raw.tar.gz # IS THIS NEEDED?
 
+
+
+####### DELETE ###################################################################
 # add necessary directories to the system path
 #export BXH_DIR=/jukebox/tamir/pkg/bxh_xcede_tools*/bin
 #export MAGICK_HOME=/jukebox/ntb/packages/ImageMagick-6.5.9-9

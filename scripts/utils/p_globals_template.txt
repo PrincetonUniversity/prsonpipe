@@ -1,0 +1,42 @@
+% Parameters file for fMRI preprocessing
+% 
+% =======1=========2=========3=========4=========5=========6=========7=========8
+
+% User name
+s.username      	= '${USER}';
+
+% Packages
+s.pkg_dir 			= '${PKG_DIR}/';
+s.spm12_pkg 		= [s.pkg_dir 'spm12'];
+s.spm12w_pkg 		= [s.pkg_dir 'spm12w_1702'];
+%s.dicm2nii_pkg 	= [s.pkg_dir 'dicm2nii'];
+%s.r2agui_pkg 		= [s.pkg_dir 'r2agui_v27'];
+s.funcs_pkg 		= [s.pkg_dir 'PSNL_funcs'];
+s.nifti_pkg 		= [s.pkg_dir 'NIfTI'];
+s.tfce_pkg 			= [s.pkg_dir 'MatlabTFCE/'];
+s.tfce_parfor_pkg	= [s.tfce_pkg 'parfor_progress']
+s.catstruct_pkg		= [s.pkg_dir 'catstruct']
+
+% Paths and names
+s.study_dir     = '${PROJECT_DIR}/';
+s.spm12w_dir 	= '${SCRIPT_DIR_SPMw}/'
+s.analysisdir 	= '${PROJECT_DIR}/analysis/'; 
+s.glmdir 		= '${PROJECT_DIR}/analysis/miriamw/glm/'; 	% this directory is read by bash in run_mvpa, so must be in this format (cannot concatenate with [] or use other variables)
+s.mvpadir 		= '${PROJECT_DIR}/analysis/miriamw/mvpa/';
+s.crossdir 		= [s.mvpadir 'crossbrain/'];
+s.slightdir 	= [s.mvpadir 'searchlight/'];
+s.rfxdir 		= [s.mvpadir 'rfx/'];
+
+% reference volumes
+s.refvol 		= [s.analysisdir 'refvol.nii']; 			% reference volume for size (con0002.nii)
+s.featmask 		= [s.analysisdir 'featuremask.img']; 		% a mask of the region you want to analyze
+
+
+% add paths
+addpath(s.spm12_pkg)
+addpath(s.spm12w_pkg)
+addpath(s.funcs_pkg)
+addpath(s.nifti_pkg)
+addpath(s.tfce_pkg)
+addpath(s.tfce_parfor_pkg)
+addpath(s.catstruct_pkg)

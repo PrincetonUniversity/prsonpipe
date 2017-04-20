@@ -1,0 +1,56 @@
+#!/bin/bash
+# script name
+# 
+# date created
+# dates of major changes
+#
+# description of what script does
+#
+# guiding line for 1-line character limits:
+################################## 80 characters ###############################--- 90 ---
+# Packages used: 
+#    list of all packages used in this script
+#
+# Files sourced:
+#    list of all files sourced in this script, often globals.par and funcs
+#
+# Unique flags:
+#    list of flags used in this script other than the universal flags (see wiki)
+#    -flag 		: description
+#
+# Arguments:
+#    list of all arguments accepted by this script ([] means optional)
+#    arg		: description
+#
+################################################################################----------
+# 
+# sbatch variables (if applicable):
+# SBATCH -J script_name-%j
+
+# stop immediately when an error occurs
+set -e 
+
+# load/source packages, files, and functions
+source globals.par	
+source funcs
+
+# label to identify output from this script ([]=bash script, {}=other)
+label='[SCRIPT]'
+# logfile where echo statements are written
+logfile=${PROJECT_DIR}/LOG.txt
+
+# read in flags
+
+# read in arguments
+inputted_subs=( "$@" ) # this means read in all arguments and put into an array called "inputted_subs"
+
+# get subject IDs
+get_subs ${input_dir} ${output_dir} "${inputted_subs[@]}" # this calls the function get_subs from funcs
+run_subs=( "${SUBS[@]}") # subjects to run through script
+
+#**Main function of script**
+echo "${label} $(date) beginning analysis" | tee -a ${logfile}
+
+
+# Write Done. to show end of script
+echo "${label} Done. $(date)" | tee -a ${logfile}

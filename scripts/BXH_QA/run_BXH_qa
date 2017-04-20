@@ -10,7 +10,7 @@
 #
 ###########################################
 #SBATCH -J "bxh_qa"
-#SBATCH -o ../output/bxh_qa_%j.out
+#SBATCH -o ../../output/bxh_qa_%j.out
 #SBATCH -p all
 #SBATCH --mail-type=FAIL
 

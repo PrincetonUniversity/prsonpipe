@@ -18,10 +18,8 @@
 
 set -e
 
-pushd ../ > /dev/null
 source globals.par
-source funcs
-popd > /dev/null 
+pushd ${SCRIPT_DIR_UTIL} > /dev/null; source funcs; popd > /dev/null 
 
 label='[SPM12W]'
 
@@ -49,7 +47,7 @@ steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K.*?(?=.m)')
 
 # run matlab from the command line as part of a submit job
 module load matlab/R2015b
-matlab -nosplash -nodisplay -nodesktop -r "try; SPM12w_preprocess('${subid}', '${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
+matlab -nosplash -nodisplay -nodesktop -r "try; matlab_SPM12w_prep('${subid}', '${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
 
 # if unwarp AND normalization are on, skip 'r' prefix (not written out if both of these steps are included)
 uw=$(echo "${steps}" | grep -Po 'u' || true)

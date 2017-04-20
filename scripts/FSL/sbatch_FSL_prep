@@ -26,6 +26,7 @@ set -e
 module load fsl
 
 source ../globals.par
+pushd ${SCRIPT_DIR_UTIL} > /dev/null; source funcs; popd > /dev/null
 source $pfile
 
 fsl_prep=${PREP}/${subj}
