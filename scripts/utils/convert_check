@@ -21,7 +21,7 @@
 set -e
 
 function help_func () {
-cat <<- END
+cat << END
 convert_check [-lh]
 Description:
 ------------
@@ -41,6 +41,9 @@ Usage:
     sbatch dependency for convert_data jobs
 END
 }
+
+######################### SET UP & PARSE ARGUMENTS #############################
+
 #First, check for help flag (multi-character flags not supported by getopts)
 if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
 
@@ -53,16 +56,16 @@ SUBID_LIST=${PROJECT_DIR}/auxil/archive/subid_list.txt
 
 #logfile variables (flag can overwrite filename initialized here)
 label="[CONVERT]"
-logfile=${PROJECT_DIR}/arch/LOG_convert.txt
+logfile=${PROJECT_DIR}/auxil/archive/LOG_convert.txt
 
 #Parse flags other than help
 while getopts ":l:d:h" opt; do
   case $opt in
     l)
       logfile=$OPTARG
-      if [ ! -d $(dirname $logfile)]; then
+      if [ ! -d $(dirname $logfile) ]; then
         echo "[CONVERT] ERROR: $logfile directory does not exist."
-        exit
+        exit 1
       fi
       touch $logfile
       echo "[CONVERT] Using logfile: $logfile instead of default" | tee -a $logfile
@@ -70,9 +73,10 @@ while getopts ":l:d:h" opt; do
     d)
       init_dependency=$OPTARG
       #check if this is a number
-      if ! [[ $init_dependency =~ '^[0-9]+$' ]]; then
+      digit_re='^[0-9]+$'
+      if ! [[ $init_dependency =~ $digit_re ]]; then
         echo "[CONVERT] dependency job number $init_dependency is not a number."
-        exit
+        exit 1
       fi
       echo "[CONVERT] Using initial dependency $init_dependency" | tee -a $logfile
       ;;
@@ -81,11 +85,31 @@ while getopts ":l:d:h" opt; do
       exit
       ;;
     \?)
-      echo "[CONVERT] ERROR: unknown flag specified: "
+      echo "[CONVERT] ERROR: unknown flag specified: ${opt}. Use --help for help."
+      exit 1
       ;;
+    : ) #Catch options without arguments
+      echo "[CONVERT] ERROR: $OPTARG requires an argument. Use --help for help."
+      exit 1
     esac
 done
+#remove used input args
+shift $((OPTIND -1))
+#check if there are remaining arguments, that have not yet been processed
+if [[ ! -z $@ ]]; then
+  echo "[CONVERT] ERROR: unused argument(s) ${@}. Use --help for help"
+  exit 1
+fi
 
+############################## START PROCESSING ################################
+
+#Remove empty lines from subid_list
+sed -i '/^\s*$/d' $SUBID_LIST
+
+if [ ! -s $SUBID_LIST ]; then
+  echo "[CONVERT] ERROR: $SUBID_LIST is empty."
+  exit 1
+fi
 exec 9<> $SUBID_LIST #open file descriptor for subid_list.txt file -JNM
 #read in lines from subid_list, assign them to variables, and loop through subid_list
   while read -r -u 9 full_subj subj imgtype; do
