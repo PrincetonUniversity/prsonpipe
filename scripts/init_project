@@ -17,7 +17,12 @@ if [[ -n $1 && $1 != 'overwrite' ]]; then
   exit 1
 fi
 
-if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../arch/subpars/runorders/run-order.txt || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
+runorder_file=auxil/runorders/run-order.txt
+pars_dir=auxil/a_parameters
+studyinfo_file=${pars_dir}/study_info.par
+
+
+if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../${runorder_file} || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
   echo "[INIT] This project has already been initialized." 
   echo "[INIT] If you really want to proceed, and overwrite your previous work, run init_project overwrite"
   exit 1
@@ -31,17 +36,17 @@ fi
 
 #Source the project settings lines of study_info
 source /dev/stdin <<EOF
-$(sed -n '/-PROJECT\ SETTINGS-/,/-TASKS-/p' ../notes/study_info.par | head -n -1 | tail -n +2)
+$(sed -n '/-PROJECT\ SETTINGS-/,/-TASKS-/p' ../${studyinfo_file} | head -n -1 | tail -n +2)
 EOF
 
 
 #append all the text between the vars delimiters to globals.pr (excluding the first and last 2 lines containing comments)
-cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 >> ${PROJECT_DIR}/scripts/temp.txt
+cat ${PROJECT_DIR}/${studyinfo_file} | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 >> ${PROJECT_DIR}/scripts/temp.txt
 sed --in-place='.bak' -e '/<<STUDY_INFO_VARS_HERE>>/{r temp.txt' -e 'd}' "${PROJECT_DIR}/scripts/globals.par"
 rm ${PROJECT_DIR}/scripts/temp.txt
 mv globals.par.bak .globals.par.bak
 #same for runorders, but overwrite instead of append
-cat ${PROJECT_DIR}/notes/study_info.par | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 | tail -n +3 > ${PROJECT_DIR}/arch/subpars/runorders/run-order.txt
+cat ${PROJECT_DIR}/${studyinfo_file} | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 | tail -n +3 > ${PROJECT_DIR}/${runorder_file}
 
 source ${PROJECT_DIR}/scripts/globals.par
 
@@ -84,18 +89,18 @@ if printf '%s\n' "${TASKS[@]}" | sort | uniq -c | grep -q [2-9]; then
 fi
 #############################################################
 
-if [[ $1 == 'overwrite' ]]; then rm -fr "${PROJECT_DIR}/raw/*"; rm -fr "${PROJECT_DIR}/prep/*"; rm -fr "${PROJECT_DIR}/qa/*"; fi
+if [[ $1 == 'overwrite' ]]; then rm -fr "${RAW_DIR}/*"; rm -fr "${PREP_DIR}/*"; rm -fr "${QA_DIR}/*"; fi
 
 #Create project dirs
-echo "[INIT] Running scripts/setup_backup_dirs to make sure backup directories exist on lab volume"
-bash ${PROJECT_DIR}/scripts/setup_backup_dirs
+echo "[INIT] Running ${SCRIPT_DIR_UTIL}/setup_backup_dirs to make sure backup directories exist on lab volume"
+bash ${SCRIPT_DIR_UTIL}/setup_backup_dirs
 echo "[INIT] Copying your file structure and scripts to your backup dir"
 rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* --exclude=.git ${PROJECT_DIR} /jukebox/${LAB_NAME}/${PROJECT_NAME}/scripts
 for name in ${TASKS[@]}; do
-  mkdir -p ${PROJECT_DIR}/raw/${name}/
-  mkdir -p ${PROJECT_DIR}/prep/${name}/
+  mkdir -p ${RAW_DIR}/${name}/
+  mkdir -p ${PEP_DIR}/${name}/
   if [[ $PREP_SEP -eq 1 ]]; then
-  cp "${PROJECT_DIR}/notes/pars.par" "${PROJECT_DIR}/notes/pars_${name}.par"
+  cp "${PROJECT_DIR}/${pars_dir}/pars.par" "${PROJECT_DIR}/${pars_dir}/pars_${name}.par"
   fi
 done
 
