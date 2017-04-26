@@ -19,7 +19,12 @@
 #								directory using pigz
 ################################################################################----------
 
-#source ../globals.par
+source ../globals.par
+not_valid_name="NAN"
+tsk_name="TSK"
+dir_name="DIR"
+sub_name="SUB"
+num_name="NUM"
 
 ################################################################################----------
 # 1)
@@ -149,17 +154,17 @@ function get_subs {
 
 	# INPUT DIRECTORY
 	if [[ $v == ${dir_name} ]]; then 
-		inputdir=$1; shift; v=$(whatisit $1) 
-		echo "inputdir = ${inputdir}"
+		if [[ ${1:0:1} == '/' ]]; then inputdir=$1;
+		else inputdir=${PROJECT_DIR}/$1; fi
+		shift; v=$(whatisit $1)
 	fi
+	
 	# OUTPUT DIRECTORY
 	if [[ $v == ${dir_name} ]]; then 
 		outputdir=$1; shift
-		echo "outputdir = ${outputdir}"
 	fi
-
+	
 	input_subs=( "$@" )
-	echo ${input_subs[@]}
 
 	# NEW SUBJECTS
 	if [[ -z ${input_subs} ]]; then # zero input arguments
@@ -172,10 +177,11 @@ function get_subs {
 		for s in $(ls -d ${inputdir}/*/ | xargs -n 1 basename); do
 			subs_all[$i]=$s;
 			i=$(($i + 1));
+			echo ${subs_all[@]}
 		done
 		# delete old subjects 
 		i=0; for s in "${subs_all[@]}"; do
-			if [[ $(whatisit ${outputdir}/${s}) != ${dir_name} ]]; then
+			if [[ $(whatisit ${outputdir}/${s}) == ${dir_name} ]]; then
 				unset subs_all[$i]
 			fi
 			i=$(($i + 1))
@@ -207,7 +213,9 @@ function get_subs {
 	else
 		# convert subject numbers to form (s000)
 		num2subID ${input_subs[@]}
+		SUBS=( "${SUBIDS[@]}" )
 		echo "${label_func} Selecting INPUTTED subjects for task $tsk"
+		echo $SUBS
 	fi
 
 	# Remove subjects in $EXCLUDE_SUBS from subject array
@@ -224,7 +232,7 @@ function get_subs {
 ###########################################
 
 function reset_step_par () {
-cat <<EOT > $PROJECT_DIR/notes/step.par
+cat <<EOT > ${PARS_DIR}/step.par
 wd_dir=$wd_dir
 # turn off everything
 QA='none'

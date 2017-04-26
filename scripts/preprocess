@@ -17,21 +17,27 @@
 
 set -e # stop immediately when an error occurs
 
-# load settings and functions
-source globals.par
-pushd ${SCRIPT_DIR_UTIL} > /dev/null; source funcs; popd > /dev/null
-
 label='[PREP]'
 
-first_jobid=$(sbatch first_job | grep -o '[0-9]*')
+# load settings and functions
+source globals.par
 
+pushd ${SCRIPT_DIR_UTIL} > /dev/null
+source funcs
+popd > /dev/null
+
+first_jobid=1
+
+if [[ $1 == "no-convert" ]]; then shift; else 
 # CONVERT NEW DATA
 # Convert new subject data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz
 convert_log=${PROJECT_DIR}/arch/LOG_convert.txt
 echo "${label} $(date) -- Converting all dcm files to nii ---" | tee -a "${convert_log}"
+pushd ${SCRIPT_DIR_UTIL} > /dev/null
 bash convert_check $convert_log
+popd > /dev/null
 wait_for_it '[CONVERT]' $convert_log
-
+fi
 
 # DETERMINE WHICH TASKS TO RUN
 # if one or more input argument, check if first is task name.  
@@ -143,8 +149,12 @@ for t in "${TASKS[@]}"; do
 
 	# CREATE LIST OF SUBJECT IDS
 	# call get_subs function
-	if [[ $# -eq 0 ]]; then get_subs $t; 
-	else declare -a subs_array=( "$@" ); get_subs $t subs_array[@]; fi
+	rawdir=raw/$t
+	prepdir=prep/${t}/${wd_dir}
+
+	declare -a subs_array=( "$@" )
+	get_subs ${rawdir} ${prepdir} "${subs_array[@]}"
+
 	if [[ -z $SUBS ]]; then 
 		echo "${label} No subjects found for task $t. Moving on to next task..."; 
 		continue; 
@@ -242,11 +252,11 @@ for t in "${TASKS[@]}"; do
 				# WRITE P_FILE
 				# if first subject, write out pfile based on step.par
 				if [[ $n -eq 0 ]]; then 
-					bash ${PROJECT_DIR}/scripts/write_pfile \
+					bash ${SCRIPT_DIR_UTIL}/write_pfile \
 						${cur_soft} ${t} ${ext}
 				fi
-				script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
-				run_script="${script_path}/run_${cur_soft}_prep"
+				script_path="${SCRIPT_DIR}/${cur_soft}"
+				run_script="${script_path}/sbatch_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 				# RUN STEP/SUBMIT JOB
@@ -266,13 +276,13 @@ for t in "${TASKS[@]}"; do
 				pushd ${script_path} > /dev/null   
 
 				# submit job
-				prev_jobid=$(sbatch -t ${run_time} -J ${run_name} \
-					--mail-user=${USER_EMAIL} --dependency=afterok:\
-					${prev_jobid} "${run_script}" "$pfile" "$s" \
-					| grep -o '[0-9]*')
+				tflag='-t ${run_time}'
+				jflag="-J ${run_name}"
+				mflag="--mail-user=${USER_EMAIL}"
+				dflag="--dependency=afterok:${prev_jobid}"
+				prev_jobid=$(sbatch ${!tflag} "$jflag" "$mflag" "$dflag" "${run_script}" "$pfile" "$s" | grep -o '[0-9]*')
 				# save/print jobid number
-				jobinfo_str="${label} $(date) job ${prev_jobid} submitted\
-					 to run${pnames} in ${cur_soft} for subject ${s}"
+				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject ${s}"
 				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
 				
 				# Append job ID to list of job IDs DARTEL has to wait for
@@ -329,11 +339,11 @@ for t in "${TASKS[@]}"; do
 		if [[ ${#SUBS[@]} -le 20 ]]; then run_time=2880; else run_time=4320; fi
 
 		# write pfile for DARETL
-		bash ${PROJECT_DIR}/scripts/write_pfile ${cur_soft} ${t} ${ext}
+		bash ${SCRIPT_DIR_UTIL}/write_pfile ${cur_soft} ${t} ${ext}
 
 		# path names
-		script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
-		run_script="${script_path}/run_${cur_soft}_prep"
+		script_path="${SCRIPT_DIR}/${cur_soft}"
+		run_script="${script_path}/sbatch_${cur_soft}_prep"
 		pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 		# make run_name for job
@@ -343,13 +353,14 @@ for t in "${TASKS[@]}"; do
 		pushd ${script_path} > /dev/null   	
 
 		# submit job
-		prev_jobid=$(sbatch -t ${run_time} -J ${run_name} --mail-user=\
-			${USER_EMAIL} ${dependency_flag} "${run_script}" "$pfile" \
-			${SUBS[@]} | grep -o '[0-9]*')
+		tflag='-t ${run_time}'
+                jflag="-J ${run_name}"
+                mflag="--mail-user=${USER_EMAIL}"
+                dflag="--dependency=afterok:${prev_jobid}"
+                prev_jobid=$(sbatch ${!tflag} "$jflag" "$mflag" "$dflag" "${run_script}" "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
 
 		# print jobid to console
-		jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run\
-			${pnames} in ${cur_soft} for subject(s) ${SUBS[@]}"
+		jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject(s) ${SUBS[@]}"
 		echo ${jobinfo_str}
 
 		# write to each sub's logfiles
@@ -385,13 +396,13 @@ for t in "${TASKS[@]}"; do
 
 				# if first subject, write out pfile based on step.par
 				if [[ $n -eq 0 ]]; then 
-					bash ${PROJECT_DIR}/scripts/write_pfile \
+					bash ${SCRIPT_DIR_UTIL}/write_pfile \
 						${cur_soft} ${t} ${ext}
 				fi
 
 				# set paths to scripts/pfile for job
-				script_path="${SCRIPT_DIR_FULL}/${cur_soft}"
-				run_script="${script_path}/run_${cur_soft}_prep"
+				script_path="${SCRIPT_DIR}/${cur_soft}"
+				run_script="${script_path}/sbatch_${cur_soft}_prep"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 				# make run_name for job
@@ -399,12 +410,12 @@ for t in "${TASKS[@]}"; do
 
 				# run job
 				pushd ${script_path} > /dev/null
-				prev_jobid=$(sbatch -t 60 -J ${run_name} \
-					--mail-user=${USER_EMAIL} --dependency=afterok:\
-					${prev_jobid} "${run_script}" "$pfile" "${s}" | \
-					grep -o '[0-9]*')
-				jobinfo_str="${label} $(date) job ${prev_jobid} submitted\
-					 to run${pnames} in ${cur_soft} for subject ${s}"
+				tflag='-t 60'
+                                jflag="-J ${run_name}"
+                                mflag="--mail-user=${USER_EMAIL}"
+                                dflag="--dependency=afterok:${prev_jobid}"
+                                prev_jobid=$(sbatch ${!tflag} "$jflag" "$mflag" "$dflag" "${run_script}" "$pfile" "${s}" | grep -o '[0-9]*')
+				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject ${s}"
 				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
 				popd > /dev/null
 
