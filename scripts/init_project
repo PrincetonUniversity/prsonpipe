@@ -98,7 +98,7 @@ echo "[INIT] Copying your file structure and scripts to your backup dir"
 rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* --exclude=.git ${PROJECT_DIR} /jukebox/${LAB_NAME}/${PROJECT_NAME}/scripts
 for name in ${TASKS[@]}; do
   mkdir -p ${RAW_DIR}/${name}/
-  mkdir -p ${PEP_DIR}/${name}/
+  mkdir -p ${PREP_DIR}/${name}/
   if [[ $PREP_SEP -eq 1 ]]; then
   cp "${PROJECT_DIR}/${pars_dir}/pars.par" "${PROJECT_DIR}/${pars_dir}/pars_${name}.par"
   fi
