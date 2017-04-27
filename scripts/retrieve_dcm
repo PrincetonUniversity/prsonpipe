@@ -136,7 +136,7 @@ rm -rf $tmp_dir
 ################################################
 ################################################
 #Check id subid_list.txt file exists, then add subject to subid_list.txt if it's not already there -JM
-subid_list="${PROJECT_DIR}/auxil/subid_list.txt"
+subid_list="${PROJECT_DIR}/auxil/archive/subid_list.txt"
 
 if [ ! -e ${subid_list} ]; then
 	cat > ${subid_list}
