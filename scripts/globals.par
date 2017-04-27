@@ -41,7 +41,12 @@ SCRIPT_DIR_UTIL=${SCRIPT_DIR}/utils
 #FSF_DIR=fsf
 DICOM_ARCHIVE=${PROJECT_DIR}/auxil/archive/nifti/raw.tar.gz # IS THIS NEEDED?
 
-
+# Types
+isNUM=NUM   # whatisit(x) -> x is a number (#)
+isSUB=SUB   # whatisit(x) -> x is a subject ID (s###) 
+isDIR=DIR   # whatisit(x) -> x is an existing directory (prep/TSK)
+isTSK=TSK   # whatisit(x) -> x is a task according to TASKS[@] (TSK)
+isIDK=IDK   # whatisit(x) does not know what x is
 
 ####### DELETE ###################################################################
 # add necessary directories to the system path
