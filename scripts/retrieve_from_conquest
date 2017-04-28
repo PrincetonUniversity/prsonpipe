@@ -1,45 +1,99 @@
 #!/bin/bash
-# retrieve_from_conquest copies one subject's folder from conquest to the study directory in /jukebox/ and then runs retrieve_dcm, which copies the dicoms
-# from /jukebox/ into a zipped archive folder in /studydir/arch/dicom/
+# retrieve_from_conquest 
+#
+# April 28, 2017: Miriam Weaverdyck (miriamw@princeton.edu)
+#
+# copies one folder based on input arguments from conquest to the study directory 
+# in /jukebox/ and renames it to YYMMDD_project_num, and then runs retrieve_dcm 
+# on that subject name
+#
 ################################################################################---------- 
 # Packages used:
 #  none
 # Files sourced:
 #  globals.par
-# Arguments (exactly 2 required):
-#  YYMMDD	: the date you ran the subject - must be the first 6 characters in the subject folder's name
-#  ### 		: the 3-digit subject number (no 's')
+# Flags (0-1):
+#  [-h | -help | --help] 	: shows help
+# Arguments (1+):
+#  str 						: unique identifier (1 or more)
 ################################################################################----------
+#
+# sbatch variables
+#SBATCH -J retreive-%j
+#SBATCH -o ../output/retrieve-%j.out
 
-source globals.par
+# stop immediately when an error occurs
+set -e 
+label='[RETREIVE]'
 
-# Make sure there are 2 input args
-if [[ $# -ne 2 ]]; then 
-	echo "2 arguments needed: run_date (YYMMDD) and subnum (###). Will look for run_date*subnum-* in Conquest and rename to run_date_PROJECT_NAME_subnum. Aborting..."; exit; 
-fi
+function help_func () {
+cat << END
+  retrieve_from_conquest [-h]
+  Description:
+  ------------
+    copies one folder based on input arguments from conquest to the study directory 
+    in /jukebox/ and renames it to YYMMDD_project_num, and then runs retrieve_dcm 
+    on that subject name
+  Usage:
+  ------
+    [-h | --help | -help]
+      Display this help
+END
+}
+######################### SET UP & PARSE ARGUMENTS #############################
 
-run_date=$1
-# figure out the year based on inputted run_date
-run_year="20${run_date:0:2}"
-subnum=$2
+#First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
+
+#Get the name of the directory this script is in, to create full path to globals.par
+script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
+#Assuming the scripts dir is somewhere in the full path, this finds globals.par
+source "${script_dir%scripts/*}/globals.par"
+
+# create a string from input arguments by concantenating them with wildcards
+function join_by { local IFS="$1"; shift; echo "$*"; }
+searchstr=\*$(join_by \* "$@")\*
 
 # capitalize first character in LAB_NAME and SCANNER
 lab="$(tr '[:lower:]' '[:upper:]' <<< ${LAB_NAME:0:1})${LAB_NAME:1}"
 SCANNER="$(tr '[:lower:]' '[:upper:]' <<< ${SCANNER:0:1})${SCANNER:1}"
 
-# store final subject name (YYMMDD_study_subnum)
-subdir_name=${run_date}_${PROJECT_NAME}_${subnum}
-
 # store full subject directories in conquest and jukebox
-#conquest_subdir=/jukebox/dicom/conquest/${SCANNER}-*/${lab}*/${run_year}/${run_date}*${subnum}-*
-conquest_subdir=/jukebox/dicom/conquest/${SCANNER}-*/${lab}*/*/${run_date}*${subnum}-*
-jukebox_subdir=${BACKUP_DIR}/raw/${subdir_name}
+conquest_subdir=$(echo /jukebox/dicom/conquest/${SCANNER}-*/${lab}*/*/${searchstr})
+
+# check to see if only one file found, if not error
+# count number of words
+countd=$(echo "$conquest_subdir" | wc -w)
+# if more than 1 word
+if [[ $countd -gt 1 ]]; then 
+	echo "$label ERROR: $searchstr is not a unique identifier. More than one \
+directory found:";
+	for d in ${conquest_subdir}; do echo "$label $d"; done  
+	exit 1
+# if no directory found
+elif [[ ! -d ${conquest_subdir} ]]; then 
+	echo "$label ERROR: No file found with identifier $searchstr: "
+	echo "$label ${conquest_subdir} is not a directory";
+	exit 1
+fi
+
+# get directory that the subject data is in (i.e. /jukebox/dicom/conquest/Scanner/lab/year)
+d=$(dirname ${conquest_subdir})
+# extract year from last 2 characters
+YY=${d: -2}
+# extract month and day from subject directory (9th-12th last characters)
+MMDD=${conquest_subdir: -9:4}
+# extract subject number from last 3 digits of name
+subnum=${conquest_subdir: -13:3}
+# store final subject name (YYMMDD_study_subnum)
+subdir_name="${YY}${MMDD}_${PROJECT_NAME}_${subnum}"
+# backup directory of subject data on jukebox
+jukebox_subdir="${BACKUP_DIR}/raw/${subdir_name}"
 
 # copy subject's directory from conquest to jukebox
-echo "Copying subject from conquest to jukebox: ${conquest_subdir} -> ${jukebox_subdir}"
-cp -r ${conquest_subdir} "${jukebox_subdir}"
-
-echo "Done copying. Running retrieve_dcm ${subdir_name}"
+echo "$label Copying subject from conquest to jukebox: ${conquest_subdir} -> ${jukebox_subdir}"
+cp -r ${conquest_subdir} ${jukebox_subdir}
+echo "$label Done copying. Running retrieve_dcm ${subdir_name}"
 
 # run retrieve_dcm to bring subject into study folder on /fastscratch/
 bash retrieve_dcm ${subdir_name}

@@ -1,66 +1,94 @@
 #!/bin/bash
+# retrieve_dcm
+#
 # author: vej@princeton.edu
-# adapted from "retrieve_data_from_sun" by mgsimon@princeton.edu and atompary@gmail.com
-# downloads raw DICOM data for the specified subject from dicom and compresses it
-# into a gzipped tar file at the file path specified by output_path
-# Oct 18 2012
 #
-# Feb 18, 2015, Nate Wilson, nmwilson@princeton.edu - updated script to include prisma and remove allegra compatibility
-# this included changing the basic help prompt, the scanner directory path setting code, and allowing errors during the 
-# segment of this script that removes .dcm because of an error that can be ignored.
+# Oct 18 2012: adapted from "retrieve_data_from_sun" by mgsimon@princeton.edu and 
+# atompary@gmail.com 
 #
-# March 15, 2016 Judith Mildner (JNM) - Changed DICOM_DIR variable to Tamir lab volume name to get data from lab volume instead of conquest
-# July 26, 2016 Judith Mildner - Adapt for new prsonpipe filestructure, and require user input of subject ID.
-# August 1 , 2016 JNM - Cleaning up paths and putting them in variables
-########################################################
-#Arguments
+# Feb 18, 2015, Nate Wilson, nmwilson@princeton.edu - updated script to include 
+# prisma and remove allegra compatibility this included changing the basic help prompt, 
+# the scanner directory path setting code, and allowing errors during the segment 
+# of this script that removes .dcm because of an error that can be ignored.
+#
+# March 15, 2016 Judith Mildner (JNM) - Changed DICOM_DIR variable to Tamir lab volume 
+# name to get data from lab volume instead of conquest 
+#
+# July 26, 2016 Judith Mildner - Adapt for new prsonpipe filestructure, and require 
+# user input of subject ID.
+#
+# April 28, 2017 Miriam Weaverdyck - modified for the pipeline DAMN2.0: adapted for new
+# file structure
+#
+# downloads raw DICOM data for the specified subject from jukebox and compresses 
+# it into a gzipped tar file at the file path specified by output_path
+################################################################################----------
+# Arguments
 #  full subject ID (e.g 160108_tamir_socdep_004)
-########################################################
-
+# Files sourced:
+#  globals.par
+# Flags (0-1):
+#  [-h | -help | --help] 	: shows help
+# Arguments:
+#  subname					: full subject name as saved in /jukebox
+################################################################################----------
+# sbatch variables
+#SBATCH -J retreive-%j
+#SBATCH -o ../output/retrieve-%j.out
 
 set -e # fail immediately on error
+label='[RETREIVE]'
 
-#####################################
-#####################################
+function help_func () {
+cat << END
+  retrieve_from_conquest [-h]
+  Description:
+  ------------
+    downloads raw DICOM data for the specified subject from jukebox and compresses 
+    it into a gzipped tar file at the file path specified by output_path
+  Usage:
+  ------
+    [-h | --help | -help]
+      Display this help
+END
+}
+######################### SET UP & PARSE ARGUMENTS #############################
 
-source globals.par
+#First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
+
+#Get the name of the directory this script is in, to create full path to globals.par
+script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
+#Assuming the scripts dir is somewhere in the full path, this finds globals.par
+source "${script_dir%scripts/*}/globals.par"
 
 tmp_dir_zip="$(mktemp -d)"
-# add necessary names (no longer in globals.sh) -JNM
-DICOM_DIR="/jukebox/${LAB_NAME}/${PROJECT_NAME}/raw/"
+# add necessary names (no longer in globals.sh)
+DICOM_DIR="${BACKUP_DIR}/raw/"
 RUNORDER_PATH="${PROJECT_DIR}/auxil/runorders"
 RUNORDER_TEMPLATE="run-order.txt"
 DATA_DIR="${PROJECT_DIR}/auxil/archive/dicom"
 SUBJ=$1
 echo "Retrieving $SUBJ"
-#####################################
-#####################################
-#check if subject has already been imported -JNM
+
+#check if subject has already been imported
 output_file="raw_${SUBJ}.tar.gz"
 output_dir=$DATA_DIR
 
+# create archive/dicom if it doesn't already exist
 if [ ! -e $DATA_DIR ]; then mkdir $DATA_DIR; fi
-
+# if subject already retrieved, exit
 if [ -e "${output_dir}/${output_file}" ]; then
 	echo "Subject ${SUBJ} already exists"
 	exit 0
 fi
 
-
-#####################################
-#####################################
-
-# Make sure that there is a directory there for that name, and make sure there is not more than one directory for that subject. 
-
+# Make sure inputted directory exists and is unique
 SUBJFILES=$(ls -d /$DICOM_DIR/$SUBJ* 2> /dev/null | wc -l)
 
-
-#####################################
-#####################################
-# Copy over the dicom files 
-
+# Copy dicoms to temp dir 
 if [ "$SUBJFILES" -gt 1 ]; then
-	cp -r $DICOM_DIR/$CHOSEN_SUBJ/dcm/* $tmp_dir_zip/
+	cp -r $DICOM_DIR/$CHOSEN_SUBJ/dcm/* $tmp_dir_zip/ # WHAT IS CHOSEN_SUBJ?
 elif [ "$SUBJFILES" -eq 1 ]; then
 	cp -r $DICOM_DIR/$SUBJ*/dcm/* $tmp_dir_zip/
 fi
@@ -68,29 +96,20 @@ fi
 tmp_dir="$(mktemp -d)"
 mkdir $tmp_dir/$SUBJ/
 
-
+# move into temp dir, quietly
 pushd $tmp_dir_zip/ > /dev/null
 
-#####################################
-#####################################
-
-#Unzip the files
-
+# unzip the files
 for f in *.gz; do
 	STEM=$(basename "${f}" .gz) 
 	unpigz -c "${f}" > $tmp_dir/$SUBJ/"${STEM}"
 done
-
 popd > /dev/null
-
+# delete temp dir
 rm -rf $tmp_dir_zip
 
-#####################################
-#####################################
 #remove the .dcm ending, reformat: 
-
 pushd $tmp_dir/$SUBJ > /dev/null
-
 set +e # allowing errors temporarily, because prisma has phoenix report files, 99*unknown.dcm.gz which will throw errors
 
 for f in * ;
@@ -112,29 +131,20 @@ done
 
 set -e # returning to setting that fails upon error 
 
- for file in * ; 
- do 
+for file in * ; 
+do 
+   mv $file $SUBJ$file; 
+done
 
-    mv $file $SUBJ$file; 
- done
+#popd > /dev/null
+#pushd $tmp_dir/$SUBJ > /dev/null
 
-
-#mkdir $SUBJ
-#data_dir_temp=$tmp_dir/$SUBJ
-#echo $data_dir_temp
-
-popd > /dev/null
-
-
-pushd $tmp_dir/$SUBJ > /dev/null
 tar --create --use-compress-program=pigz --file=$output_file *
 popd > /dev/null
 mv $tmp_dir/$SUBJ/$output_file $output_dir
 
 rm -rf $tmp_dir
 
-################################################
-################################################
 #Check id subid_list.txt file exists, then add subject to subid_list.txt if it's not already there -JM
 subid_list="${PROJECT_DIR}/auxil/archive/subid_list.txt"
 
@@ -149,10 +159,7 @@ if grep -q "$SUBJ" "$subid_list"; then
 fi
 grep -q -F  "$SUBJ" "$subid_list" || echo "$newline" >> $subid_list
 
-##############################################
-##############################################
-#Run order file -JM
-
+#Runorder file
 if [ ! -e ${RUNORDER_PATH}/${SUBJ}.txt ]; then
 	echo "Creating run order file for ${SUBJ}"
 	cp ${RUNORDER_PATH}/${RUNORDER_TEMPLATE} ${RUNORDER_PATH}/${SUBJ}.txt
