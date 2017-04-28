@@ -100,10 +100,14 @@ for sub in "${subs[@]}"; do
 	for SUBJFILE in "${subfiles[@]}"; do 
 		SUBJ=$(basename $SUBJFILE)
 		num2subID ${SUBJ: -3}
+		output_file="raw_${SUBJ}.tar.gz"
+		output_dir=$DATA_DIR
+
+		# if subject is in EXCLUDE_SUBS[@], continue on to next subj
 		if [[ $SUBIDS =~ ${EXCLUDE_SUBS[@]} ]]; then 
 			echo "$label Skipping subject ${SUBJ} - excluded"
 			echo $label; continue
-		# if subject already retrieved, exit
+		# if subject already retrieved, continue on to next subj
 		elif [[ -e "${output_dir}/${output_file}" ]]; then
 			echo "$label Skipping subject ${SUBJ} - already exists"
 			echo $label; continue
@@ -111,9 +115,6 @@ for sub in "${subs[@]}"; do
 
 		echo "$label $(date) Retrieving $SUBJ"
 		#check if subject has already been imported
-		output_file="raw_${SUBJ}.tar.gz"
-		output_dir=$DATA_DIR
-
 		cp -r $DICOM_DIR/$SUBJ*/dcm/* $tmp_dir_zip/
 
 		tmp_dir="$(mktemp -d)"
