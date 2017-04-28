@@ -24,7 +24,7 @@
 
 # stop immediately when an error occurs
 set -e 
-label='[RETREIVE]'
+label='[RET_CON]'
 
 function help_func () {
 cat << END
@@ -92,7 +92,9 @@ jukebox_subdir="${BACKUP_DIR}/raw/${subdir_name}"
 
 # copy subject's directory from conquest to jukebox
 echo "$label Copying subject from conquest to jukebox: ${conquest_subdir} -> ${jukebox_subdir}"
+
 cp -r ${conquest_subdir} ${jukebox_subdir}
+
 echo "$label Done copying. Running retrieve_dcm ${subdir_name}"
 
 # run retrieve_dcm to bring subject into study folder on /fastscratch/

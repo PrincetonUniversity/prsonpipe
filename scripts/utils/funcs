@@ -19,12 +19,10 @@
 #								directory using pigz
 ################################################################################----------
 
-source ../globals.par
-not_valid_name="NAN"
-tsk_name="TSK"
-dir_name="DIR"
-sub_name="SUB"
-num_name="NUM"
+#Get the name of the directory this script is in, to create full path to globals.par
+script_dir="$( cd "$(dirname -- "$0")" ; pwd -P )"
+#Assuming the scripts dir is somewhere in the full path, this finds globals.par
+source "${script_dir%scripts/*}/globals.par"
 
 ################################################################################----------
 # 1)
@@ -39,38 +37,32 @@ num_name="NUM"
 function whatisit {
 	label_fun='[WHAT]'
 	var=$1
-	not_valid_name="NAN"
-	tsk_name="TSK"
-	dir_name="DIR"
-	sub_name="SUB"
-	num_name="NUM"
-	return_opts=($not_valid_name $tsk_name $dir_name $sub_name $num_name)
 
 	if [[ -z $var ]]; then echo ${return_opts[0]}; return 0; fi
 
 	# test if var is a task
 	for t in "${TASKS[@]}"; do
-		if [[ $var == $t ]]; then echo ${return_opts[1]}; return 0; fi # TASK
+		if [[ $var == $t ]]; then echo $isTSK; return 0; fi # TASK
 	done
 
 	# test if var is a directory
 	if [[ -d "${var}" ]] || [[ -d "${PROJECT_DIR}/${var}" ]]; then 
-		echo ${return_opts[2]} # DIRECTORY
+		echo $isDIR # DIRECTORY
 		return 0
 	fi
 
 	# test if var is a sub ID
 	re_num='^[0-9]+$'
 	if [[ "${var:0:1}" == s ]] && [[ "${#var}" -eq 4 ]] && [[ ${var: -3} =~ $re_num ]]; then
-		echo ${return_opts[3]} # SUBJECT ID
+		echo $isSUB # SUBJECT ID
 		return 0
 	# test if var is a number
 	elif [[ $var =~ $re_num ]]; then
-		echo ${return_opts[4]} # NUMBER
+		echo $isNUM # NUMBER
 		return 0
 	fi
 
-	echo ${return_opts[0]}
+	echo $isIDK
 	return 0
 }
 
@@ -94,10 +86,10 @@ function num2subID {
 	for snum in "${snums[@]}"; do
 		# check current format
 		form=$(whatisit "$snum")
-		if [[ $form == ${sub_name} ]]; then
+		if [[ $form == ${isSUB} ]]; then
 			#correct format (s000)
 			SUBIDS[$i]="${snums[$i]}"
-		elif [[ $form == ${num_name} ]]; then
+		elif [[ $form == ${isNUM} ]]; then
 			# is number
 			# convert to form s000
 			if [[ "${#snum}" -eq 3 ]]; then
@@ -112,7 +104,7 @@ function num2subID {
 			fi
 		else
 			echo "${label_func} Unrecognized subject ID format: '${snum}'"
-			exit
+			exit 1
 		fi
 		i=$(($i + 1))
 	done

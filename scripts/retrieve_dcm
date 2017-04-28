@@ -37,7 +37,7 @@
 #SBATCH -o ../output/retrieve-%j.out
 
 set -e # fail immediately on error
-label='[RETREIVE]'
+label='[RET_DCM]'
 
 function help_func () {
 cat << END
@@ -61,115 +61,141 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
 #Assuming the scripts dir is somewhere in the full path, this finds globals.par
 source "${script_dir%scripts/*}/globals.par"
+source ${SCRIPT_DIR_UTIL}/funcs
+source ${PARS_DIR}/pars.par
 
 tmp_dir_zip="$(mktemp -d)"
 # add necessary names (no longer in globals.sh)
-DICOM_DIR="${BACKUP_DIR}/raw/"
+DICOM_DIR="${BACKUP_DIR}/raw"
 RUNORDER_PATH="${PROJECT_DIR}/auxil/runorders"
 RUNORDER_TEMPLATE="run-order.txt"
 DATA_DIR="${PROJECT_DIR}/auxil/archive/dicom"
-SUBJ=$1
-echo "Retrieving $SUBJ"
-
-#check if subject has already been imported
-output_file="raw_${SUBJ}.tar.gz"
-output_dir=$DATA_DIR
+# take in all arguments
+subs=( "$@" )
 
 # create archive/dicom if it doesn't already exist
 if [ ! -e $DATA_DIR ]; then mkdir $DATA_DIR; fi
-# if subject already retrieved, exit
-if [ -e "${output_dir}/${output_file}" ]; then
-	echo "Subject ${SUBJ} already exists"
-	exit 0
-fi
 
-# Make sure inputted directory exists and is unique
-SUBJFILES=$(ls -d /$DICOM_DIR/$SUBJ* 2> /dev/null | wc -l)
+for sub in "${subs[@]}"; do
+	#SUBJ=$1
 
-# Copy dicoms to temp dir 
-if [ "$SUBJFILES" -gt 1 ]; then
-	cp -r $DICOM_DIR/$CHOSEN_SUBJ/dcm/* $tmp_dir_zip/ # WHAT IS CHOSEN_SUBJ?
-elif [ "$SUBJFILES" -eq 1 ]; then
-	cp -r $DICOM_DIR/$SUBJ*/dcm/* $tmp_dir_zip/
-fi
+	# Make sure inputted directory exists and is unique
+	#SUBJFILES=$(ls -d /$DICOM_DIR/$SUBJ* 2> /dev/null | wc -l)
+	subdir=$(echo $DICOM_DIR/*$sub*)
+	numfiles=$(ls -d $subdir 2> /dev/null | wc -l)
 
-tmp_dir="$(mktemp -d)"
-mkdir $tmp_dir/$SUBJ/
+	if [ "${numfiles}" -eq 0 ]; then
+		echo "$label ERROR: Not a directory: $subdir"
+		exit 1
+	fi
 
-# move into temp dir, quietly
-pushd $tmp_dir_zip/ > /dev/null
+	IFS=' ' read -r -a subfiles <<< "$subdir"
 
-# unzip the files
-for f in *.gz; do
-	STEM=$(basename "${f}" .gz) 
-	unpigz -c "${f}" > $tmp_dir/$SUBJ/"${STEM}"
+	if [ "$numfiles" -gt 1 ]; then
+		echo "$label WARNING: More than one subject found. Retrieving:"
+		for f in "${subfiles[@]}"; do echo "$label 	$f"; done
+		echo "$label"
+	fi
+
+	for SUBJFILE in "${subfiles[@]}"; do 
+		SUBJ=$(basename $SUBJFILE)
+		num2subID ${SUBJ: -3}
+		if [[ $SUBIDS =~ ${EXCLUDE_SUBS[@]} ]]; then 
+			echo "$label Skipping subject ${SUBJ} - excluded"
+			echo $label; continue
+		# if subject already retrieved, exit
+		elif [[ -e "${output_dir}/${output_file}" ]]; then
+			echo "$label Skipping subject ${SUBJ} - already exists"
+			echo $label; continue
+		fi
+
+		echo "$label $(date) Retrieving $SUBJ"
+		#check if subject has already been imported
+		output_file="raw_${SUBJ}.tar.gz"
+		output_dir=$DATA_DIR
+
+		cp -r $DICOM_DIR/$SUBJ*/dcm/* $tmp_dir_zip/
+
+		tmp_dir="$(mktemp -d)"
+		mkdir $tmp_dir/$SUBJ/
+
+		# move into temp dir, quietly
+		pushd $tmp_dir_zip/ > /dev/null
+
+		# unzip the files
+		for f in *.gz; do
+			STEM=$(basename "${f}" .gz) 
+			unpigz -c "${f}" > $tmp_dir/$SUBJ/"${STEM}"
+		done
+		popd > /dev/null
+		# delete temp dir
+		rm -rf $tmp_dir_zip
+
+		#remove the .dcm ending, reformat: 
+		pushd $tmp_dir/$SUBJ > /dev/null
+		set +e # allowing errors temporarily, because prisma has phoenix report files, 99*unknown.dcm.gz which will throw errors
+
+		for f in * ;
+		do
+			FILENAME=$(basename "$f")
+			FILENAME="${FILENAME%.*}"
+			mv $f $FILENAME;
+		done
+
+		for file in * ;
+		do
+			temp_file_decomp=(`echo $file | tr "-" "\n"`)
+			temp_series=`printf "%03d" ${temp_file_decomp[0]}`
+			temp_imagenum=`printf "%04d" ${temp_file_decomp[1]}`
+			temp_TE=`printf "%03d" ${temp_file_decomp[2]} 2> /dev/null`
+			temp_name=$temp_series'_'$temp_imagenum'_'$temp_TE
+			mv $file $temp_name;
+		done
+
+		set -e # returning to setting that fails upon error 
+
+		for file in * ; 
+		do 
+		   mv $file $SUBJ$file; 
+		done
+
+		#popd > /dev/null
+		#pushd $tmp_dir/$SUBJ > /dev/null
+
+		tar --create --use-compress-program=pigz --file=$output_file *
+		popd > /dev/null
+		mv $tmp_dir/$SUBJ/$output_file $output_dir
+
+		rm -rf $tmp_dir
+
+		#Check id subid_list.txt file exists, then add subject to subid_list.txt if it's not already there
+		subid_list="${PROJECT_DIR}/auxil/archive/subid_list.txt"
+
+		if [ ! -e ${subid_list} ]; then
+			cat > ${subid_list}
+		fi
+
+		newline="${SUBJ} s${SUBJ:(-3)} dicom"
+		if grep -q "$SUBJ" "$subid_list"; then
+			echo "$label ${SUBJ} is already in subid_list.txt. Keeping existing entry. Please check if it's correct:"
+			grep "$SUBJ" "$subid_list"
+		fi
+		grep -q -F  "$SUBJ" "$subid_list" || echo "$newline" >> $subid_list
+
+		#Runorder file
+		if [ ! -e ${RUNORDER_PATH}/${SUBJ}.txt ]; then
+			echo "Creating run order file for ${SUBJ}"
+			cp ${RUNORDER_PATH}/${RUNORDER_TEMPLATE} ${RUNORDER_PATH}/${SUBJ}.txt
+		else
+			echo "$label Run order file for ${SUBJ} already exists"
+		fi
+
+		echo "$label Run order is:"
+		cat ${RUNORDER_PATH}/${SUBJ}.txt | grep "^[^#;]"
+		echo "###################################################"
+		echo "$label Please check the run order for this subject. Edit ${RUNORDER_PATH}/${SUBJ}.txt if incorrect."
+
+		echo "$label Finished retrieving ${SUBJ} data from $DICOM_DIR"
+	done
 done
-popd > /dev/null
-# delete temp dir
-rm -rf $tmp_dir_zip
-
-#remove the .dcm ending, reformat: 
-pushd $tmp_dir/$SUBJ > /dev/null
-set +e # allowing errors temporarily, because prisma has phoenix report files, 99*unknown.dcm.gz which will throw errors
-
-for f in * ;
-do
-	FILENAME=$(basename "$f")
-	FILENAME="${FILENAME%.*}"
-	mv $f $FILENAME;
-done
-
-for file in * ;
-do
-	temp_file_decomp=(`echo $file | tr "-" "\n"`)
-	temp_series=`printf "%03d" ${temp_file_decomp[0]}`
-	temp_imagenum=`printf "%04d" ${temp_file_decomp[1]}`
-	temp_TE=`printf "%03d" ${temp_file_decomp[2]} 2> /dev/null`
-	temp_name=$temp_series'_'$temp_imagenum'_'$temp_TE
-	mv $file $temp_name;
-done
-
-set -e # returning to setting that fails upon error 
-
-for file in * ; 
-do 
-   mv $file $SUBJ$file; 
-done
-
-#popd > /dev/null
-#pushd $tmp_dir/$SUBJ > /dev/null
-
-tar --create --use-compress-program=pigz --file=$output_file *
-popd > /dev/null
-mv $tmp_dir/$SUBJ/$output_file $output_dir
-
-rm -rf $tmp_dir
-
-#Check id subid_list.txt file exists, then add subject to subid_list.txt if it's not already there -JM
-subid_list="${PROJECT_DIR}/auxil/archive/subid_list.txt"
-
-if [ ! -e ${subid_list} ]; then
-	cat > ${subid_list}
-fi
-
-newline="${SUBJ} s${SUBJ:(-3)} dicom"
-if grep -q "$SUBJ" "$subid_list"; then
-	echo "${SUBJ} is already in subid_list.txt. Keeping existing entry. Please check if it's correct:"
-	grep "$SUBJ" "$subid_list"
-fi
-grep -q -F  "$SUBJ" "$subid_list" || echo "$newline" >> $subid_list
-
-#Runorder file
-if [ ! -e ${RUNORDER_PATH}/${SUBJ}.txt ]; then
-	echo "Creating run order file for ${SUBJ}"
-	cp ${RUNORDER_PATH}/${RUNORDER_TEMPLATE} ${RUNORDER_PATH}/${SUBJ}.txt
-else
-	echo "Run order file for ${SUBJ} already exists"
-fi
-
-echo "Run order is:"
-cat ${RUNORDER_PATH}/${SUBJ}.txt | grep "^[^#;]"
-echo "###################################################"
-echo "Please check the run order for this subject. Edit ${RUNORDER_PATH}/${SUBJ}.txt if incorrect."
-
-echo "Finished retrieving ${SUBJ} data from $DICOM_DIR"
+echo "$label Done. $(date)"
