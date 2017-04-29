@@ -23,6 +23,7 @@
 script_dir="$( cd "$(dirname -- "$0")" ; pwd -P )"
 #Assuming the scripts dir is somewhere in the full path, this finds globals.par
 source "${script_dir%scripts*}/scripts/globals.par"
+source "${PARS_DIR}/pars.par"
 
 ################################################################################----------
 # 1)
@@ -65,6 +66,11 @@ function whatisit {
 	echo $isIDK
 	return 0
 }
+function isTSK { if [[ $(whatisit $1) == $isTSK ]]; then echo true; else echo false; fi }
+function isDIR { if [[ $(whatisit $1) == $isDIR ]]; then echo true; else echo false; fi }
+function isSUB { if [[ $(whatisit $1) == $isSUB ]]; then echo true; else echo false; fi }
+function isNUM { if [[ $(whatisit $1) == $isNUM ]]; then echo true; else echo false; fi }
+function isIDK { if [[ $(whatisit $1) == $isIDK ]]; then echo true; else echo false; fi }
 
 ################################################################################----------
 # 1)
@@ -131,74 +137,59 @@ function get_subs {
 	set -e # stop immediately when an error occurs
 	unset SUBS
 
-	v=$(whatisit $1)
-
 	# DETERMINE TASK
 	# task was inputted
-	if [[ $v == ${tsk_name} ]]; then tsk=$1; shift; v=$(whatisit $1)
-	# only one task in study
-	elif [[ ${NUM_TASKS} -eq 1 ]]; then tsk=$TASKS;
-#	# no task specified
-#	else 
-#		echo "${label_func} ABORT: Must specify a task: ${TASKS[@]}."
-#		exit
-	fi
+	$(isTSK $1) && tsk=$1 && shift
+	# if only one task in study
+	[[ ${NUM_TASKS} -eq 1 ]] && tsk=$TASKS
 
 	# INPUT DIRECTORY
-	if [[ $v == ${dir_name} ]]; then 
+	if $(isDIR $1); then
 		if [[ ${1:0:1} == '/' ]]; then inputdir=$1;
 		else inputdir=${PROJECT_DIR}/$1; fi
-		shift; v=$(whatisit $1)
+		shift
+	else
+		# default is raw directory
+		inputdir=${PROJECT_DIR}/raw/$tsk
 	fi
-	
+
 	# OUTPUT DIRECTORY
-	if [[ $v == ${dir_name} ]]; then 
-		outputdir=$1; shift
+	if $(isDIR $1); then 
+		if [[ ${1:0:1} == '/' ]]; then outputdir=$1;
+		else outputdir=${PROJECT_DIR}/$1; fi
+		shift
+	else
+		# default is prep directory
+		outputdir=${PROJECT_DIR}/prep/$tsk/${wd_dir}
 	fi
+	echo $inputdir
+	echo $outputdir
 	
 	input_subs=( "$@" )
 
+	# find all possible subjects
+	i=0; for s in $(ls -d ${inputdir}/s*/ | xargs -n 1 basename); do
+		subs_all[$i]=$s
+		i=$(($i + 1))
+	done
+
 	# NEW SUBJECTS
 	if [[ -z ${input_subs} ]]; then # zero input arguments
-		if [[ -z ${inputdir} ]] || [[ -z ${outputdir} ]]; then
-			echo "${label_func} ABORT: either $inputdir or $outputdir is not a directory."
-			exit
-		fi
-		#if [[ ! -d ${RAW_DIR}/${tsk} ]]; then echo "${label_func} '${tsk}' is not a valid task name. Aborting..."; exit; fi
-		i=0
-		for s in $(ls -d ${inputdir}/*/ | xargs -n 1 basename); do
-			subs_all[$i]=$s;
-			i=$(($i + 1));
-			echo ${subs_all[@]}
-		done
 		# delete old subjects 
 		i=0; for s in "${subs_all[@]}"; do
-			if [[ $(whatisit ${outputdir}/${s}) == ${dir_name} ]]; then
-				unset subs_all[$i]
-			fi
+			$(isDIR ${outputdir}/${s}) && unset subs_all[$i]
 			i=$(($i + 1))
 		done
 		# Make list of all new subjects, ignoring the empty elements
 		i=0; for s in "${subs_all[@]}"; do
-			if [[ ! -z $s ]]; then
-				SUBS[$i]=$s
-				i=$(($i + 1))
-			fi
+			[[ ! -z $s ]] && SUBS[$i]=$s && i=$(($i + 1))
 		done
 		# SUBS now contains an array of new subjects that have not been preprocessed
 		echo "${label_func} No subjects given. Selecting all NEW subjects for task ${tsk}"
 	
 	# ALL SUBJECTS: run all subjects in task
 	elif [[ ${input_subs} == 'all' ]]; then
-		if [[ -z ${inputdir} ]]; then
-			echo "${label_func} ABORT: $inputdir is not a directory."
-			exit
-		fi
-		i=0
-		for s in $(ls -d ${inputdir}/s*/ | xargs -n 1 basename); do
-			SUBS[$i]=$s
-			i=$(($i + 1))
-		done
+		SUBS=( "${subs_all[@]}" )
 		echo "${label_func} Selecting ALL subjects for task ${tsk}"
 
 	# RUN SELECT SUBJECTS: run only the subjects inputted
@@ -206,13 +197,19 @@ function get_subs {
 		# convert subject numbers to form (s000)
 		num2subID ${input_subs[@]}
 		SUBS=( "${SUBIDS[@]}" )
-		echo "${label_func} Selecting INPUTTED subjects for task $tsk"
-		echo $SUBS
+		echo "${label_func} Selecting valid INPUTTED subjects for task $tsk"
+		for s in "${SUBS[@]}"; do 
+			if [[ ! "${subs_all[@]}" =~ "$s" ]]; then
+				SUBS=(${SUBS[@]//*$s*}); 
+				echo "$label_func $s is not a valid subject. Excluding..."
+			fi
+		done
 	fi
 
 	# Remove subjects in $EXCLUDE_SUBS from subject array
-	echo "${label_func} Removing subjects ${EXCLUDE_SUBS[@]}"
-	for s in "${EXCLUDE_SUBS[@]}";do SUBS=(${SUBS[@]//*$s*}); done
+	for s in "${EXCLUDE_SUBS[@]}"; do SUBS=(${SUBS[@]//*$s*}); 
+		[[ ${SUBS[@]} =~ $s ]] && echo "$label_func Removing excluded subject $s"
+	done
 	echo "${label_func} SUBS=( ${SUBS[@]} )"
 }
 
