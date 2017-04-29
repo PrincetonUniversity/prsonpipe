@@ -22,7 +22,7 @@
 #Get the name of the directory this script is in, to create full path to globals.par
 script_dir="$( cd "$(dirname -- "$0")" ; pwd -P )"
 #Assuming the scripts dir is somewhere in the full path, this finds globals.par
-source "${script_dir%scripts/*}/globals.par"
+source "${script_dir%scripts*}/scripts/globals.par"
 
 ################################################################################----------
 # 1)

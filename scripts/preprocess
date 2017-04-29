@@ -24,17 +24,17 @@ source globals.par
 
 pushd ${SCRIPT_DIR_UTIL} > /dev/null
 source funcs
-popd > /dev/null
-
 first_jobid=1
+#first_jobid=$(sbatch first_job | grep -o '[0-9]*')
+popd > /dev/null
 
 if [[ $1 == "no-convert" ]]; then shift; else 
 # CONVERT NEW DATA
 # Convert new subject data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz
-convert_log=${PROJECT_DIR}/arch/LOG_convert.txt
+convert_log=${PROJECT_DIR}/auxil/archive/LOG_convert.txt
 echo "${label} $(date) -- Converting all dcm files to nii ---" | tee -a "${convert_log}"
 pushd ${SCRIPT_DIR_UTIL} > /dev/null
-bash convert_check $convert_log
+bash convert_check -l $convert_log
 popd > /dev/null
 wait_for_it '[CONVERT]' $convert_log
 fi

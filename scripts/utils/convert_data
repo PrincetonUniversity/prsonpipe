@@ -9,24 +9,27 @@
 # Arguments:    
 #   1. subject
 #SBATCH -J "convert"
-#SBATCH -o ../output/convert_%j.out
+#SBATCH -o ../../output/convert_%j.out
 #SBATCH -p all
 #SBATCH -t 2880
 #SBATCH --mail-type=FAIL
 
 set -e  # fail immediately on error
 
-
+#Get the name of the directory this script is in, to create full path to globals.par
+#script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
+#Assuming the scripts dir is somewhere in the full path, this finds globals.par
+#source "${script_dir%scripts/*}/scripts/globals.par"
+source ../globals.par
 
 module load mricrogl # Make sure all necessary packages are available (spock) -JNM
 module load fsl
 
-source globals.par
 subj=$1
 full_subj=$2
-dicom_archive="${PROJECT_DIR}/arch/dicom/raw_${full_subj}.tar.gz"
+dicom_archive="${PROJECT_DIR}/auxil/archive/dicom/raw_${full_subj}.tar.gz"
 output_dir="${PROJECT_DIR}/raw/"
-run_order_file="${PROJECT_DIR}/arch/subpars/runorders/${full_subj}.txt"
+run_order_file="${PROJECT_DIR}/auxil/runorders/${full_subj}.txt"
 ERROR_FLAG=ERROR_RUN
 PREFIX=scan
 output_ext=.nii #If changing the extension, make sure to also change the dcm2niix conversion flag
