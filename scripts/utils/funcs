@@ -19,9 +19,11 @@
 #								directory using pigz
 ################################################################################----------
 
-#Get the name of the directory this script is in, to create full path to globals.par
-script_dir="$( cd "$(dirname -- "$0")" ; pwd -P )"
-#Assuming the scripts dir is somewhere in the full path, this finds globals.par
+# Get the name of the directory this script is in, to create full path to globals.par
+#script_dir="$( cd "$(dirname -- "$0")" ; pwd -P )"
+script_dir="$(dirname -- "$(pwd)")"
+
+# Assuming the scripts dir is somewhere in the full path, this finds globals.par
 source "${script_dir%scripts*}/scripts/globals.par"
 source "${PARS_DIR}/pars.par"
 
@@ -162,8 +164,6 @@ function get_subs {
 		# default is prep directory
 		outputdir=${PROJECT_DIR}/prep/$tsk/${wd_dir}
 	fi
-	echo $inputdir
-	echo $outputdir
 	
 	input_subs=( "$@" )
 
@@ -294,8 +294,8 @@ function update_nii {
 	if [[ ! $# -ge 3 ]]; then 
 		echo "${label_func} Please specify a prep working directory (that contains subdirs), the steps to update to, and an array of subs to update. Aborting..."; exit; 
 	fi
-	wd=$1 # directory of sdirs
-	steps=$2 # list of prefixes 
+	wd=$1; shift # directory of sdirs
+	steps=$1; shift # list of prefixes 
 	subs=( "$@" ) # array of subjects
 
 	num2subID "${subs[@]}" # change subs into proper s-format
@@ -489,3 +489,38 @@ function zip_all {
 		popd > /dev/null
 	done
 }
+
+################################################################################
+# 10)
+# full_dir
+# author Miriam Weaverdyck, May 1, 2017
+# This function outputs the full path to a directory
+###########################################
+# Arguments (1 total):
+#  input	: directory
+###########################################
+
+function full_dir {
+	label_func='[FULLDIR]'
+	input=$1
+	if ! $(isDIR $input); then
+		echo "$label_func ERROR: Could not find $input. Inputted directory must be: "
+		echo "$label_func     a) an absolute path (e.g. /jukebox/tamir/), or "
+		echo "$label_func     b) a relative path from your project directory (e.g. prep/TSK/), or"
+		echo "$label_func     c) a relative path from your current directory (e.g. ./DARTEL if you are in scripts)"
+		exit 1
+	elif [[ -d $input ]]; then
+		# absolute path
+		if [[ ${input:0:1} == '/' ]]; then echo "$input"
+		# relative path from current directory
+		else echo "$(pwd)/${input}"; fi
+	else
+		# relative path from project directory
+		echo "${PROJECT_DIR}/${input}"
+	fi
+}
+
+
+
+
+
