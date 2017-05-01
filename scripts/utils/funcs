@@ -174,7 +174,7 @@ function get_subs {
 	done
 
 	# NEW SUBJECTS
-	if [[ -z ${input_subs} ]]; then # zero input arguments
+	if [[ -z ${input_subs} ]] || [[ ${input_subs} == 'new' ]]; then # zero input arguments
 		# delete old subjects 
 		i=0; for s in "${subs_all[@]}"; do
 			$(isDIR ${outputdir}/${s}) && unset subs_all[$i]
@@ -376,6 +376,7 @@ function make_matlab_array {
 		done
 		matlab_array="${matlab_array}]"
 	fi
+	echo "${matlab_array}"
 }
 
 ################################################################################
