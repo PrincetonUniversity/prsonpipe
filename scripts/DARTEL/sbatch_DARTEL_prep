@@ -1,56 +1,171 @@
 #!/usr/bin/env bash
-# Author: Miriam
-# 9/19/16 edited by MEW to extract prefix string from pfile name and update_nii
-###########################################
-# Arguments (>=2 total):
-#  pfile 	: pfile for SPM12w to use
-#  subs		: subjects to run (e.g. 1 2 3 will run subs s001, s002, and s003). Should NOT be an array
-###########################################
+# sbatch_DARTEL_prep
+#
+# May 1, 2017: Miriam Weaverdyck updated script to work with new filestructure
+#
+# Launches preprocessing in matlab using SPM8's DARTEL based on specified 
+# parameters in pfile
+#
+################################################################################----------
+# Packages used:
+#  spm8
+#
+# Files sourced:
+#  globals.par
+#  funcs
+#  pfile
+#
+# Flags:
+#  [-h]		: help
+#  -p 		: pfile to be sourced
+#  [-l]		: logfile (full path, overrides default)
+#  [-i] 	: where to look for full list of subjects (e.g. raw/TSK/)
+#  [-o] 	: where to look for already-run subjects (e.g. prep/TSK/aNrNuNwNsN)
+#
+# Arguments (0+):
+#  subs		: subjects to run
+################################################################################----------
 
-#SBATCH -J dartel_prep								# Job name
+#SBATCH -J dartel_prep							# Job name
 #SBATCH --workdir=./							# Working directory
-#SBATCH -o ../../output/DARTEL_prep-%j.out 		# Output file
+#SBATCH -o DARTEL_prep-%j.out 		# Output file
 #SBATCH --mem-per-cpu=20480						# Amount of memory in MB (1GB = 1024 MB)
 #SBATCH --mail-type=ALL							# Type of emails to send
 #SBATCH -t 2880									# Time : Default time is 48 hours (2880 min)
 #SBATCH -p all                                	# DON'T CHANGE
 
-source globals.par
-pushd ${SCRIPT_DIR_UTIL} > /dev/null; source funcs; popd > /dev/null
-
+set -e
+echo "on host: `hostname` "
 label='[DARTEL]'
 
-if [[ ! $# -ge 2 ]]; then 
-	echo "${label} At least 2 input arguments needed: pfile and (at least one) subject(s). Aborting..."; exit; 
-fi
+######################### SOURCE FILES ########################################
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
+source ${SCRIPT_DIR_UTIL}/funcs
 
-# first arg is pfile
-pfile=$1
-# rest of args are subs (each arg separated by a space)
-shift 
-SUBIDS=( "$@" )
+######################### SET UP & PARSE ARGUMENTS #############################
+function help_func () {
+cat << END
+  sbatch_DARTEL_prep [-h] -p <pfile> [-i <input_dir>] [-o <output_dir>] [-l <logfile>]
+  Description:
+  ------------
+    Launches preprocessing in matlab using SPM8 DARTEL based on specified 
+    parameters in pfile
+  Usage:
+  ------
+    [-h | --help | -help]
+      Display this help
+    -p <filename>
+      filename of pfile
+    [-i <input_directory>]
+      directory to look in for valid subjects 
+      Default is raw directory
+    [-o <output_directory>]
+      directory to look in for already-run subjects
+      Default is prep directory specified in pfile
+    [-l <filename>]
+      Overrides the default log file location with a different file.
+      Default is LOG_spmw.txt in prep directory specified in pfile
+END
+}
+#First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 
-# extract the wd folder location from the pfile by grabbing the quoted section of the line that starts with "p.subdir /whitespace/ = " and ends before ";"
+#Parse flags other than help
+while getopts "p:i:o:l:" opt; do
+  case $opt in
+    p)
+      pfile=${SCRIPT_DIR_DARTEL}/$(basename $OPTARG)
+      if [ ! -f $pfile ]; then
+        echo "$label ERROR: pfile $pfile does not exist."
+        exit 1
+      fi
+      echo "$label Using pfile: $pfile"
+      ;;
+    i)
+	  input_dir=$OPTARG
+      if ! $(isDIR ${input_dir}); then
+        echo "$label ERROR: input directory $input_dir is not a directory."
+        exit 1
+      fi
+      input_dir=$(full_dir $input_dir)
+      echo "$label input_dir: $input_dir"
+      ;;
+    o)
+	  output_dir=$OPTARG
+      if ! $(isDIR ${output_dir}); then
+        echo "$label ERROR: output directory $output_dir is not a directory."
+        exit 1
+      fi
+      output_dir=$(full_dir $output_dir)
+      echo "$label output_dir: $output_dir"
+      ;;
+    l)
+      logfile=$OPTARG
+      logdir=$(dirname $logfile)
+      if ! $(isDIR $logdir); then
+        echo "$label ERROR: $logdir is not a directory."
+        exit 1
+      fi
+      logdir=$(full_dir $logdir)
+      logfile=${logdir}/$(basename $logfile)
+      touch $logfile
+      echo "$label Using logfile: $logfile instead of default" | tee -a $logfile
+      ;;
+    \?)
+      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+      ;;
+    : ) #Catch options without arguments
+      echo "$label ERROR: -$OPTARG requires an argument. Use -h for help."
+      exit 1
+    esac
+done
+[[ -z $pfile ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
+#remove used input args
+shift $((OPTIND -1))
+
+############################## MAIN BODY OF SCRIPT #############################
+# extract the wd folder location from the pfile by grabbing the quoted section 
+# of the line that starts with "p.subdir /whitespace/ = " and ends before ";"
 wd_dir=$(grep -oP 'p.subdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
+# get task name based on wd_dir
+tsk_dir=$(dirname $wd_dir)
+tsk=${tsk_dir: -3}
+
+# if input_dir doesn't exist, use default from pfile
+[[ -z ${input_dir} ]] && input_dir=${RAW_DIR}/$tsk/
+# if output_dir doesn't exist, use default from pfile
+[[ -z ${output_dir} ]] && output_dir=${wd_dir}
+# if logfile doesn't exist, use default from pfile
+[[ -z $logfile ]] && logfile=${wd_dir}/LOG_dartel.txt
+
+#check if there are remaining arguments, that have not yet been processed
+# if so, get subject IDs by calling get_subs
+get_subs $input_dir $output_dir "$@"
+run_subs=( "${SUBS[@]}" )
 
 # extract prefix list from parameters file by finding the string between 3 uppercase letters and .m
 steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K.*?(?=.m)')
 
 # get wd dartel logfile
 # if normalization is in steps, logfile should be in wd folder (group processesing). If not, then only one subject so log to sdir
-if [[ ${steps} =~ w ]]; then logfile=${wd_dir}/LOG_dartel.txt; 
-else 
-	logfile=${wd_dir}/${SUBIDS}/LOG_dartel.txt; 
-	if [[ ${#SUBIDS[@]} -gt 1 ]]; then echo "${label} WARNING: More than one subject being run without normalization.  Logfile = ${logfile}"; fi
-fi
+# if [[ ${steps} =~ w ]]; then logfile=${wd_dir}/LOG_dartel.txt; 
+# else 
+# 	logfile=${wd_dir}/${run_subs}/LOG_dartel.txt; 
+# 	if [[ ${#run_subs[@]} -gt 1 ]]; then echo "${label} WARNING: More than one subject being run without normalization.  Logfile = ${logfile}"; fi
+# fi
 
 logfile_wd=${wd_dir}/LOG.txt
 
 # turn SUBIDS into a matlab array of numbers (not subIDs)
-make_matlab_array ${SUBIDS[@]}
+matlab_array=$(make_matlab_array ${run_subs[@]})
 
 echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" | tee -a "${logfile_wd}"
-
+exit 0
 # unzip the epi* and anat files in the subject directories within wd_dir
 unzip_epi_anat ${wd_dir} ${SUBIDS[@]}
 
@@ -68,6 +183,6 @@ done
 steps=$prefix
 
 # update epi_r##.nii* files to their most recent versions
-update_nii ${wd_dir} ${steps} ${SUBIDS[@]}
+update_nii ${wd_dir} ${steps} ${run_subs[@]}
 
 echo "${label} Done. $(date)" | tee -a "${logfile_wd}"
