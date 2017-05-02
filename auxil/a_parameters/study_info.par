@@ -21,7 +21,7 @@
 #######--------------------PROJECT SETTINGS-------------------######
 
 PROJECT_NAME=<my_project>                          # ENTER THE STUDY NAME. Should be the same as project dir in /fastscratch/ and jukebox labvolume
-PROJECT_DIR=/fastscratch/<netid>/<my_project>      # ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
+PROJECT_DIR=/jukebox/scratch/<netid>/<my_project>  # ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
 USER_EMAIL=<netid>@princeton.edu                   # ENTER YOUR EMAIL.  This will be used to send you updates on jobs you run on spock.
 
 LAB_NAME=tamir                                     # name of lab on jukebox
