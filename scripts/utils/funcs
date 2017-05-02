@@ -74,6 +74,8 @@ function isSUB { if [[ $(whatisit $1) == $isSUB ]]; then echo true; else echo fa
 function isNUM { if [[ $(whatisit $1) == $isNUM ]]; then echo true; else echo false; fi }
 function isIDK { if [[ $(whatisit $1) == $isIDK ]]; then echo true; else echo false; fi }
 
+function join_by { local IFS="$1"; shift; echo "$*"; }
+
 ################################################################################----------
 # 1)
 # num2subID ${var[@]}
@@ -435,7 +437,7 @@ function make_smatlab_array {
 ###########################################
 
 function unzip_epi_anat {
-	d=$1
+	d=$1; shift
 	subs=( "$@" )
 	num2subID ${subs[@]}
 	echo "unzipping subjects: ${SUBIDS[@]}"
