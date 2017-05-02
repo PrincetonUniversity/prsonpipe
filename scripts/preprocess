@@ -276,11 +276,14 @@ for t in "${TASKS[@]}"; do
 				pushd ${script_path} > /dev/null   
 
 				# submit job
-				tflag='-t ${run_time}'
+				j='%j'
+				tflag='-t=${run_time}'
 				jflag="-J ${run_name}"
 				mflag="--mail-user=${USER_EMAIL}"
+				oflag="--output=${OUT_DIR}/${run_name}-$j.out"
 				dflag="--dependency=afterok:${prev_jobid}"
-				prev_jobid=$(sbatch ${!tflag} "$jflag" "$mflag" "$dflag" "${run_script}" -p "$pfile" "$s" | grep -o '[0-9]*')
+				flags="${!tflag} $oflag $jflag $mflag $dflag"
+				prev_jobid=$(sbatch $flags "${run_script}" -p "$pfile" "$s" | grep -o '[0-9]*')
 				# save/print jobid number
 				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject ${s}"
 				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
@@ -357,7 +360,9 @@ for t in "${TASKS[@]}"; do
                 jflag="-J ${run_name}"
                 mflag="--mail-user=${USER_EMAIL}"
                 dflag="--dependency=afterok:${prev_jobid}"
-                prev_jobid=$(sbatch ${!tflag} "$jflag" "$mflag" "$dflag" "${run_script}" -p "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
+		oflag="-o ${OUT_DIR}/${run_name}-%j.out"
+		flags="${!tflag} $oflag $jflag $mflag $dflag"
+                prev_jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
 
 		# print jobid to console
 		jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject(s) ${SUBS[@]}"
@@ -411,10 +416,12 @@ for t in "${TASKS[@]}"; do
 				# run job
 				pushd ${script_path} > /dev/null
 				tflag='-t 60'
-                                jflag="-J ${run_name}"
-                                mflag="--mail-user=${USER_EMAIL}"
-                                dflag="--dependency=afterok:${prev_jobid}"
-                                prev_jobid=$(sbatch ${!tflag} "$jflag" "$mflag" "$dflag" "${run_script}" -p "$pfile" "${s}" | grep -o '[0-9]*')
+				jflag="-J ${run_name}"
+				mflag="--mail-user=${USER_EMAIL}"
+				oflag="-o ${OUT_DIR}/${run_name}-%j.out"
+				dflag="--dependency=afterok:${prev_jobid}"
+				flags="${!tflag} $oflag $jflag $mflag $dflag"
+		                prev_jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" "${s}" | grep -o '[0-9]*')
 				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject ${s}"
 				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
 				popd > /dev/null
