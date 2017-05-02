@@ -44,6 +44,12 @@ FSLOUTPUTTYPE=NIFTI #Convert 16-bit scans to FLOAT32 data type to retain UINT16 
   tar --extract --gunzip --file=$dicom_archive --directory=$temp_dicom_dir
   echo "${label} Converting to nifti at $(date)"
   dcm2niix -z n -o $temp_output_dir -f ${PREFIX}_%2s $temp_dicom_dir 1>/dev/null
+ # Trap to delete temp directories if the script fails
+ function finish {
+  rm -rf $temp_dicom_dir
+  rm -rf $temp_output_dir
+  }
+  trap finish EXIT
 
 #make sure naming scheme does not output too many leading zeros (bug in dcm2niix)
   for filename in $temp_output_dir/*${output_ext}; do
