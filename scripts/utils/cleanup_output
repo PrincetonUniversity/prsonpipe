@@ -1,0 +1,113 @@
+#!/bin/bash
+# cleanup_output
+# 
+# May 2, 2017: Miriam Weaverdyck (miriamw@princeton.edu)
+#
+# Moves slurm output from specified job IDs to output directory
+#
+################################## 80 characters ###############################--- 90 ---
+# Packages used: 
+#    none
+#
+# Files sourced:
+#    globals.par
+#    funcs
+#
+# Flags:
+#    [-h] 		: help
+#    [-i] 		: directory to look in
+#
+# Arguments (1+):
+#    jobID 		: job ID(s) (e.g. 1111111 2222222)
+#
+################################################################################----------
+#SBATCH -J cleanup_output 						# Job name
+#SBATCH --workdir=./							# Working directory
+#SBATCH --mem-per-cpu=2048						# Amount of memory in MB (1GB = 1024 MB)
+#SBATCH --mail-type=FAIL						# Type of emails to send
+#SBATCH -t 30									# Time : Default is 48 hours (2880 min)
+#SBATCH -p all                                	# DON'T CHANGE
+#SBATCH -Q
+
+
+# stop immediately when an error occurs
+set -e 
+echo "on host: `hostname` "
+label='[CLEAN]'
+
+######################### SOURCE FILES ########################################
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
+source ${SCRIPT_DIR_UTIL}/funcs
+    
+######################### SET UP & PARSE ARGUMENTS #############################
+function help_func () {
+cat << END
+  cleanup_output [-ih]
+  Description:
+  ------------
+    Moves slurm output from specified job IDs to output directory
+  Usage:
+  ------
+    [-h | --help | -help]
+      Display this help
+END
+}
+
+#First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
+
+#Parse flags other than help
+while getopts "i:" opt; do
+  case $opt in
+    i)
+      input_dir=$OPTARG
+      if ! $(isDIR ${input_dir}); then
+        echo "$label ERROR: -i $input_dir is not a directory."
+        exit 1
+      fi
+      input_dir=$(full_dir $input_dir)
+      echo "$label -i $input_dir"
+      ;;
+    \?)
+      echo "$label ERROR: unknown flag specified: ${opt}. Use --help for help."
+      exit 1
+      ;;
+    : ) #Catch options without arguments
+      echo "$label ERROR: $OPTARG requires an argument. Use --help for help."
+      exit 1
+    esac
+done
+#remove used input args
+shift $((OPTIND -1))
+
+jobIDs=( "$@" )
+
+############################## MAIN BODY OF SCRIPT ################################
+
+echo "${label} $(date) beginning cleanup_output"
+
+if [[ ${jobIDs} == 'all' ]]; then 
+  unset jobIDs
+	all=$(find ${SCRIPT_DIR} -name *[1-9][1-9][1-9][1-9][1-9][1-9][1-9].out)
+  IFS=' ' read -r -a jobIDs <<< $all
+fi
+
+for j in "${jobIDs[@]}"; do
+	#[[ ${#j} -ne 7 ]] && echo "$label $j does not have 7 digits. Skipping..." && continue
+	#! $(isNUM $j) && echo "$label $j must be a number. Skipping..." && continue
+	if [[ ! -z $input_dir ]]; then fname=$(echo ${input_dir}/*$j*)
+  elif $(isDIR $(dirname $j)); then 
+    fdir=$(full_dir $(dirname $j))
+    fname=${fdir}/$(basename $j)
+	else fname=$(find ${SCRIPT_DIR} -name *$j*); fi	
+	#
+	[[ ! -f $fname ]] && echo "$label Cannot find $j ($fname). Skipping..." && continue
+	mv $fname ${PROJECT_DIR}/output/
+	echo "$label $(date) Moved $fname to output directory"
+done
+
+echo "${label} DONE. $(date) cleanup_output"

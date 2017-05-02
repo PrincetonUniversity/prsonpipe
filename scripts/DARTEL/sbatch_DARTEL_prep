@@ -30,7 +30,7 @@
 #SBATCH --workdir=./							# Working directory
 #SBATCH -o DARTEL_prep-%j.out 		# Output file
 #SBATCH --mem-per-cpu=20480						# Amount of memory in MB (1GB = 1024 MB)
-#SBATCH --mail-type=ALL							# Type of emails to send
+#SBATCH --mail-type=FAIL						# Type of emails to send
 #SBATCH -t 2880									# Time : Default time is 48 hours (2880 min)
 #SBATCH -p all                                	# DON'T CHANGE
 
@@ -165,7 +165,7 @@ logfile_wd=${wd_dir}/LOG.txt
 matlab_array=$(make_matlab_array ${run_subs[@]})
 
 echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" | tee -a "${logfile_wd}"
-exit 0
+
 # unzip the epi* and anat files in the subject directories within wd_dir
 unzip_epi_anat ${wd_dir} ${SUBIDS[@]}
 
@@ -186,3 +186,6 @@ steps=$prefix
 update_nii ${wd_dir} ${steps} ${run_subs[@]}
 
 echo "${label} Done. $(date)" | tee -a "${logfile_wd}"
+
+# move current output file to output directory
+bash $SCRIPT_DIR_UTIL/cleanup_output $SLURM_JOB_ID

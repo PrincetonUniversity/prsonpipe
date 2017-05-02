@@ -289,3 +289,6 @@ EOF
     fi
   done
 done
+
+# move current output file to output directory
+bash $SCRIPT_DIR_UTIL/cleanup_output $SLURM_JOB_ID

@@ -184,5 +184,6 @@ ${pfile}" | tee -a "${logfile}"
 
 	echo "${label} Done. $(date)" | tee -a "${logfile}"
 done
-# move all slurm output files from current directory to output
-#mv ./*.out ${PROJECT_DIR}/output
+
+# move current output file to output directory
+bash $SCRIPT_DIR_UTIL/cleanup_output $SLURM_JOB_ID
