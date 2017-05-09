@@ -182,7 +182,7 @@ ${pfile}" | tee -a "${logfile}"
 	# update epi_r##.nii* files to their most recent versions
 	update_nii ${wd_dir} ${steps} ${SUBIDS[@]}
 
-	echo "${label} Done. $(date)" | tee -a "${logfile}"
+	echo "${label} DONE. $(date)" | tee -a "${logfile}"
 done
 
 # move current output file to output directory

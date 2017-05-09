@@ -185,7 +185,7 @@ steps=$prefix
 # update epi_r##.nii* files to their most recent versions
 update_nii ${wd_dir} ${steps} ${run_subs[@]}
 
-echo "${label} Done. $(date)" | tee -a "${logfile_wd}"
+echo "${label} DONE. $(date)" | tee -a "${logfile_wd}"
 
 # move current output file to output directory
 bash $SCRIPT_DIR_UTIL/cleanup_output $SLURM_JOB_ID
