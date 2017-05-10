@@ -14,8 +14,6 @@
 #  ${PROJECT_DIR}/auxil/archive/subid_list.txt
 #
 # flags:
-#  [-l <filename>] : full path to log file
-#                    default: ${PROJECT_DIR}/auxil/archive/LOG_convert.txt
 #  [-d <job ID>]   : sbatch dependency for convert_data jobs
 #  [-f]            : force convert (overwrite raw if it already exists)
 #  [subjects]      : last arguments (without flags) can be subject IDs
@@ -36,9 +34,6 @@ Usage:
 ------
   [-h | --help | -help]
     Display this help
-  [-l <filename>]
-    Override the default log file location with a different filename (full path).
-    Default: ${PROJECT_DIR}/auxil/archive/LOG_convert.txt
   [-d <job ID>]
     sbatch dependency for convert_data jobs
   [-f]
@@ -68,15 +63,6 @@ logfile=${PROJECT_DIR}/auxil/archive/LOG_convert.txt
 #Parse flags other than help
 while getopts ":l:d:fh" opt; do
   case $opt in
-    l)
-      logfile=$OPTARG
-      if [ ! -d $(dirname $logfile) ]; then
-        echo "$label ERROR: $logfile directory does not exist."
-        exit 1
-      fi
-      touch $logfile
-      echo "$label Using logfile: $logfile instead of default" | tee -a $logfile
-      ;;
     d)
       init_dependency=$OPTARG
       #check if this is a number
@@ -85,7 +71,6 @@ while getopts ":l:d:fh" opt; do
         echo "$label dependency job number $init_dependency is not a number."
         exit 1
       fi
-      echo "$label Using initial dependency $init_dependency" | tee -a $logfile
       ;;
     f)
       force=TRUE  
@@ -105,6 +90,14 @@ while getopts ":l:d:fh" opt; do
 done
 #remove used input args
 shift $((OPTIND -1))
+
+#set up the log file (after arg processing, to avoid deleting on -h call)
+[[ -f $logfile ]] && rm $logfile
+echo "$label running convert on $(date)" | tee -a $logfile  
+if [[ -n $init_dependency ]]; then
+echo "$label Using initial dependency $init_dependency" | tee -a $logfile
+fi
+
 #check if there are remaining arguments, that have not yet been processed
 if [[ ! -z $@ ]]; then
   convert_subs=( "$@" ) 
