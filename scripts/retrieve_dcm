@@ -1,16 +1,7 @@
 #!/bin/bash
 # retrieve_dcm
 #
-# author: vej@princeton.edu
-#
-# Oct 18 2012: adapted from "retrieve_data_from_sun" by mgsimon@princeton.edu and 
-# atompary@gmail.com 
-#
-# Feb 18, 2015, Nate Wilson, nmwilson@princeton.edu - updated script to include 
-# prisma and remove allegra compatibility this included changing the basic help prompt, 
-# the scanner directory path setting code, and allowing errors during the segment 
-# of this script that removes .dcm because of an error that can be ignored.
-#
+# author:  adapted from neuropipe retrieve_data script
 # March 15, 2016 Judith Mildner (JNM) - Changed DICOM_DIR variable to Tamir lab volume 
 # name to get data from lab volume instead of conquest 
 #
@@ -23,14 +14,13 @@
 # downloads raw DICOM data for the specified subject from jukebox and compresses 
 # it into a gzipped tar file at the file path specified by output_path
 ################################################################################----------
-# Arguments
-#  full subject ID (e.g 160108_tamir_socdep_004)
 # Files sourced:
 #  globals.par
 # Flags (0-1):
-#  [-h | -help | --help] 	: shows help
+#  [-h | -help | --help]   : shows help
 # Arguments:
-#  subname					: full subject name as saved in /jukebox
+#  subname		   : full subject name as saved in /jukebox
+#				can use multiple, separated by space
 ################################################################################----------
 # sbatch variables
 #SBATCH -J retreive-%j
@@ -45,7 +35,7 @@ cat << END
   Description:
   ------------
     downloads raw DICOM data for the specified subject from jukebox and compresses 
-    it into a gzipped tar file at the file path specified by output_path
+    it into a gzipped tar file in auxil/archive/dicom
   Usage:
   ------
     [-h | --help | -help]
@@ -64,7 +54,6 @@ source "${script_dir%scripts/*}/globals.par"
 source ${SCRIPT_DIR_UTIL}/funcs
 source ${PARS_DIR}/pars.par
 
-tmp_dir_zip="$(mktemp -d)"
 # add necessary names (no longer in globals.sh)
 DICOM_DIR="${BACKUP_DIR}/raw"
 RUNORDER_PATH="${PROJECT_DIR}/auxil/runorders"
@@ -114,10 +103,18 @@ for sub in "${subs[@]}"; do
 		fi
 
 		echo "$label $(date) Retrieving $SUBJ"
-		#check if subject has already been imported
+		tmp_dir_zip="$(mktemp -d)"
 		cp -r $DICOM_DIR/$SUBJ*/dcm/* $tmp_dir_zip/
 
 		tmp_dir="$(mktemp -d)"
+		
+		# Trap to delete temp directories if the script fails
+ 		function finish {
+  		  rm -rf $tmp_dir_zip
+  		  rm -rf $tmp_dir
+  		}
+  		trap finish EXIT
+	
 		mkdir $tmp_dir/$SUBJ/
 
 		# move into temp dir, quietly
