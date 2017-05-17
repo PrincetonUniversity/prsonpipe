@@ -34,7 +34,7 @@ if [[ $1 == "no-convert" ]]; then shift; else
 convert_log=${PROJECT_DIR}/auxil/archive/LOG_convert.txt
 echo "${label} $(date) -- Converting all dcm files to nii ---" | tee -a "${convert_log}"
 pushd ${SCRIPT_DIR_UTIL} > /dev/null
-bash convert_check -l $convert_log
+bash run_convert
 popd > /dev/null
 wait_for_it '[CONVERT]' $convert_log
 fi
