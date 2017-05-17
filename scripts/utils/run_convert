@@ -167,9 +167,12 @@ exec 9<> $SUBID_LIST #open file descriptor for subid_list.txt file -JNM
 # Create dependency for finish jobs
 unset dependency_flag
 jobs=${jobs#:}
+dependency_flag="--dependency=afterok:$jobs"
 if [[ -z "$jobs" ]]; then
   #if no jobs were started, finish without invoking finish_log (to avoid queue)
   echo "${label} Done. No subjects converted. $(date)" | tee -a $logfile
+else 
+  sbatch -t 1 -J finish_convert -p all $dependency_flag finish_log ${label} ${logfile}
 fi
 
 exec 9>&- #close subid_list.txt. file
