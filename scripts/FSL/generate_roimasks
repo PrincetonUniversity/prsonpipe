@@ -1,0 +1,151 @@
+#!/bin/bash
+# generate_roimasks
+#
+# 05/18/2017: jmildner@princeton.edu
+#
+# creates masks containing spherical ROIs based on coordinates listed in specs.txt
+# and the dimensions of the reference volume.
+# These masks are output in .nii.gz format in the same directory as the specs file.
+################################################################################---------
+# Files sourced:
+#   globals.par
+#
+# Flags:
+#   -s <roi spec file> : file with ROIs (relative to auxil/roi_masks or full path)
+#   -r <ref volume>    : standard (MNI space) volume with same dims as your preprocessed
+#											  data (e.g. DARTEL's tpm image, or a wanat.nii/wepi.nii).
+#                       use keyword 'DARTEL' to use the same image DARTEL used for reg
+################################################################################---------
+
+set -e
+
+function help_func () {
+cat << END
+generate_roimasks -s <spec file> -r <reference volume>
+Description:
+------------
+  generate_roimasks creates ROI masks based on coordinates listed in specs.txt file
+  and the dimensions of the reference volume.
+  These masks are output in .nii.gz format in the same directory as the specs file.
+  The specs file should have one line per ROI in the format: name,x y z,size
+  No headers, or comments allowed in the specs file. See wiki for examples
+  The reference volume is usually the same MNI volume you registered your data to.
+  Use keyword 'DARTEL' to use DARTEL\'s MNI template image SPM8/toolbox/Seg/TPM.nii
+Usage:
+------
+  [-h | --help | -help]
+    Display this help
+  -s <roi spec file>
+    file with ROI specifications. Either relative to auxil/roi_masks or full path
+  -r
+    MNI space reference volume for dimensions of mask
+END
+}
+######################### SET UP & PARSE ARGUMENTS #############################
+
+#First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
+
+#Get the name of the directory this script is in, to create full path to globals.par
+script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
+#Assuming the scripts dir is somewhere in the full path, this finds globals.par
+#source "${script_dir%scripts/*}/scripts/globals.par"
+source "${PROJECT_DIR}/scripts/globals.par"
+
+#logfile variables
+label="[GEN_ROI]"
+logfile=${PROJECT_DIR}/auxil/LOG_genROI.txt
+
+#Parse flags other than help
+while getopts ":s:r:h" opt; do
+  case $opt in
+    s)
+      specfile=$OPTARG
+      #check if the file exists
+      if [[ ! -f $specfile ]]; then
+        if [[ -f ${PROJECT_DIR}/auxil/roi_masks/${specfile} ]]; then
+          specfile="${PROJECT_DIR}/auxil/roi_masks/${specfile}"
+        elif [[ -f ${PROJECT_DIR}/auxil/roi_masks/${specfile}/specs.txt ]]; then
+          specfile="${PROJECT_DIR}/auxil/roi_masks/${specfile}/specs.txt"
+        elif [[ -f ${PROJECT_DIR}/${specfile} ]]; then
+          specfile="${PROJECT_DIR}/${specfile}"
+        else
+          echo "$label ERROR: ROI spec file $specfile not found."
+          exit 1
+        fi
+      fi
+      ;;
+    r)
+      refvol=$OPTARG
+      #check if the file exists
+      if [[ ! -f $refvol ]]; then
+        if [[ $refvol == 'DARTEL' ]]; then
+          #//todo: read this out from DARTEL pfile/script
+          refvol=${PKG_DIR}/SPM8/toolbox/Seg/TPM.nii
+        else
+          echo "$label ERROR: reference volume $refvol not found."
+          exit 1
+        fi
+      fi
+      ;;
+    h)
+      help_func
+      exit
+      ;;
+    \?)
+      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+      ;;
+    : ) #Catch options without arguments
+      echo "$label ERROR: $OPTARG requires an argument. Use -h for help."
+      exit 1
+    esac
+done
+#remove used input args
+shift $((OPTIND -1))
+
+if [[ -z $specfile ]]; then
+  echo "$label ERROR: no ROI spec file specified. Use -h for help."
+  exit 1
+fi
+if [[ -z $refvol ]]; then
+  echo "$label ERROR: no reference volume specified. Use -h for help."
+  exit 1
+fi
+
+#set up the log file (after arg processing, to avoid deleting on -h call)
+echo "$label running generate_roimasks on $(date)" | tee $logfile
+echo "$label using node: $(hostname)" | tee -a $logfile
+echo "$label" | tee -a $logfile
+echo -e "$label generating ROIs specified in $specfile \n \
+with dimensions from $refvol" | tee -a $logfile
+################################################################################
+
+module load fsl
+
+roidir=$(dirname $specfile)
+
+pushd $roidir > /dev/null
+while read p; do
+  name=$(echo $p | cut -d , -f 1)
+  loc=$(echo $p | cut -d , -f 2)
+  size=$(echo $p |  cut -d , -f 3)
+
+  echo "$label creating $name, at $loc, size $size" | tee -a $logfile
+  #convert mm to voxel coordinates based on template
+  voxloc=$(echo $loc | img2stdcoord -img $refvol -std $refvol -vox -)
+  #add '1' after each coordinate for the initial size, and 0 for time
+  fsl_coords=$(echo "$voxloc 0 " | sed -E 's/[[:space:]]+/ 1 /g')
+  #create a point in specified location
+  fslmaths $refvol -mul 0 -add 1 -roi $fsl_coords "point_$name" -odt float
+  #expand it to a sphere with specified size
+  fslmaths "point_$name" -kernel sphere $size -fmean "roi_$name" -odt float
+  #optionally, mask it with grey matter //todo
+  #fslmaths "roi_$name" -mas ../TPM_bin -bin "roi_$name"
+  echo "$label created: $name" | tee -a $logfile
+
+done < $specfile
+
+popd > /dev/null
+echo "$label Done. $(date)" | tee -a $logfile
+
