@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # generate_roimasks
 #
 # 05/18/2017: jmildner@princeton.edu
@@ -16,6 +16,12 @@
 #											  data (e.g. DARTEL's tpm image, or a wanat.nii/wepi.nii).
 #                       use keyword 'DARTEL' to use the same image DARTEL used for reg
 ################################################################################---------
+#SBATCH -J 'gen_roi'                         # Job name
+#SBATCH --workdir=./                          # Set working directory
+#SBATCH -o '../output/gen_roi-%j.out'     # Output file
+#SBATCH --mem-per-cpu=10240
+#SBATCH -t 240                               # Run time : Default time is 24 hours (2880 min)
+#SBATCH -p all
 
 set -e
 
@@ -120,7 +126,9 @@ echo "$label" | tee -a $logfile
 echo -e "$label generating ROIs specified in $specfile \n \
 with dimensions from $refvol" | tee -a $logfile
 ################################################################################
-
+#make sure the module command works, even within slurm
+#source /etc/profile.d/modules.sh
+#load fsl
 module load fsl
 
 roidir=$(dirname $specfile)
@@ -133,15 +141,18 @@ while read p; do
 
   echo "$label creating $name, at $loc, size $size" | tee -a $logfile
   #convert mm to voxel coordinates based on template
-  voxloc=$(echo $loc | img2stdcoord -img $refvol -std $refvol -vox -)
+  voxloc=$(echo $loc | std2imgcoord -img $refvol -std $refvol -vox -)
   #add '1' after each coordinate for the initial size, and 0 for time
   fsl_coords=$(echo "$voxloc 0 " | sed -E 's/[[:space:]]+/ 1 /g')
   #create a point in specified location
   fslmaths $refvol -mul 0 -add 1 -roi $fsl_coords "point_$name" -odt float
   #expand it to a sphere with specified size
   fslmaths "point_$name" -kernel sphere $size -fmean "roi_$name" -odt float
+  #binarize it
+  fslmaths "roi_$name" -bin "roi_$name"
   #optionally, mask it with grey matter //todo
   #fslmaths "roi_$name" -mas ../TPM_bin -bin "roi_$name"
+  rm point_${name}*
   echo "$label created: $name" | tee -a $logfile
 
 done < $specfile
