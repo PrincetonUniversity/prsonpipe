@@ -14,6 +14,8 @@ BACKUP_DIR=/jukebox/${LAB_NAME}/${PROJECT_NAME}
 RUNORDER_FILE=${PROJECT_DIR}/arch/subpars/runorders/$SUBJ*
 ###################################
 
+NUM_TASKS=${#TASKS[@]}
+
 # prep software names
 FSL=FSL
 DARTEL=DARTEL

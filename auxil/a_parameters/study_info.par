@@ -3,77 +3,63 @@
 # 
 # This file contains important information about your study. Directions:
 # 1. Change the variables below to match your study
-# 2. Add the order of scans typically used (as a template, you can customize the order for each subject if necessary)
-# 3. Write in the comments below a description of your data collection protocol. 
-#    It should contain all the info someone else would need to understand how to use your data. 
-# 4. Run the init_project script in the scripts directory ("bash scripts/init_project") 
-#    This will initialize files and directories specific to your study.
+# 2. Add the order of scans typically used 
+#    (you can customize the order for each subject later)
+# 3. Write a description of your data collection protocol. It should contain 
+#    all the info someone else would need to understand how to use your data. 
 #
-#26 July 2016, Judith Mildner (JNM) Change variable names for consistency with globals.par
-#11 August 2016, JNM Update to include new initialize script and run order template
-#
-#NOTE: The words between << >> in comment boxes are delimiters needed to set up your project. 
-#      Don't alter those, or the boxes surrounding them.
+# NOTE: The words between << >> in comment boxes are delimiters needed to set up
+#       your project. Do NOT alter those, or the boxes of #s surrounding them.
 
+###########------------------------ 1. PROJECT SETTINGS ------------------------##########
                    ####-DON'T TOUCH THIS-#### 
                    ###<<START_VARS>>      ###
                    ##########################
-#######--------------------PROJECT SETTINGS-------------------######
 
-PROJECT_NAME=<my_project>                          # ENTER THE STUDY NAME. Should be the same as project dir in /fastscratch/ and jukebox labvolume
-PROJECT_DIR=/jukebox/scratch/<netid>/<my_project>  # ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY ON FASTSCRATCH. 
-USER_EMAIL=<netid>@princeton.edu                   # ENTER YOUR EMAIL.  This will be used to send you updates on jobs you run on spock.
+# Change the variables below to match your study
 
-LAB_NAME=tamir                                     # name of lab on jukebox
-PKG_DIR=/jukebox/tamir/pkg                         # path to directory containing packages you will load
+# ENTER THE STUDY NAME. Should be the same as project directory name
+PROJECT_NAME=<my_project>
 
-SCANNER=Prisma					   # Scanner used: Prisma or Skyra
+# ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY              
+PROJECT_DIR=/jukebox/scratch/<netid>/<my_project>
 
-#######-------------------------TASKS------------------------######
+# ENTER YOUR EMAIL. This will be used to send you job updates
+USER_EMAIL=<netid>@princeton.edu
 
-# Write task names in the parentheses below, separated by a space (name should be 3 letters, easy to remember, see wiki for examples:
-TASKS=(TSK)                           # e.g. (TSK ABC XYZ)  make sure they are unique (no numbers, allcaps, three letters)
-PREP_SEP=0                            # Run each task with different preprocessing parameters? 1=yes, 0=no
-NUM_TASKS=${#TASKS[@]}
+# ENTER THE SCANNER NAME: Prisma or Skyra
+SCANNER=Prisma
 
+# ENTER TASK NAMES. Must be 3 letters, unique, in parentheses, separated by a space
+TASKS=(TSK)
+
+# Run each task with different preprocessing parameters? 1=yes, 0=no
+PREP_SEP=0
+
+# ENTER LAB NAME (looks for /jukebox/<LAB_NAME>)
+LAB_NAME=tamir
+
+# ENTER FULL PATH TO PACKAGES: directory containing packages you will load
+PKG_DIR=/jukebox/tamir/pkg
 
                    ####-DON'T TOUCH THIS-####
                    ###<<END_VARS>>        ###
                    ##########################
-
-######--------------------RUN ORDER TEMPLATE-----------------######
-# Between the START_RO and END_RO boxes, add the usual order of your scans as a run order template..
-# You will be able to customize each participant's run order when importing the data, but the template will be your starting point.
-# For each run in your protocol add the name of the scan and the number of TRs (optional). 
-# ERROR_RUN is used for each run you do not want to import (like your localizer, or a scan that was aborted midway through).
-# The localizer actually comes out as three runs, so add ERROR_RUN three times for that one.
-# Your anatomical will simply be named anat 
-# your epi's should be named epi_<taskname>_r<runnumber> (e.g. epi_TSK_r01). Note that the run number should always be 2 digits.
-# Spin echo's are named in the format <taskname>_SE_<direction> (e.g. TSK_SE_AP and TSK_SE_PA). 
-# For spin echo's applicable to multiple tasks use all_SE_AP and all_SE_PA. A task specific SE takes precedence over a general one.
-# See wiki on github for examples.
-
+###########----------------------- 2. RUN ORDER TEMPLATE -----------------------##########
                    ####-DON'T TOUCH THIS-####
                    ###<<START_RO>>        ###
                    ##########################
+
+# ENTER RUN ORDER: the order of scans typically used (see github wiki for examples)
+
 
 
 
                    ####-DON'T TOUCH THIS-####
                    ###<<END_RO>>          ### 
                    ##########################
-######---------------ENTER STUDY DESCRIPTION HERE------------######
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
+###########------------------------ 3. STUDY DESCRIPTION -----------------------##########
+# Write a description of your data collection protocol. Begin here:
 #
 #
 #
