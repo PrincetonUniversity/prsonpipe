@@ -56,7 +56,7 @@ function whatisit {
 
 	# test if var is a sub ID
 	re_num='^[0-9]+$'
-	if [[ "${var:0:1}" == s ]] && [[ "${#var}" -eq 4 ]] && [[ ${var: -3} =~ $re_num ]]; then
+	if [[ "$var" =~ ^s[0-9]{3}$ ]]; then
 		echo $isSUB # SUBJECT ID
 		return 0
 	# test if var is a number
