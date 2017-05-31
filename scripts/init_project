@@ -17,9 +17,9 @@ if [[ -n $1 && $1 != 'overwrite' ]]; then
   exit 1
 fi
 
+studyinfo_file=auxil/study_info.par
 runorder_file=auxil/runorders/run-order.txt
-pars_dir=auxil
-studyinfo_file=${pars_dir}/study_info.par
+pars_dir=scripts/prep_pars
 
 
 if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../${runorder_file} || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then

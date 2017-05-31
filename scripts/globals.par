@@ -22,7 +22,6 @@ SPM=SPM12
 PREP_SOFTS=("${FSL}" "${DARTEL}" "${SPMW}")
 
 # directories
-PARS_DIR=${PROJECT_DIR}/auxil/a_parameters
 RAW_DIR=${PROJECT_DIR}/raw
 PREP_DIR=${PROJECT_DIR}/prep
 QA_DIR=${PROJECT_DIR}/qa
@@ -30,6 +29,7 @@ OUT_DIR=${PROJECT_DIR}/output
 SCRIPT_DIR=${PROJECT_DIR}/scripts
 
 # subdirectories in scripts
+PARS_DIR=${SCRIPT_DIR}/prep_pars
 SCRIPT_DIR_SHORT=scripts
 SCRIPT_DIR_FSL=${SCRIPT_DIR}/${FSL}
 SCRIPT_DIR_DARTEL=${SCRIPT_DIR}/${DARTEL}
