@@ -4,14 +4,6 @@
 #
 ######################GENERAL#############################
 
-## acquisition parameters
-# TR (sec)
-TR=2.25
-# Number of TRs per Run
-NTR=209
-# Number of Runs
-RUNS=12
-
 ## subject IDs to exclude from analysis (format: s000), e.g. for missing data
 EXCLUDE_SUBS=(s000 s999)
 
@@ -52,7 +44,10 @@ SMOOTH=8
 VOX_SIZE=2.0
 
 
+
+
 ####(do not change)###(do not change)###(do not change)###(do not change)###
+
 ### Name of preprocessing (do not change)
 wd_dir="a$(echo ${SLICE_TIME^^} | cut -c1)r$(echo ${REALIGN^^} | cut -c1)u$(echo ${UNWARP^^} | cut -c1)w$(echo ${NORM^^} | cut -c1)s$(echo ${SMOOTH_SOFT^^} | cut -c1)"
 # SET UP PREPROCESSING STEPS BASED ON PARAMETERS FILE
@@ -63,25 +58,3 @@ declare -a step_names=("SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT")
 declare -a step_softs=("$SLICE_TIME" "$REALIGN" "$UNWARP" "$NORM" "$SMOOTH_SOFT" )
 # Create an array (step_exts) of all the preprocessing prefixes 
 declare -a step_exts=('a' 'r' 'u' 'w' 's')
-###########################################################################
-################## GLM -- level 1 ####################
-
-# --GLM Conditions--
-# Number of conditions
-NUM_EVENTS=4
-# Conditions: wrap the all in double quotes ("..."), each condition in single quotes ('.'), and separate with a comma
-EVENTS="'human','animal','vegetable','mineral'"
-
-##########33####### GLM -- MVPA ######################
-# === SPMw GLM-MVPA Settings ===
-
-# --GLM Onset File Specifications--
-# Seperate GLM per run: yes=1, no=0
-RUNSPLIT=0
-# Include outlier as nuissance in GLM
-OUTLIERS=0
-# Event/Block Duration (same units as TIME) (dur files will override)
-DURATION=0
-
-####################### level 2 #######################
-

@@ -19,7 +19,7 @@ fi
 
 studyinfo_file=auxil/study_info.par
 runorder_file=auxil/runorders/run-order.txt
-pars_dir=scripts/prep_pars
+pars_dir=scripts/preprocess
 
 
 if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../${runorder_file} || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
@@ -101,7 +101,7 @@ for name in ${TASKS[@]}; do
   mkdir -p ${RAW_DIR}/${name}/
   mkdir -p ${PREP_DIR}/${name}/
   if [[ $PREP_SEP -eq 1 ]]; then
-  cp "${PROJECT_DIR}/${pars_dir}/pars.par" "${PROJECT_DIR}/${pars_dir}/pars_${name}.par"
+  cp "${PROJECT_DIR}/${pars_dir}/prep.par" "${PROJECT_DIR}/${pars_dir}/prep_${name}.par"
   fi
 done
 
