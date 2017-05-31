@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+#
+# jmildner@princeton.edu, May 30 2017
+#
+# Run glm analysis with a design of nuisance regressors to get residuals for
+# ROI time course extraction
+################################################################################----------
+# Files sourced:
+#   globals.par
+# Flags:
+#  -p <prep_dir> : full path to directory with preprocessed epi
+#  -n <name>     : name this analysis (will create output dir with this name in analysis)
+#  -t <template> : name of fsf template in auxil/fsl_designs/templates
+################################################################################----------
+#SBATCH -J 'gen_reg'                         # Job name
+#SBATCH --workdir=./                          # Set working directory
+#SBATCH -o '../output/gen_reg-%j.out'     # Output file
+#SBATCH -c 2
+#SBATCH --mem-per-cpu=12288
+#SBATCH --mail-type=FAIL
+#SBATCH -t 240                               # Run time : Default time is 24 hours (2880 min)
+#SBATCH -p all
+
+set -e
+
+echo "on node: $(hostname) "
+
+module load fsl/5.0.9
+module load python/2.7
+label='[RST_GLM]'
+
+
+function help_func () {
+cat << END
+  roiRest_glm []
+  Description:
+  ------------
+
+  Usage:
+  ------
+    [-h | --help | -help]
+      Display this help
+
+END
+}
+################################################################################----------
+# First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
+
+# Source globals
+## Check if PROJECT_DIR is already known
+if [[ ! -z $PROJECT_DIR ]]; then
+	source ${PROJECT_DIR}/scripts/globals.par
+## check if globals is in the current directory
+elif [[ -f ./globals.par ]]; then
+	source globals.par
+## Check if we're not inside a slurm job
+elif [[ -z $SLURM_JOB_ID ]]; then
+	#Get the name of the directory this script is in, to create full path to globals.par
+	script_dir="$( cd "${BASH_SOURCE%/*}" ; pwd -P )"
+	#Assuming the scripts dir is somewhere in the full path, this finds globals.par
+	source "${script_dir%scripts/*}/scripts/globals.par"
+##error out if we can't find globals with any of these strategies
+else
+	echo "$label ERROR: can't find globals.par. Please source globals.par before starting."
+	exit
+fi
+
+# Set default options
+hFilter=111
+tempFilt=0
+tempDeriv=1
+epi=epi_r01.nii.gz
+
+# Parse flags
+while getopts ":p:n:t:h" opt; do
+	case "${opt}" in
+		h)
+		  help_func
+			exit
+		;;
+		p)
+		  prep_dir="${OPTARG}"
+			#If the directory is a subject directory (s with 3 digits), change it to its rst_prep
+      if basename "${prep_dir}" | grep -Eq 's[0-9]{3}'; then
+        prep_dir="${prep_dir}/rst_prep"
+			fi
+			#Make sure it exists
+			if [[ -d $prep_dir ]]; then
+				continue
+			elif [[ -d ${PROJECT_DIR}/${prep_dir} ]]; then
+				prep_dir="${PROJECT_DIR}/${prep_dir}"
+			elif [[ -d ${PREP_DIR}/${prep_dir} ]]; then
+				prep_dir="${PREP_DIR}/${prep_dir}"
+			else
+				echo "${label} ERROR: ${prep_dir} not found. Use -h for help"
+			fi
+		;;
+		n)
+		  glm_name="${OPTARG}"
+			if [[ -z ${glm_name} ]]; then
+				echo "${label} ERROR: please provide a name for this glm. Use -h for help"
+			fi
+		;;
+		t)
+		  template="${OPTARG}"
+			if [[ -f ${template} ]]; then
+				continue
+			elif [[ -f ${PROJECT_DIR}/auxil/fsl_designs/templates/${template} ]]; then
+				template=${PROJECT_DIR}/auxil/fsl_designs/templates/${template}
+			else
+				echo "${label} ERROR: ${template} not found. Use -h for help"
+			fi
+		;;
+		\?)
+      echo "$label ERROR: unknown flag specified: ${opt}. Use --help for help."
+      exit 1
+    ;;
+    : ) #Catch options without arguments
+      echo "$label ERROR: $OPTARG requires an argument. Use --help for help."
+      exit 1
+    esac
+done
+#remove used input args
+shift $((OPTIND -1))
+#check if there are remaining arguments, that have not yet been processed
+if [[ ! -z $@ ]]; then
+  echo "$label ERROR: unused argument(s) ${@}. Use --help for help"
+  exit 1
+fi
+
+
+################################################################################
+# create glm directory and temporary directory
+glm_dir="${PROJECT_DIR}/analysis/${USER}/glm/${glm_name}"
+mkdir -p "${glm_dir}"
+tmp_rst_dir=$(mktemp -d --tmpdir rst_glm.XXXXXX)
+
+function finish {
+	echo "${label} exiting..."
+  rsync -a "${tmp_rst_dir}/" "${glm_dir}/${subject}/" > /dev/null
+  rm -rf "${tmp_rst_dir}"
+  }
+trap finish EXIT
+
+logfile="${tmp_rst_dir}/LOG_glm.txt"
+touch "${logfile}"
+
+echo "${label} Starting glm analysis on $(date)" | tee "${logfile}"
+echo "${label} Analyzing ${epi} in ${prep_dir}" | tee -a "${logfile}"
+echo "${label} Using template ${template} with output dir ${glm_dir}" \
+  | tee -a "$logfile"
+
+# get subject ID from path to prep dir (s followed by exactly 3 digits)
+subject=$( echo "${prep_dir}" | grep -Eo 's[0-9]{3}' )
+mkdir "${glm_dir}/${subject}"
+# make subject design directory one level above the templates dir
+sub_template_dir=$(dirname $(dirname ${template}))/${subject}
+mkdir -p $sub_template_dir
+
+TR=$( fslval "${prep_dir}/${epi}" "pixdim4" )
+NVOLS=$( fslnvols "${prep_dir}/${epi}" )
+moco_dir="${prep_dir}/mc_${epi%.nii.gz}"
+
+echo "${label} rendering the design template" | tee -a "${logfile}"
+cat ${template} \
+	| sed "s|<<TR>>|$TR|g" \
+	| sed "s|<<NVOLS>>|$NVOLS|g" \
+	| sed "s|<<hFilter>>|${hFilter}|g" \
+	| sed "s|<<tempFilt>>|${tempFilt}|g" \
+	| sed "s|<<tempDeriv>>|${tempDeriv}|g" \
+	| sed "s|<<MOTION1>>|${moco_dir}/motion1.par|g" \
+	| sed "s|<<MOTION2>>|${moco_dir}/motion2.par|g" \
+	| sed "s|<<MOTION3>>|${moco_dir}/motion3.par|g" \
+	| sed "s|<<MOTION4>>|${moco_dir}/motion4.par|g" \
+	| sed "s|<<MOTION5>>|${moco_dir}/motion5.par|g" \
+	| sed "s|<<MOTION6>>|${moco_dir}/motion6.par|g" \
+	| sed "s|<<WM>>|${prep_dir}/WM_meants.txt|g" \
+	| sed "s|<<CSF>>|${prep_dir}/CSF_meants.txt|g" \
+	> ${sub_template_dir}/glm_${SUB}_${glm_name}.fsf
+
+#copy necessary files to the tmp dir
+cp ${sub_template_dir}/glm_${SUB}_${glm_name}.fsf ${tmp_rst_dir}/design.fsf
+cp "${prep_dir}/${epi}" "${tmp_rst_dir}"
+echo "${label} creating design matrix" | tee -a "${logfile}"
+pushd "${tmp_rst_dir}" > /dev/null
+feat_model design
+echo "${label} starting GLM" | tee -a "${logfile}"
+film_gls --in="${epi}" --rn=stats --pd=design.mat --thr=0.000000 --noest \
+  | tee -a "${logfile}"
+popd > /dev/null
+
+echo "${label} Done. $(date)"

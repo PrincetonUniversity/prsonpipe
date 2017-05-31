@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+#
+# jmildner@princeton.edu, May 31 2017
+#
+#
+################################################################################----------
+#SBATCH -J 'time'                      # Job name
+#SBATCH --workdir=./                      # Set working directory
+#SBATCH -o '../output/time-%j.out'     # Output file
+#SBATCH -c 2
+#SBATCH --mem-per-cpu=12288
+#SBATCH --mail-type=FAIL
+#SBATCH -t 30                            # Run time
+#SBATCH -p all
+
+set -e
+
+module load fsl/5.0.9
+label='[TIME]'
+
+function help_func () {
+cat << END
+  roiRest_extractTime []
+  Description:
+  ------------
+
+  Usage:
+  ------
+    [-h | --help | -help]
+      Display this help
+
+END
+}
+
+################################################################################----------
+
+# First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
+
+# Source globals
+## Check if PROJECT_DIR is already known
+if [[ ! -z $PROJECT_DIR ]]; then
+	source ${PROJECT_DIR}/scripts/globals.par
+## check if globals is in the current directory
+elif [[ -f ./globals.par ]]; then
+	source globals.par
+## Check if we're not inside a slurm job
+elif [[ -z $SLURM_JOB_ID ]]; then
+	#Get the name of the directory this script is in, to create full path to globals.par
+	script_dir="$( cd "${BASH_SOURCE%/*}" ; pwd -P )"
+	#Assuming the scripts dir is somewhere in the full path, this finds globals.par
+	source "${script_dir%scripts/*}/scripts/globals.par"
+##error out if we can't find globals with any of these strategies
+else
+	echo "$label ERROR: can't find globals.par. Please source globals.par before starting."
+	exit
+fi
+
+# Parse flags
+while getopts ":r:g:h" opt; do
+	case "${opt}" in
+		h)
+		  help_func
+			exit
+		;;
+		r)
+      roi_dir="${OPTARG}"
+      if [[ -d ${roi_dir} ]]; then
+        continue
+      elif [[ -d ${PROJECT_DIR}/auxil/roi_masks/${roi_dir} ]]; then
+        roi_dir="${PROJECT_DIR}/auxil/roi_masks/${roi_dir}"
+      elif [[ -d ${PROJECT_DIR}/auxil/${roi_dir} ]]; then
+        roi_dir="${PROJECT_DIR}/auxil/${roi_dir}"
+      else
+        echo "${label} ERROR: ROI directory ${roi_dir} not found. Use -h for help."
+        exit 1
+      fi
+    ;;
+    g)
+      glm_dir="${OPTARG}"
+      #turn it into the stats subdir if a subject directory is given
+      if basename "${glm_dir}" | grep -Eq 's[0-9]{3}'; then
+        glm_dir="${glm_dir}/stats"
+			fi
+      if [[ -d ${glm_dir} ]]; then
+        continue
+      elif [[ -d ${PROJECT_DIR}/${glm_dir} ]]; then
+        glm_dir="${PROJECT_DIR}/${glm_dir}"
+      elif [[ -d ${PROJECT_DIR}/analysis/${glm_dir} ]]; then
+        glm_dir="${PROJECT_DIR}/analysis/${glm_dir}"
+      elif [[ -d ${PROJECT_DIR}/analysis/${USER}/${glm_dir} ]]; then
+        glm_dir="${PROJECT_DIR}/analysis/${USER}/${glm_dir}"
+      elif [[ -d ${PROJECT_DIR}/analysis/${USER}/glm/${glm_dir} ]]; then
+        glm_dir="${PROJECT_DIR}/analysis/${USER}/glm/${glm_dir}"
+      else
+        echo "${label} ERROR: GLM directory ${glm_dir} not found. Use -h for help."
+        exit 1
+      fi
+    ;;
+		\?)
+      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+    ;;
+    : ) #Catch options without arguments
+      echo "$label ERROR: $OPTARG requires an argument. Use --help for help."
+      exit 1
+    esac
+done
+#remove used input args
+shift $((OPTIND -1))
+#check if there are remaining arguments, that have not yet been processed
+if [[ ! -z $@ ]]; then
+  echo "$label ERROR: unused argument(s) ${@}. Use --help for help"
+  exit 1
+fi
+
+################################################################################----------
+output_dir=$(dirname "${glm_dir}")
+tmp_out_dir=$(mktemp -d --tmpdir rst_time.XXXXXX)
+logfile="${tmp_out_dir}/LOG_extractTime.txt"
+
+function error() {
+  ## Arguments: exit status
+  ## Output: error message if necessary, clean up temp dir.
+    echo "${label} ERROR: an error occurred in the analysis." \
+      | tee -a ${logfile}
+    echo "${label} cleaning up..." | tee -a ${logfile}
+    rsync -a "${tmp_out_dir}/" "${output_dir}/"
+    rm -rf "${tmp_out_dir}"
+  }
+trap 'error' EXIT
+
+echo "${label} $(date)" | tee ${logfile}
+echo "${label} Extracting time courses from ${glm_dir#"${PROJECT_DIR}/"} \
+for all ROIs in ${roi_dir#"${PROJECT_DIR}/"}" | tee -a ${logfile}
+tmp_time_dir="${tmp_out_dir}/$(basename $roi_dir)"
+mkdir ${tmp_time_dir}
+for mask in "${roi_dir}"/roi_*.nii*; do
+  mask_name=$(basename $mask)
+  echo "${label} processing ROI ${mask_name}"
+  fslmeants -i "${glm_dir}/res4d.nii.gz" \
+            -o "${tmp_time_dir}/time_${mask_name%.nii.gz}.txt" \
+            -m "${mask}"
+
+done
+paste "${tmp_time_dir}"/time_* > "${tmp_time_dir}"/time_all.txt
+
+#clean up, print Done and remove the trap before exiting.
+rsync -a "${tmp_out_dir}/" "${output_dir}/"
+rm -rf "${tmp_out_dir}"
+echo "${label} Done. $(date)" | tee -a "${output_dir}/$(basename ${logfile})"
+trap - EXIT
