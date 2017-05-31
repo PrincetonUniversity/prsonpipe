@@ -6,13 +6,11 @@
 
 set -e # stop immediately when an error occurs
 
+# STUDY INFO
+
 <<STUDY_INFO_VARS_HERE>>
 
 BACKUP_DIR=/jukebox/${LAB_NAME}/${PROJECT_NAME}
-
-####retrieve script uses these#### edited to source from study_info
-RUNORDER_FILE=${PROJECT_DIR}/arch/subpars/runorders/$SUBJ*
-###################################
 
 NUM_TASKS=${#TASKS[@]}
 
@@ -23,16 +21,15 @@ SPMW=SPM12w
 SPM=SPM12
 PREP_SOFTS=("${FSL}" "${DARTEL}" "${SPMW}")
 
+# directories
 PARS_DIR=${PROJECT_DIR}/auxil/a_parameters
-
 RAW_DIR=${PROJECT_DIR}/raw
 PREP_DIR=${PROJECT_DIR}/prep
 QA_DIR=${PROJECT_DIR}/qa
 OUT_DIR=${PROJECT_DIR}/output
-SCRIPT_DIR=${PROJECT_DIR}/scripts   # CHANGED TO BE CONSISTENT!!
+SCRIPT_DIR=${PROJECT_DIR}/scripts
 
-#SCRIPT_DIR_FULL=${PROJECT_DIR}/scripts
-
+# subdirectories in scripts
 SCRIPT_DIR_SHORT=scripts
 SCRIPT_DIR_FSL=${SCRIPT_DIR}/${FSL}
 SCRIPT_DIR_DARTEL=${SCRIPT_DIR}/${DARTEL}
@@ -40,10 +37,9 @@ SCRIPT_DIR_SPM=${SCRIPT_DIR}/${SPM}
 SCRIPT_DIR_SPMW=${SCRIPT_DIR}/${SPMW}
 SCRIPT_DIR_UTIL=${SCRIPT_DIR}/utils
 
-#FSF_DIR=fsf
 DICOM_ARCHIVE=${PROJECT_DIR}/auxil/archive/nifti/raw.tar.gz # IS THIS NEEDED?
 
-# Types
+# Variable types
 isNUM=NUM   # whatisit(x) -> x is a number (#)
 isSUB=SUB   # whatisit(x) -> x is a subject ID (s###) 
 isDIR=DIR   # whatisit(x) -> x is an existing directory (prep/TSK)
@@ -68,4 +64,5 @@ isIDK=IDK   # whatisit(x) does not know what x is
 #ROI_DIR=results/roi
 #ROI_KERNEL_TYPE=sphere
 #ROI_KERNEL_SIZE=4
+
 

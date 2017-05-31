@@ -18,7 +18,7 @@ if [[ -n $1 && $1 != 'overwrite' ]]; then
 fi
 
 runorder_file=auxil/runorders/run-order.txt
-pars_dir=auxil/a_parameters
+pars_dir=auxil
 studyinfo_file=${pars_dir}/study_info.par
 
 
@@ -36,7 +36,7 @@ fi
 
 #Source the project settings lines of study_info
 source /dev/stdin <<EOF
-$(sed -n '/-PROJECT\ SETTINGS-/,/-TASKS-/p' ../${studyinfo_file} | head -n -1 | tail -n +2)
+$(sed -n '/-\ 1\.\ PROJECT\ SETTINGS\ -/,/-\ 2\.\ RUN\ ORDER\ TEMPLATE\ -/p' ../${studyinfo_file} | head -n -1 | tail -n +2)
 EOF
 
 
@@ -56,11 +56,12 @@ if [[ ${#TASKS[@]} -eq 0 ]]; then
 fi
 
 #Check if the number of tasks (NUM_TASKS) matches task names
-if [[ $NUM_TASKS -ne ${#TASKS[@]} ]]; then
-  echo "Number of tasks does not match number of task names. Aborting." >&2
-  exit 1
-fi
+#if [[ $NUM_TASKS -ne ${#TASKS[@]} ]]; then
+#  echo "Number of tasks does not match number of task names. Aborting." >&2
+#  exit 1
+#fi
 # 3 letters & allcaps?
+
 i=0
 for name in ${TASKS[@]}; do
   if ! [[ $name == [A-Z][A-Z][A-Z] ]]; then
