@@ -17,9 +17,9 @@ if [[ -n $1 && $1 != 'overwrite' ]]; then
   exit 1
 fi
 
+studyinfo_file=auxil/study_info.par
 runorder_file=auxil/runorders/run-order.txt
-pars_dir=auxil/a_parameters
-studyinfo_file=${pars_dir}/study_info.par
+pars_dir=scripts/preprocess
 
 
 if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../${runorder_file} || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
@@ -36,7 +36,7 @@ fi
 
 #Source the project settings lines of study_info
 source /dev/stdin <<EOF
-$(sed -n '/-PROJECT\ SETTINGS-/,/-TASKS-/p' ../${studyinfo_file} | head -n -1 | tail -n +2)
+$(sed -n '/-\ 1\.\ PROJECT\ SETTINGS\ -/,/-\ 2\.\ RUN\ ORDER\ TEMPLATE\ -/p' ../${studyinfo_file} | head -n -1 | tail -n +2)
 EOF
 
 
@@ -56,11 +56,12 @@ if [[ ${#TASKS[@]} -eq 0 ]]; then
 fi
 
 #Check if the number of tasks (NUM_TASKS) matches task names
-if [[ $NUM_TASKS -ne ${#TASKS[@]} ]]; then
-  echo "Number of tasks does not match number of task names. Aborting." >&2
-  exit 1
-fi
+#if [[ $NUM_TASKS -ne ${#TASKS[@]} ]]; then
+#  echo "Number of tasks does not match number of task names. Aborting." >&2
+#  exit 1
+#fi
 # 3 letters & allcaps?
+
 i=0
 for name in ${TASKS[@]}; do
   if ! [[ $name == [A-Z][A-Z][A-Z] ]]; then
@@ -100,7 +101,7 @@ for name in ${TASKS[@]}; do
   mkdir -p ${RAW_DIR}/${name}/
   mkdir -p ${PREP_DIR}/${name}/
   if [[ $PREP_SEP -eq 1 ]]; then
-  cp "${PROJECT_DIR}/${pars_dir}/pars.par" "${PROJECT_DIR}/${pars_dir}/pars_${name}.par"
+  cp "${PROJECT_DIR}/${pars_dir}/prep.par" "${PROJECT_DIR}/${pars_dir}/prep_${name}.par"
   fi
 done
 

@@ -1,0 +1,76 @@
+# study_info
+# author: Miriam Weaverdyck 7/26/2016
+# 
+# This file contains important information about your study. Directions:
+# 1. Change the variables below to match your study
+# 2. Add the order of scans typically used 
+#    (you can customize the order for each subject later)
+# 3. Write a description of your data collection protocol. It should contain 
+#    all the info someone else would need to understand how to use your data. 
+#
+# NOTE: The words between << >> in comment boxes are delimiters needed to set up
+#       your project. Do NOT alter those, or the boxes of #s surrounding them.
+
+###########------------------------ 1. PROJECT SETTINGS ------------------------##########
+                   ####-DON'T TOUCH THIS-#### 
+                   ###<<START_VARS>>      ###
+                   ##########################
+
+# Change the variables below to match your study
+
+# ENTER THE STUDY NAME. Should be the same as project directory name
+PROJECT_NAME=<my_project>
+
+# ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY              
+PROJECT_DIR=/jukebox/scratch/<netid>/<my_project>
+
+# ENTER YOUR EMAIL. This will be used to send you job updates
+USER_EMAIL=<netid>@princeton.edu
+
+# ENTER THE SCANNER NAME: Prisma or Skyra
+SCANNER=Prisma
+
+# ENTER TASK NAMES. Must be 3 letters, unique, in parentheses, separated by a space
+TASKS=(TSK)
+
+# Run each task with different preprocessing parameters? 1=yes, 0=no
+PREP_SEP=0
+
+# ENTER LAB NAME (looks for /jukebox/<LAB_NAME>)
+LAB_NAME=tamir
+
+# ENTER FULL PATH TO PACKAGES: directory containing packages you will load
+PKG_DIR=/jukebox/tamir/pkg
+
+                   ####-DON'T TOUCH THIS-####
+                   ###<<END_VARS>>        ###
+                   ##########################
+###########----------------------- 2. RUN ORDER TEMPLATE -----------------------##########
+                   ####-DON'T TOUCH THIS-####
+                   ###<<START_RO>>        ###
+                   ##########################
+
+# ENTER RUN ORDER: the order of scans typically used (see github wiki for examples)
+
+
+
+
+                   ####-DON'T TOUCH THIS-####
+                   ###<<END_RO>>          ### 
+                   ##########################
+###########------------------------ 3. STUDY DESCRIPTION -----------------------##########
+# Write a description of your data collection protocol. Begin here:
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#

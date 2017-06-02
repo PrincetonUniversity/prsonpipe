@@ -61,7 +61,7 @@ for t in "${TASKS[@]}"; do
 
 	# GET PARAMETERS
 	# source task's pars file
-	if [[ $PREP_SEP -eq 0 ]]; then parsfile=pars.par; else parsfile=pars_${t}.par; fi
+	if [[ $PREP_SEP -eq 0 ]]; then parsfile=prep.par; else parsfile=prep_${t}.par; fi
 	source ${PARS_DIR}/${parsfile}
 
 	# make sure that all steps are correct
@@ -79,23 +79,21 @@ for t in "${TASKS[@]}"; do
 				snum=$((${snum} + 1))
 			done
 			if [[ ${snum} -eq ${#PREP_SOFTS[@]} ]]; then
-				echo "${label} ERROR: ${step_name}=$p is not a valid \
-					software choice. Each step must be set to one of \
-					the following: none ${PREP_SOFTS[@]}";
+				echo "${label} ERROR: ${step_name}=$p is not a valid software choice. \
+Each step must be set to one of the following: none ${PREP_SOFTS[@]}";
 				exit
 			fi
 		fi
 		# DARTEL
 		if [[ $p == ${DARTEL} ]]; then 
 			if [[ ${NORM} != ${DARTEL} ]]; then
-				echo "${label} ERROR: ${step_name}=${p} but NORM=${NORM}.\
-				 In ${DARTEL}, NORM must always be used. Aborting...";
+				echo "${label} ERROR: ${step_name}=${p} but NORM=${NORM}. \
+In ${DARTEL}, NORM must always be used.";
 				exit
 			fi
 			if [[ ${REALIGN} == ${DARTEL} ]] && [[ ${UNWARP} != 'none' ]]; 
-			then echo "${label} ERROR: ${step_name}=${p} but UNWARP=${UNWARP}\
-			. In ${DARTEL}, if REALIGN is used, then UNWARP must be set to \
-			'none'. Aborting..."
+			then echo "${label} ERROR: ${step_name}=${p} but UNWARP=${UNWARP}. \
+In ${DARTEL}, if REALIGN is used, then UNWARP must be set to 'none'."
 			exit
 			fi
 		fi
@@ -103,14 +101,14 @@ for t in "${TASKS[@]}"; do
 	done
 	# FSL
 	if [[ ${UNWARP} == ${FSL} ]] && [[ ${REALIGN} != ${FSL} ]]; then 
-		echo "${label} ERROR: UNWARP=${UNWARP} but REALIGN=${REALIGN}. In ${FSL},\
-			 if UNWARP is used, then REALIGN must be as well. Aborting..."
+		echo "${label} ERROR: UNWARP=${UNWARP} but REALIGN=${REALIGN}. In ${FSL}, \
+if UNWARP is used, then REALIGN must be as well. Aborting..."
 		exit
 	fi
 	# SPM12w
 	if [[ ${NORM} == ${SPMW} ]] && [[ ${REALIGN} != ${SPMW} ]]; then 
-		echo "${label} ERROR: NORM=${NORM} but REALIGN=${REALIGN}. In ${SPMW}, if\
-			 NORM is used, then REALIGN must be as well. Aborting..."
+		echo "${label} ERROR: NORM=${NORM} but REALIGN=${REALIGN}. In ${SPMW}, if \
+NORM is used, then REALIGN must be as well. Aborting..."
 		exit
 	fi
 
@@ -242,10 +240,8 @@ for t in "${TASKS[@]}"; do
 
 				# if all steps were set to none, skip to next task
 				if [[ -z ${pnames} ]]; then  
-					echo "${label} All steps set to 'none'. Moving \
-						on to next task..."
-					echo "${label} WARNING: All steps set to 'none'"\
-						 | tee -a "$logfile_wd"
+					echo "${label} All steps set to 'none'. Moving on to next task..."
+					echo "${label} WARNING: All steps set to 'none'" | tee -a $logfile_wd
 					break 2
 				fi
 
@@ -285,7 +281,8 @@ for t in "${TASKS[@]}"; do
 				flags="${!tflag} $oflag $jflag $mflag $dflag"
 				prev_jobid=$(sbatch $flags "${run_script}" -p "$pfile" "$s" | grep -o '[0-9]*')
 				# save/print jobid number
-				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject ${s}"
+				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames}\
+ in ${cur_soft} for subject ${s}"
 				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
 				
 				# Append job ID to list of job IDs DARTEL has to wait for
@@ -365,7 +362,8 @@ for t in "${TASKS[@]}"; do
                 prev_jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
 
 		# print jobid to console
-		jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject(s) ${SUBS[@]}"
+		jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in \
+${cur_soft} for subject(s) ${SUBS[@]}"
 		echo ${jobinfo_str}
 
 		# write to each sub's logfiles
@@ -422,7 +420,8 @@ for t in "${TASKS[@]}"; do
 				dflag="--dependency=afterok:${prev_jobid}"
 				flags="${!tflag} $oflag $jflag $mflag $dflag"
 		                prev_jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" "${s}" | grep -o '[0-9]*')
-				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in ${cur_soft} for subject ${s}"
+				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames}\
+ in ${cur_soft} for subject ${s}"
 				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
 				popd > /dev/null
 
