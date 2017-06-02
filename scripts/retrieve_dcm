@@ -18,6 +18,7 @@
 #  globals.par
 # Flags (0-1):
 #  [-h | -help | --help]   : shows help
+#  [-f]                    : forces overwrite if the subject already exists
 # Arguments:
 #  subname		   : full subject name as saved in /jukebox
 #				can use multiple, separated by space
@@ -40,13 +41,15 @@ cat << END
   ------
     [-h | --help | -help]
       Display this help
+    [-f]
+      Forces overwrite if subject's data already exists
 END
 }
 ######################### SET UP & PARSE ARGUMENTS #############################
 
 #First, check for help flag (multi-character flags not supported by getopts)
 if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
-
+if [[ $1 == -f ]]; then force=true; shift; fi 
 #Get the name of the directory this script is in, to create full path to globals.par
 script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
 #Assuming the scripts dir is somewhere in the full path, this finds globals.par
@@ -87,6 +90,7 @@ for sub in "${subs[@]}"; do
 	fi
 
 	for SUBJFILE in "${subfiles[@]}"; do 
+		echo
 		SUBJ=$(basename $SUBJFILE)
 		num2subID ${SUBJ: -3}
 		output_file="raw_${SUBJ}.tar.gz"
@@ -97,9 +101,12 @@ for sub in "${subs[@]}"; do
 			echo "$label Skipping subject ${SUBJ} - excluded"
 			echo $label; continue
 		# if subject already retrieved, continue on to next subj
-		elif [[ -e "${output_dir}/${output_file}" ]]; then
+		elif [[ -e "${output_dir}/${output_file}" ]] && [[ $force != true ]]; then
 			echo "$label Skipping subject ${SUBJ} - already exists"
 			echo $label; continue
+		elif [[ -e "${output_dir}/${output_file}" ]] && [[ $force == true ]]; then
+			echo "${label} Removing existing data for ${SUBJ}"
+			rm -rf "${output_dir}/${output_file}"
 		fi
 
 		echo "$label $(date) Retrieving $SUBJ"
@@ -194,6 +201,7 @@ for sub in "${subs[@]}"; do
 		echo "$label Please check the run order for this subject. Edit ${RUNORDER_PATH}/${SUBJ}.txt if incorrect."
 
 		echo "$label Finished retrieving ${SUBJ} data from $DICOM_DIR"
+		echo
 	done
 done
 echo "$label Done. $(date)"
