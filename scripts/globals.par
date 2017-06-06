@@ -1,6 +1,6 @@
 #!/bin/bash
 # globals.par
-# 
+#
 # this script sets up global variables for the entire analysis of this project
 ################################################################################----------
 
@@ -35,13 +35,17 @@ SCRIPT_DIR_FSL=${SCRIPT_DIR}/${FSL}
 SCRIPT_DIR_DARTEL=${SCRIPT_DIR}/${DARTEL}
 SCRIPT_DIR_SPM=${SCRIPT_DIR}/${SPM}
 SCRIPT_DIR_SPMW=${SCRIPT_DIR}/${SPMW}
-SCRIPT_DIR_UTIL=${SCRIPT_DIR}/utils
+
+# scripts subdirectories
+SCRIPT_DIR_SUBLVL="${SCRIPT_DIR/sub_level"
+SCRIPT_DIR_UTIL="${SCRIPT_DIR}/utils"
+SCRIPT_DIR_ROI="${SCRIPT_DIR_SUBLVL}/roi"
 
 DICOM_ARCHIVE=${PROJECT_DIR}/auxil/archive/nifti/raw.tar.gz # IS THIS NEEDED?
 
 # Variable types
 isNUM=NUM   # whatisit(x) -> x is a number (#)
-isSUB=SUB   # whatisit(x) -> x is a subject ID (s###) 
+isSUB=SUB   # whatisit(x) -> x is a subject ID (s###)
 isDIR=DIR   # whatisit(x) -> x is an existing directory (prep/TSK)
 isTSK=TSK   # whatisit(x) -> x is a task according to TASKS[@] (TSK)
 isIDK=IDK   # whatisit(x) does not know what x is
@@ -64,5 +68,3 @@ isIDK=IDK   # whatisit(x) does not know what x is
 #ROI_DIR=results/roi
 #ROI_KERNEL_TYPE=sphere
 #ROI_KERNEL_SIZE=4
-
-
