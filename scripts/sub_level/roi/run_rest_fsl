@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+#
+# jmildner@princeton.edu, May 31 2017
+#
+# ROI resting state analysis using FSL. Can handle bandpass filter, creation of
+# nuisance regressors, first level glm with those regressors, and ROI time course
+# extraction. Use generate_roimasks to create ROIs, if you haven't already.
+################################################################################
+# Files sourced:
+#  globals.par
+#  funcs
+# Arguments:
+#  -p <pfile>  : rest.par parameter file
+#  <subjects>  : a list of subject IDs (s002 s003 s004), or keyword 'all'
+################################################################################----------
+
+set -e
+
+label='[RST_ROI]'
+
+
+function help_func () {
+cat << END
+  run_roiRest []
+  Description:
+  ------------
+
+  Usage:
+  ------
+    [-h | --help | -help]
+      Display this help
+
+END
+}
+
+################################################################################----------
+
+# First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
+
+# Source globals
+## Check if PROJECT_DIR is already known
+if [[ ! -z $PROJECT_DIR ]]; then
+	source ${PROJECT_DIR}/scripts/globals.par
+## check if globals is in the current directory
+elif [[ -f ./globals.par ]]; then
+	source globals.par
+## Check if we're not inside a slurm job
+elif [[ -z $SLURM_JOB_ID ]]; then
+	#Get the name of the directory this script is in, to create full path to globals.par
+	script_dir="$( cd $(dirname ${BASH_SOURCE[0]}) ; pwd -P )"
+	#Assuming the scripts dir is somewhere in the full path, this finds globals.par
+	source "${script_dir%scripts/*}/scripts/globals.par"
+##error out if we can't find globals with any of these strategies
+else
+	echo "$label ERROR: can't find globals.par. Please source globals.par before starting."
+	exit
+fi
+source "${SCRIPT_DIR_UTIL}/funcs"
+
+while getopts ":p:h" opt; do
+	case "${opt}" in
+		h)
+		  help_func
+			exit
+		;;
+    p)
+      pfile=${OPTARG}
+      if [[ -f ${SCRIPT_DIR_ROI}/${pfile} ]]; then
+        echo "${label} Using parameters in ${pfile}"
+        pfile="${SCRIPT_DIR_ROI}/${pfile}"
+      elif [[ -f ${pfile} ]]; then
+        pfile="${pfile}"
+      else
+        echo "${label} ERROR ${pfile} not found. Use -h for help."
+      fi
+    ;;
+    \?)
+      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+    ;;
+    : ) #Catch options without arguments
+      echo "$label ERROR: $OPTARG requires an argument. Use --help for help."
+      exit 1
+    esac
+done
+#remove used input args
+shift $((OPTIND -1))
+
+if [[ -z $@ ]]; then
+  echo "$label ERROR: missing subject argument. Use -h for help"
+  exit 1
+fi
+
+subject="$@"
+source ${pfile}
+#get subjects from arguments
+get_subs "${TSK}" "${subject}"
+
+
+################################################################################----------
+sflags="--workdir=${SCRIPT_DIR} --mail-user=${USER_EMAIL}"
+
+for subject in ${SUBS[@]};do
+  subdir="${prep_dir}"/"${subject}"
+  #TODO: add flag customization
+  #TODO: check for excluded subjects
+  echo "${label} Processing ${subdir}"
+  echo "${label} Creating nuisance regressors"
+  nr_job=$(sbatch ${sflags} ${SCRIPT_DIR_ROI}/sbatch_rest_preglm_fsl \
+    -p ${pfile}  ${subject} | grep -o '[0-9]*')
+  echo "${label} nuissance regressor job ${nr_job}"
+
+  d="--dependency=afterok:${nr_job}"
+  glm_job=$(sbatch ${sflags} ${d} ${SCRIPT_DIR_ROI}/sbatch_rest_glm_fsl \
+    -p ${pfile} ${subject} | grep -o '[0-9]*')
+  echo "${label} glm job ${glm_job}"
+
+  d="--dependency=afterok:${glm_job}"
+  echo "${label} timecourse extraction"
+  subject=$(basename "${subdir}")
+  sbatch ${sflags} ${d} ${SCRIPT_DIR_ROI}/sbatch_rest_timecourse_fsl \
+    -p ${pfile} ${subject}
+done

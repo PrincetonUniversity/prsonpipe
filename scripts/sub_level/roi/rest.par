@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+#
+# Parameters for resting state ROI functional connectivity analysis.
+TSK=RST
+prep_dir="${PROJECT_DIR}/prep/${TSK}/aNrFuNwDsD" # directory with preprocessed rest data
+### sbatch_rest_preglm_fsl parameters ###
+# pre-glm processing
+bandpass=1  # Bandpass filter epi? (high and/or low, 1 = on, 0=off)
+hFilter=111 # High pass filter in seconds. To turn off, set to -1
+lFilter=-1  # Low pass filter in seconds. To turn off, set to -1
+trim=6      # number of TRs to trim from start of scan before glm
+intens=0    # perform intensity normalization?
+# nuisance regressors (1=on, 0=off)
+motion=1         # re-format motion parameters to use in glm?
+wm=1             # create white matter nuisance regressor?
+WM_vol=mwc2anat  # name of white matter volume
+csf=1            # create ventricle CSF regressor?
+CSF_vol=mwc3anat # name of CSF volume
+global=1         # create global mean regressor?
+GM_vol=mwc1anat  # name of grey matter volume (whole brain mask = WM+CSF+GM)
+
+### sbatch_rest_glm_fsl parameters ###
+glm_name='glm_RST'   # name of analysis (output dir is analysis/$USER/glm/<name>)
+template='restROI_design.fsf'  # name of fsf template (in auxil/fsl_designs/templates)
+tempFilt=0           # apply temporal filter to nuisance regressors?
+tempDeriv=1          # add temporal derivatives of nuisance regressors?
+epi='epi_r01.nii.gz' # epi name
+
+glm_dir="analysis/${USER}/glm/${glm_name}"
+
+### sbatch_rest_timecourse_fsl parameters ###
+roi_dirname='yeo2011'  #name of roi directory (in auxil/roi_masks)

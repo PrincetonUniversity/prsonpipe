@@ -2,24 +2,23 @@
 #
 # jmildner@princeton.edu, May 29 2017
 #
+# Filter the epi and create nuisance regressors for resting state ROI functional
+# connectivity analysis.
+# Options available: band pass (high- and low pass filtering), intensity normalization,
+# trimming volumes from start of scan, generating motion regressors from mcflirt output,
+# creating white matter, CSF, and global mean nuisance regressors.
+#
 ################################################################################----------
 # Files sourced
 #  globals.par
+#  funcs
 # Flags:
-#   [a]                    : all nuisance regressor steps with default parameters
-#   [h <high pass filter>] : high pass filter (in seconds). Default: 111
-#   [l <low pass filter>]  : low pass filter (in seconds). Default: -1 (off)
-#   [m]                    : re-format motion parameters
-#   [t <# of TRs to trim>] : trim volumes from start of scan. Default: 6
-#   [i]                    : normalize intensity
-#   [w <white matter vol>] : create white matter regressor from WM volume (in prep_dir)
-#                            default: DARTEL's mwc2anat
-#   [c <CSF vol>]          : create CSF regressor from specified CSF volume (in prep_dir)
-#                           default: DARTEL's mwc3anat
-#   <prep_dir>             : full path to prep_dir that contains the resting state epi('s)
-#  MUST PROVIDE AT LEAST ONE FLAG AND PREP_DIR
+#   [d]            : run steps with default parameters (instead of pfile)
+#   [p <rest.par>] : parameter file (full path or relative to scripts/roi)
+#   <subject>     : subject to run (should be one subject)
+#  MUST PROVIDE AT LEAST ONE FLAG AND SUBJECT
 ################################################################################----------
-#SBATCH -J 'gen_reg'                         # Job name
+#SBATCH -J 'rest_preglm'                         # Job name
 #SBATCH --workdir=./                          # Set working directory
 #SBATCH -o '../output/gen_reg-%j.out'     # Output file
 #SBATCH --mem-per-cpu=10240
@@ -34,14 +33,37 @@ module load fsl/5.0.9
 
 function help_func () {
 cat << END
-roiRest_calcRegressors
+sbatch_rest_preglm_fsl [-p <pfile> | -d] <subject>
 Description:
 ------------
+Filter the epi and create nuisance regressors for resting state ROI functional
+connectivity analysis.
+Options available: band pass (high- and low pass filtering), intensity normalization,
+trimming volumes from start of scan, generating motion regressors from mcflirt output,
+creating white matter, CSF, and global mean nuisance regressors.
 
 Usage:
 ------
+  NOTE: you must use either the -p or -d flag.
   [-h | --help | -help]
     Display this help
+  [-p <pfile>]
+    Specify parameters file to use
+  <subject>
+    Subject to run pre-glm processing on
+  [-d]
+    Use default parameters:
+      motion=1
+      trim=6
+      intens=1
+      bandpass=true
+      hFilter=111
+      lFilter=-1
+      WM=1
+      WM_vol=mwc2anat
+      CSF=1
+      CSF_vol=mwc3anat
+      prep_dir="${PROJECT_DIR}/prep/RST/aNrFuNwDsD"
 
 END
 }
@@ -70,51 +92,35 @@ else
   exit
 fi
 
-#intialize bandpass filters
-hFilter=-1
-lFilter=-1
+source "${SCRIPT_DIR_UTIL}/funcs"
+
 # Parse input arguments
-while getopts ":mt:ih:l:w:c:a" opt; do
+while getopts ":p:dh" opt; do
   case $opt in
-    m)
-      motion=true
-    ;;
-    t)
-      trim=true
-      trimvols="${OPTARG}"
-    ;;
-    i)
-      intens=true
-    ;;
-    h)
-      bandpass=true
-      hFilter="${OPTARG}"
-    ;;
-    l)
-      bandpass=true
-      lFilter="${OPTARG}"
-    ;;
-    w)
-      WM=true
-      WM_vol="${OPTARG}"
-    ;;
-    c)
-      CSF=true
-      CSF_vol="${OPTARG}"
+    p)
+      pfile=${OPTARG}
+      if [[ -f ${SCRIPT_DIR_ROI}/${pfile} ]]; then
+        echo "${label} Using parameters in ${pfile}"
+        source "${SCRIPT_DIR_ROI}/${pfile}"
+      elif [[ -f ${pfile} ]]; then
+        source "${pfile}"
+      else
+        echo "${label} ERROR ${pfile} not found. Use -h for help."
+      fi
     ;;
     #//todo o: motion outliers
-    a)
-      motion=true
-      trim=true
-      trimvols=6
-      intens=true
+    d)
+      motion=1
+      trim=6
+      intens=1
       bandpass=true
       hFilter=111
       lFilter=-1
-      WM=true
+      WM=1
       WM_vol=mwc2anat
-      CSF=true
+      CSF=1
       CSF_vol=mwc3anat
+      prep_dir="${PROJECT_DIR}/prep/RST/aNrFuNwDsD"
     ;;
     h)
       help_func
@@ -135,17 +141,17 @@ done
 shift $((OPTIND -1))
 #check if there are remaining arguments, that have not yet been processed
 if [[ -z $@ ]]; then
-  echo "$label ERROR: missing prep_dir ${@}. Use --help for help"
+  echo "$label ERROR: missing subject argument. Use -h for help"
   exit 1
 fi
 
-prep_dir="$@"
-
-if [[ ! -d $prep_dir ]]; then
-  echo "${label} ERROR: ${prep_dir} is not a directory."
+subject="$@"
+if [[ $(isSUB "${subject}") != true ]]; then
+  echo "${label} ERROR: subject ${subject} does not exist"
   exit 1
 fi
-rst_prep_dir="${prep_dir}/rst_prep"
+
+rst_prep_dir="${prep_dir}/${subject}/rst_prep"
 tmp_rst_dir=$(mktemp -d --tmpdir rst_prep.XXXXXX)
 function finish {
   rsync -a "${tmp_rst_dir}/" "${rst_prep_dir}/" > /dev/null
@@ -156,10 +162,19 @@ mkdir -p "${rst_prep_dir}"
 cp -r "${rst_prep_dir}/." "${tmp_rst_dir}"
 logfile="${tmp_rst_dir}/LOG_calcRegressors.txt"
 touch ${logfile}
-echo "${label} $(date)"
-echo "${label} generating regressors for epi's in ${prep_dir#"${PROJECT_DIR}"}" \
-  | tee "${logfile}"
+cat <<- EOM | tee "${logfile}"
+  ${label} Starting pre-glm processing at $(date) with parameters:
+  ${label} subject: ${subject}, prep dir: ${prep_dir}
+  ${label} bandpass=${bandpass} with high filter ${hFilter} and low filter ${lFilter}
+  ${label} trim ${trim} volumes from start of scan
+  ${label} intensity normalization? intens=${intens}
+  ${label} re-format motion parameters? motion=${motion}
+  ${label} white matter regressor? WM=${wm} from volume ${WM_vol}
+  ${label} CSF regressor? CSF=${csf} from volume ${CSF_vol}
+  ${label} global mean regressor? global=${global}, grey matter volume: ${GM_vol}
+EOM
 ################################################################################
+prep_dir="${prep_dir}/${subject}"
 for epi in $prep_dir/epi_r*.nii.gz; do
   #make sure it exists
   [ -e $file ] || (echo "$label ERROR: $epi not found" | tee -a "${logfile}" && exit)
@@ -169,7 +184,7 @@ for epi in $prep_dir/epi_r*.nii.gz; do
   nvols=$(fslnvols "${tmp_rst_dir}/$epi")
   moco_dir="${tmp_rst_dir}/mc_${epi%.nii*}"
   #motion regressors: change from 1 file with 6 columns to 1 file per parameter
-  if [ "${motion}" = true ]; then
+  if [ "${motion}" == 1 ]; then
     echo "${label} creating motion regressors for ${epi}" | tee -a "${logfile}"
     mkdir -p "${moco_dir}"
     cat "${prep_dir}/r${epi}.par" \
@@ -183,11 +198,11 @@ for epi in $prep_dir/epi_r*.nii.gz; do
     cut -d ' ' -f 6  "${moco_dir}/func_mcf.par" > "${moco_dir}/motion6.par"
   fi
   #trim first n volumes from start of epi and motion parameters
-  if [ "${trim}" = true ]; then
-    echo "${label} trimming first ${trimvols} volumes from ${epi}" | tee -a "${logfile}"
-    new_nvols=$(( $nvols - $trimvols ))
+  if [ "${trim}" != 0 ]; then
+    echo "${label} trimming first ${trim} volumes from ${epi}" | tee -a "${logfile}"
+    new_nvols=$(( $nvols - $trim ))
     #trim volumes from beginning of epi
-    fslroi "${tmp_rst_dir}/${epi}" "${tmp_rst_dir}/t${epi}" ${trimvols} ${new_nvols}
+    fslroi "${tmp_rst_dir}/${epi}" "${tmp_rst_dir}/t${epi}" ${trim} ${new_nvols}
     #trim first volumes from motion parameter files as well
     tail "-${new_nvols}" "${moco_dir}/motion1.par" > "${moco_dir}/res_motion1.par"
     tail "-${new_nvols}" "${moco_dir}/motion2.par" > "${moco_dir}/res_motion2.par"
@@ -203,7 +218,7 @@ for epi in $prep_dir/epi_r*.nii.gz; do
   fi
 
   #intensity normalization
-  if [ "${intens}" = true ]; then
+  if [[ "${intens}" = 1 ]]; then
     echo "${label} normalizing intensity of ${epi}" | tee -a "${logfile}"
     #normalize intensity per 3D volume mean (-inm option)
     fslmaths "${tmp_rst_dir}/${epi}" -inm 10000 "${tmp_rst_dir}/n${epi}"
@@ -216,7 +231,7 @@ for epi in $prep_dir/epi_r*.nii.gz; do
   fi
 
   #bandpass filter
-  if "${bandpass}"; then
+  if [[ "${bandpass}" == 1 ]]; then
     echo "${label} bandpass filtering $epi" | tee -a "${logfile}"
     hp=-1
     lp=-1
@@ -244,25 +259,36 @@ for epi in $prep_dir/epi_r*.nii.gz; do
   fi
 
   #extract white matter time course
-  if "${WM}"; then
+  if [[ "${wm}" == 1 ]]; then
     echo "${label} extracting white matter timecourse" | tee -a "${logfile}"
-    fslmaths "${prep_dir}/${WM_vol}" -nan -thr 0.8 -bin "${prep_dir}/WM_mask"
+    fslmaths "${prep_dir}/${WM_vol}" -nan -thr 0.1 -bin -ero "${prep_dir}/WM_mask"
     fslmeants -i "${tmp_rst_dir}/epi_r01.nii.gz" -o "${tmp_rst_dir}/WM_meants.txt" \
     	-m "${prep_dir}/WM_mask"
   fi
-  if "${CSF}"; then
+  #extract ventricle CSF timecourse
+  if [[ "${csf}" == 1 ]]; then
     echo "${label} masking CSF volume with ventricle mask" | tee -a "${logfile}"
     VentricleMask="${tmp_rst_dir}/wVentricleMask"
     if [[ ! -f "${VentricleMask}" ]]; then
-      bash "${SCRIPT_DIR}/FSL/gen_ventricle_mask" -r "${prep_dir}/wanat" \
+      bash "${SCRIPT_DIR_ROI}/gen_ventricle_mask" -r "${prep_dir}/wanat" \
         -d "${tmp_rst_dir}"
     fi
     echo "${label} extracting ventricle CSF timecourse" | tee -a "${logfile}"
     fslmaths "${prep_dir}/${CSF_vol}" -nan -mas "${VentricleMask}" "${prep_dir}/CSF_mask"
-    fslmaths "${prep_dir}/CSF_mask" -nan -thr 0.1 -bin "${prep_dir}/CSF_mask"
+    fslmaths "${prep_dir}/CSF_mask" -nan -thr 0.1 -bin -ero "${prep_dir}/CSF_mask"
     fslmeants -i "${tmp_rst_dir}/${epi}" -o "${tmp_rst_dir}/CSF_meants.txt" \
     	-m "${prep_dir}/CSF_mask"
+  fi
+  if [[ "${global}" == 1 ]]; then
+    echo "${label} creating whole brain mask" | tee -a "${logfile}"
+    fslmaths "${prep_dir}/mwc1anat.nii.gz" -add "${prep_dir}/mwc2anat.nii.gz" \
+      -add "${prep_dir}/mwc3anat.nii.gz" -thr 0.2 -bin "${prep_dir}/mwc_all"
+    echo "${label} extracting whole brain timecourse"
+    fslmeants -i "${tmp_rst_dir}/${epi}" -o "${tmp_rst_dir}/global_meants.txt" \
+    	-m "${prep_dir}/mwc_all"
   fi
 done
 rsync -a --remove-source-files "${tmp_rst_dir}/" "${rst_prep_dir}/"
 rm -rf ${tmp_rst_dir}
+echo "${label} DONE. $(date)" | tee -a "${rst_prep_dir}/$(basename ${logfile})"
+trap - EXIT

@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# bash "${SCRIPTS_DIR}/FSL/gen_ventricleMask -r ${prep_dir}/wanat -d ${rst_prep_dir}"
+
+set -e
+#Get left ventricle from atlas
+while getopts ":r:d:h" opt; do
+  case $opt in
+    r)
+    refvol="${OPTARG}"
+    ;;
+    d)
+    out_dir="${OPTARG}"
+    ;;
+    h)
+    help_func
+    exit
+    ;;
+    \?)
+    echo "unknown flag. Type -h for help"
+    exit 1
+    ;;
+  esac
+done
+
+module load fsl/5.0.9
+
+fslroi "${FSLDIR}/data/atlases/HarvardOxford/HarvardOxford-sub-prob-1mm.nii.gz" \
+  "${out_dir}/LVentricle" 2 1
+#Get right ventricle
+fslroi "${FSLDIR}/data/atlases/HarvardOxford/HarvardOxford-sub-prob-1mm.nii.gz" \
+  "${out_dir}/RVentricle" 13 1
+#Combine them
+fslmaths "${out_dir}/LVentricle.nii.gz" -add "${out_dir}/RVentricle.nii.gz" \
+  -thr 0.1 -dilF -bin "${out_dir}/ventricleMask"
+
+#Align template to SPM TPM image
+flirt -in $FSLDIR/data/standard/MNI152_T1_1mm \
+       -ref "${refvol}" -out "${out_dir}/wFSL_original_temp" \
+       -omat "${out_dir}/orig2tpm.mat" -dof 12
+
+#Apply the warp to the mask
+flirt -in "${out_dir}/ventricleMask" -ref "${refvol}" \
+      -out "${out_dir}/wVentricleMask" -init "${out_dir}/orig2tpm.mat" -applyxfm
