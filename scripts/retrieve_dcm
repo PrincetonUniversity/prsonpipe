@@ -32,7 +32,7 @@ label='[RET_DCM]'
 
 function help_func () {
 cat << END
-  retrieve_from_conquest [-h]
+  retrieve_from_conquest [-h] <subname>
   Description:
   ------------
     downloads raw DICOM data for the specified subject from jukebox and compresses 
@@ -43,6 +43,8 @@ cat << END
       Display this help
     [-f]
       Forces overwrite if subject's data already exists
+    <subname>
+      Full sub ID(s) from scanner or partial name (to retrieve all matching subjects)
 END
 }
 ######################### SET UP & PARSE ARGUMENTS #############################
@@ -95,12 +97,8 @@ for sub in "${subs[@]}"; do
 		output_file="raw_${SUBJ}.tar.gz"
 		output_dir=$DATA_DIR
 
-		# if subject is in EXCLUDE_SUBS[@], continue on to next subj
-		if [[ $SUBIDS =~ ${EXCLUDE_SUBS[@]} ]]; then 
-			echo "$label Skipping subject ${SUBJ} - excluded"
-			echo $label; continue
 		# if subject already retrieved, continue on to next subj
-		elif [[ -e "${output_dir}/${output_file}" ]] && [[ $force != true ]]; then
+		if [[ -e "${output_dir}/${output_file}" ]] && [[ $force != true ]]; then
 			echo "$label Skipping subject ${SUBJ} - already exists"
 			echo $label; continue
 		elif [[ -e "${output_dir}/${output_file}" ]] && [[ $force == true ]]; then
