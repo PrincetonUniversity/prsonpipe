@@ -18,11 +18,11 @@
 
 # Change the variables below to match your study
 
-# ENTER THE STUDY NAME. Should be the same as project directory name
-PROJECT_NAME=<my_project>
-
 # ENTER THE FULL PATH TO YOUR PROJECT DIRECTORY              
 PROJECT_DIR=/jukebox/scratch/<netid>/<my_project>
+
+# ENTER THE BACKUP DIRECTORY. This contains raw data, final results will go here.
+BACKUP_DIR=/jukebox/<lab_name>/<project_name>
 
 # ENTER YOUR EMAIL. This will be used to send you job updates
 USER_EMAIL=<netid>@princeton.edu

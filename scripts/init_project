@@ -36,17 +36,21 @@ fi
 
 #Source the project settings lines of study_info
 source /dev/stdin <<EOF
-$(sed -n '/-\ 1\.\ PROJECT\ SETTINGS\ -/,/-\ 2\.\ RUN\ ORDER\ TEMPLATE\ -/p' ../${studyinfo_file} | head -n -1 | tail -n +2)
+$(sed -n '/-\ 1\.\ PROJECT\ SETTINGS\ -/,/-\ 2\.\ RUN\ ORDER\ TEMPLATE\ -/p' ../${studyinfo_file} \
+  | head -n -1 | tail -n +2)
 EOF
 
 
 #append all the text between the vars delimiters to globals.pr (excluding the first and last 2 lines containing comments)
-cat ${PROJECT_DIR}/${studyinfo_file} | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 | tail -n +3 >> ${PROJECT_DIR}/scripts/temp.txt
+cat ${PROJECT_DIR}/${studyinfo_file} | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 \
+  | tail -n +3 >> ${PROJECT_DIR}/scripts/temp.txt
 sed --in-place='.bak' -e '/<<STUDY_INFO_VARS_HERE>>/{r temp.txt' -e 'd}' "${PROJECT_DIR}/scripts/globals.par"
 rm ${PROJECT_DIR}/scripts/temp.txt
 mv globals.par.bak .globals.par.bak
+
 #same for runorders, but overwrite instead of append
-cat ${PROJECT_DIR}/${studyinfo_file} | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 | tail -n +3 > ${PROJECT_DIR}/${runorder_file}
+cat ${PROJECT_DIR}/${studyinfo_file} | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 \
+  | tail -n +3 > ${PROJECT_DIR}/${runorder_file}
 
 source ${PROJECT_DIR}/scripts/globals.par
 
@@ -96,7 +100,7 @@ if [[ $1 == 'overwrite' ]]; then rm -fr "${RAW_DIR}/*"; rm -fr "${PREP_DIR}/*"; 
 echo "[INIT] Running ${SCRIPT_DIR_UTIL}/setup_backup_dirs to make sure backup directories exist on lab volume"
 bash ${SCRIPT_DIR_UTIL}/setup_backup_dirs
 echo "[INIT] Copying your file structure and scripts to your backup dir"
-rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* --exclude=.git ${PROJECT_DIR} /jukebox/${LAB_NAME}/${PROJECT_NAME}/scripts
+rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* --exclude=.git ${PROJECT_DIR} ${BACKUP_DIR}
 for name in ${TASKS[@]}; do
   mkdir -p ${RAW_DIR}/${name}/
   mkdir -p ${PREP_DIR}/${name}/
