@@ -20,7 +20,7 @@ set -e # stop immediately when an error occurs
 label='[PREP]'
 
 # load settings and functions
-source globals.par
+source ../globals.par
 
 pushd ${SCRIPT_DIR_UTIL} > /dev/null
 source funcs
