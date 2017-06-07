@@ -25,7 +25,6 @@ script_dir="$(dirname -- "$(pwd)")"
 
 # Assuming the scripts dir is somewhere in the full path, this finds globals.par
 source "${script_dir%scripts*}/scripts/globals.par"
-source "${PARS_DIR}/prep.par"
 
 ################################################################################----------
 # 1)
@@ -140,6 +139,7 @@ function num2subID {
 function get_subs {
 	label_func='[GETSUB]'
 	set -e # stop immediately when an error occurs
+        source "${PARS_DIR}/prep.par"
 	unset SUBS
 
 	# DETERMINE TASK
