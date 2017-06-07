@@ -1,0 +1,177 @@
+#!/bin/bash
+# This script converts raw data from tarballed dicom to nifti
+# Based on neuropipe convert-and-wrap-raw-data.sh by mgsimon@princeton.edu
+# 28 July 2016 Judith Mildner (JNM) edits to turn this into prsonpipe script (spock compatible)
+###################################################
+# Packages used:
+#    FSL
+#    MicroGL (dcm2niix)
+# Arguments:    
+#   1. subject (subID, e.g. s003)
+#   2. full subject (scanner subID, e.g. 160530_tamir_socdep_003)
+#SBATCH -J "convert"
+#SBATCH -o ../../output/convert_%j.out
+#SBATCH -p all
+#SBATCH -t 2880
+#SBATCH --mail-type=FAIL
+
+set -e  # fail immediately on error
+
+#Get the name of the directory this script is in, to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+
+module load mricrogl # Make sure all necessary packages are available (spock) -JNM
+module load dcm2niix # (for della)
+module load pigz     # (for della)
+module load fsl/5.0.9
+
+findsub=$1
+masterlog=$2
+#Read sub ID list to get full subject name
+subid_list="${PROJECT_DIR}/auxil/archive/subid_list.txt"
+#Find the line with subject ID in subid_list, and get the first field
+full_subj=$(cat "${subid_list}" | grep "${findsub}" | cut -f1 -d' ')
+subj=$(cat "${subid_list}" | grep "${findsub}" | cut -f2 -d' ')
+
+dicom_archive="${PROJECT_DIR}/auxil/archive/dicom/raw_${full_subj}.tar.gz"
+output_dir="${PROJECT_DIR}/raw/"
+run_order_file="${PROJECT_DIR}/auxil/runorders/${full_subj}.txt"
+
+ERROR_FLAG=ERROR_RUN
+PREFIX=scan
+output_ext=.nii #If changing the extension, make sure to also change the dcm2niix conversion flag
+gz=1 #1 for gzipped nifti's 2 for no gzip
+
+label="[CONVERT]"
+
+FSLOUTPUTTYPE=NIFTI #Convert 16-bit scans to FLOAT32 data type to retain UINT16 range
+
+#unpack and convert data to nifti
+temp_dicom_dir=$(mktemp -d -t tmp.XXXXXX)
+temp_output_dir=$(mktemp -d -t tmp.XXXXXX)
+logfile="${temp_output_dir}/LOG_convert_${subj}.txt"
+
+echo "${label} Unpacking $subj at $(date)" | tee "${logfile}"
+
+function error() {
+ ## Output: error message if necessary, clean up temp dir.
+  echo "${label} cleaning up..." | tee -a ${logfile}
+  mv ${logfile} ${output_dir}/$(basename ${logfile})
+  rm -rf ${temp_dicom_dir}
+  rm -rf ${temp_output_dir}
+  rm -f ${stripped_run_order_file}
+  if [[ -f $masterlog ]];then
+    echo "${label} ERROR: an error occurred in subject ${subj}, job ${SLURM_JOB_ID}" \
+      | tee -a $masterlog
+  fi
+}
+trap 'error' EXIT
+
+tar --extract --gunzip --file=$dicom_archive --directory=$temp_dicom_dir
+
+echo "${label} Converting to nifti at $(date)" | tee -a "${logfile}"
+dcm2niix -b n -z n -o $temp_output_dir -f ${PREFIX}_%2s $temp_dicom_dir 1>/dev/null
+
+#make sure naming scheme does not output too many leading zeros (bug in dcm2niix)
+for filename in $temp_output_dir/*${output_ext}; do
+  # get portion of filename between _ and end of name
+  file_suf=$(echo ${filename%${output_ext}} | egrep -o '\_.*$' | tr -d \._)
+  if [ ${#file_suf} -le 3 ]; then continue; fi
+  newname="${temp_output_dir}/${PREFIX}_${file_suf:(-2)}${output_ext}"
+  if [ "$filename" != "newname" ] && [ -e $newname ]; then
+    mv $filename ${newname%${output_ext}}x${output_ext}
+  elif [ "$filename" != "$newname" ] && [ ! -e $newname ]; then
+    mv $filename $newname;
+  fi
+done
+
+echo "${label} Converting to 32-bit and renaming at $(date)" | tee -a ${logfile}
+for nifti in ${temp_output_dir}/*${output_ext}; do
+  fslmaths "${nifti}" "${nifti}" -odt float
+done
+
+# strip blank lines and comments from run order file
+stripped_run_order_file=$(mktemp -t tmp.XXXXX)
+sed -e '/^\s*$/d' -e '/^\s*#/d;s/#.*//' $run_order_file > $stripped_run_order_file
+
+# check that number of scans retrieved matches expected #, and exit with an error if not.
+num_actual_scans=$(find $temp_output_dir/*${output_ext} -maxdepth 1 -type f | wc -l)
+num_expected_scans=$(wc -l < $stripped_run_order_file)
+if [ $num_actual_scans != $num_expected_scans ]; then
+  echo "${label} ERROR: number of scans does not match number in run order" | tee -a ${logfile}
+  echo "found $num_actual_scans scans, but $num_expected_scans listed in $run_order_file." \
+     | tee -a $logfile
+  exit 1
+fi
+
+# convert all scans to gzipped nifti format, and if the run order file indicates
+# how many TRs are expected in a particular scan, check that there are actually
+# that many TRs, and exit with an error if not.
+number=0
+file_array=(${temp_output_dir}/*${output_ext})
+
+{
+while read name num_expected_trs; do
+  if [[ $name == $ERROR_FLAG ]]; then
+    let "number += 1"
+    continue 
+  fi
+  # convert the scan
+  niigz_file_prefix="${temp_output_dir}/${name}"
+  mv "${file_array[$number]}" ${niigz_file_prefix}${output_ext}
+
+  if [ -n "$num_expected_trs" ]; then
+    num_actual_trs=$(fslnvols ${niigz_file_prefix})
+    if [ $num_expected_trs -ne $num_actual_trs ]; then
+      echo "${label} ERROR: $name has $num_actual_trs TRs--expected $num_expected_trs" \
+        | tee -a $logfile
+      exit 1
+      #exit $UNEXPECTED_NUMBER_OF_TRS
+    fi
+  fi
+  let "number += 1"
+done
+} < $stripped_run_order_file
+
+rm -f $temp_output_dir/${PREFIX}*
+rm -f $stripped_run_order_file
+
+mv ${logfile} ${output_dir}/$(basename ${logfile})
+#move the nifti's to the right directory
+pushd ${output_dir} > /dev/null
+
+subdirs=(${TASKS[@]/%/\/${subj}})
+mkdir ${subdirs[@]}
+
+if [[ $gz -eq 1 ]]; then
+  pigz ${temp_output_dir}/*
+fi
+
+
+for file in $(ls $temp_output_dir); do
+  if [[ ${file} = anat* ]]; then
+    lp=1
+    for dir in $(ls -1); do
+      echo "${subdirs[@]}/" | xargs -n 1 rsync -avq --ignore-existing "${temp_output_dir}/${file}"
+    done
+  #spin echo's go in each dir unless they're specific to a task
+  elif [[ ${file} == *SE* ]]; then
+    if [[ $( echo ${file%%/} | cut -d'_' -f 1) == 'ALL' ]]; then
+      echo "${subdirs[@]}/" | xargs -n 1 rsync -avq --ignore-existing "${temp_output_dir}/${file}"
+    else
+      tskname=$(echo ${file} | cut -d '_' -f 1)
+      mv ${temp_output_dir}/${file} ${tskname}/${subj}/
+    fi
+  else
+    tskname=$(echo $file | cut -d'_' -f 2)
+    filename=$(echo $file | cut -d'_' -f 1,3)
+    mv ${temp_output_dir}/${file} ${tskname}/${subj}/${filename}
+  fi
+done
+
+rm -rf $temp_output_dir
+rm -rf $temp_dicom_dir
+echo "${label} $subj done at $(date)" | tee -a "${output_dir}/$(basename ${logfile})"
+trap - EXIT

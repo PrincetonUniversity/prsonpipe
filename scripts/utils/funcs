@@ -253,30 +253,33 @@ EOT
 #  logfile	: the logfile to search in
 ###########################################
 function wait_for_it {
-	label_func='[WAIT]'
-	if [[ ! $# -eq 2 ]]; then
-		echo "${label_func} Please specify a step_label_func to search for and a logfile to search in. Aborting..."; exit;
-	fi
+  label_func='[WAIT]'
+  if [[ ! $# -eq 2 ]]; then
+    echo "${label_func} Please specify a step_label_func to search for and a logfile to search in. Aborting..."; exit;
+  fi
+  step_label_func=$(echo $1 | cut -d "[" -f2 | cut -d "]" -f1)
+  logfile=$2
+  SLEEP_INTERVAL=5   # this is in seconds
+  load_interval=$(($SLEEP_INTERVAL/5))
+  while [[ -z $(grep "\[${step_label_func}\] DONE." "$logfile" -s) ]]; do
+    if [[ ! -z $(grep "\[${step_label_func}\] ERROR" "$logfile" -s) ]]; then
+      echo "${label_func} ERROR occured in ${step_label_func} (see ${logfile})."
+      return 1
+    fi
+    # still running...
+    printf "${label_func} Waiting for ${step_label_func}.    \r"
+    sleep $load_interval
+    printf "${label_func} Waiting for ${step_label_func}..   \r"
+    sleep $load_interval
+    printf "${label_func} Waiting for ${step_label_func}...  \r"
+    sleep $load_interval
+    printf "${label_func} Waiting for ${step_label_func}.... \r"
+    sleep $load_interval
+    printf "${label_func} Waiting for ${step_label_func}.....\r"
+    sleep ${load_interval}
+  done
 
-	step_label_func=$(echo $1 | cut -d "[" -f2 | cut -d "]" -f1)
-	logfile=$2
-	SLEEP_INTERVAL=5   # this is in seconds
-        load_interval=$(($SLEEP_INTERVAL/5))
-	while [[ -z $(grep "\[${step_label_func}\] Done." "$logfile" -s) ]]; do
-		# still running...
-                printf "${label_func} Waiting for ${step_label_func}.    \r"
-                sleep $load_interval
-                printf "${label_func} Waiting for ${step_label_func}..   \r"
-                sleep $load_interval
-                printf "${label_func} Waiting for ${step_label_func}...  \r"
-                sleep $load_interval
-                printf "${label_func} Waiting for ${step_label_func}.... \r"
-                sleep $load_interval
-                printf "${label_func} Waiting for ${step_label_func}.....\r"
-                sleep ${load_interval}
- 	done
-
-	echo "${label_func} ${step_label_func} finished (based on logfile $logfile). Moving on..."
+echo "${label_func} ${step_label_func} finished (based on logfile $logfile). Moving on..."
 }
 
 ################################################################################
