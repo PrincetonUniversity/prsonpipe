@@ -10,6 +10,8 @@ set -e # stop immediately when an error occurs
 
 <<STUDY_INFO_VARS_HERE>>
 
+BACKUP_DIR=/jukebox/${LAB_NAME}/${PROJECT_NAME}
+
 NUM_TASKS=${#TASKS[@]}
 
 # prep software names

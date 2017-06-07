@@ -39,9 +39,6 @@ PREP_SEP=0
 # ENTER LAB NAME (looks for /jukebox/<LAB_NAME>)
 LAB_NAME=tamir
 
-# ENTER BACKUP DIRECTORY (where raw data is retrieved from)
-BACKUP_DIR=/jukebox/${LAB_NAME}/${PROJECT_NAME}
-
 # ENTER FULL PATH TO PACKAGES: directory containing packages you will load
 PKG_DIR=/jukebox/tamir/pkg
 
