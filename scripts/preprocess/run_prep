@@ -142,10 +142,13 @@ NORM is used, then REALIGN must be as well. Aborting..."
 		fi
 		i=$(($i + 1))
 	done
+	sim_array[$i]=0
+	# set first software choice to 1
 	i=0; for p in "${step_softs[@]}"; do 
 		if [[ $p != 'none' ]]; then sim_array[$i]=1; break; fi; 
 		i=$(($i + 1)); 
 	done
+	echo ${sim_array[@]}
 
 	# CREATE LIST OF SUBJECT IDS
 	# call get_subs function
@@ -212,9 +215,9 @@ NORM is used, then REALIGN must be as well. Aborting..."
 
 		# GO THROUGH STEPS
 		i=0; for p in "${step_softs[@]}"; do
-
 			# SET UP PREPROCESING STEPS
 			step_name=${step_names[$i]}; e=${step_exts[$i]}
+
 			# if current step is set to 'none', skip and move on to next step
 			if [[ $p != 'none' ]]; then 
 
@@ -224,9 +227,8 @@ NORM is used, then REALIGN must be as well. Aborting..."
 					if [[ $n -ne $((${#SUBS[@]} - 1)) ]]; then 
 						reset_step_par; unset ext; 
 					fi; 
-					continue; 
+					continue 2; 
 				fi
-
 				# add step extension to current software's extension list
 				ext=${ext}${e}
 				cur_soft=${p}
@@ -237,7 +239,6 @@ NORM is used, then REALIGN must be as well. Aborting..."
 				echo "EPI_ACCEL=${EPI_ACCEL}" >> "$stepfile"
 				echo "EPI_ECHOSPACING=${EPI_ECHOSPACING}" >> "$stepfile"
 			fi
-
 			# check if next step uses same software, if so, run steps
 			if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
 
@@ -320,7 +321,7 @@ NORM is used, then REALIGN must be as well. Aborting..."
 		# SET UP FOR DARTEL
 
 		# set i to NORM index (second to last)
-		i=$((${#step_softs[@]} - 2))  
+		i=$((${#step_softs[@]} - 3))  
 
 		# store vars
 		p=${step_softs[$i]}; step_name=${step_names[$i]}; e=${step_exts[$i]}
@@ -376,60 +377,149 @@ ${cur_soft} for subject(s) ${SUBS[@]}"
 		# return to the previous directory, quietly
 		popd > /dev/null
 
-		# RUN SMOOTHING (iff not in DARTEL)
-		if [[ ${sim_array[$i]} -eq 0 ]]; then
-			n=0; for s in "${SUBS[@]}"; do
-				echo "${label}"
+		step_softs=( "${step_softs[@]: -2}" )
+		sim_array=( "${sim_array[@]: -2}" )
+		[[ $step_softs == 'none' ]] && sim_array[1]=1 
 
-				# unset variables
-				reset_step_par; unset ext; unset pnames
+		i=0; for p in "${step_softs[@]}"; do
+			# SET UP PREPROCESING STEPS
+			step_name=${step_names[$i]}; e=${step_exts[$i]}
 
-				# assign variables for this step
-				p=${step_softs[$i]}
-				step_name=${step_names[$i]} 
-				e=${step_exts[$i]}
+			# if current step is set to 'none', skip and move on to next step
+			if [[ $p != 'none' ]]; then 
+				# add step extension to current software's extension list
 				ext=${ext}${e}
-				cur_soft=$p
-				pnames="${pnames} $step_name"
+				cur_soft=${p}
+				pnames="${pnames} ${step_name}"
 
-				# write step to step pars file
-				echo "${step_name}='$p'" >> "$stepfile"
+				# turn on step in step.par
+				echo "${step_name}='${cur_soft}'" >> "$stepfile"
+				echo "EPI_ACCEL=${EPI_ACCEL}" >> "$stepfile"
+				echo "EPI_ECHOSPACING=${EPI_ECHOSPACING}" >> "$stepfile"
+			fi
+			# check if next step uses same software, if so, run steps
+			if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
 
-				# subject's log file
-				logfile=${wd_dir_full}/${s}/LOG.txt
+				# RUN STEP(S)
 
+				# # if all steps were set to none, skip to next task
+				# if [[ -z ${pnames} ]]; then  
+				# 	echo "${label} All steps set to 'none'. Moving on to next task..."
+				# 	echo "${label} WARNING: All steps set to 'none'" | tee -a $logfile_wd
+				# 	break 2
+				# fi
+
+				# WRITE P_FILE
 				# if first subject, write out pfile based on step.par
 				if [[ $n -eq 0 ]]; then 
 					bash ${SCRIPT_DIR_UTIL}/write_pfile \
 						${cur_soft} ${t} ${ext}
 				fi
-
-				# set paths to scripts/pfile for job
 				#script_path="${SCRIPT_DIR}/${cur_soft}"
 				run_script="${script_path}/sbatch_prep_${cur_soft}"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
-				# make run_name for job
-                		run_name="${cur_soft}${ext}_prep_${s}"
+				# RUN STEP/SUBMIT JOB
 
-				# run job
-				pushd ${script_path} > /dev/null
-				tflag='-t 60'
+				# set run_time
+				run_time=$((60 * ${#ext} + 500))
+				# add an hour run if normalization is selected
+				if [[ ${ext[@]} =~ w ]]; then
+					add_time=$((60*$NRUNS)) 
+					run_time=$((${run_time}+${add_time}))
+				fi
+
+				# make run_name for job
+				run_name="${cur_soft}${ext}_prep_${s}"
+
+				# move into software's script directory, quietly
+				pushd ${script_path} > /dev/null   
+
+				# submit job
+				j='%j'
+				tflag='-t=${run_time}'
 				jflag="-J ${run_name}"
-				oflag="-o ${OUT_DIR}/${run_name}-%j.out"
+				oflag="--output=${OUT_DIR}/${run_name}-$j.out"
 				dflag="--dependency=afterok:${prev_jobid}"
 				flags="${!tflag} $oflag $jflag $mflag $dflag"
-		                prev_jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" "${s}" | grep -o '[0-9]*')
+				prev_jobid=$(sbatch $flags "${run_script}" -p "$pfile" "$s" | grep -o '[0-9]*')
+				# save/print jobid number
 				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames}\
  in ${cur_soft} for subject ${s}"
 				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
-				popd > /dev/null
+				
+				# Append job ID to list of job IDs DARTEL has to wait for
+				all_jobs+=":${prev_jobid}"
 
-				# increase sub index by one
-				n=$(($n + 1))
-			done
-		fi
+				# return to the previous directory, quietly
+				popd > /dev/null   
+
+				# clear variables for next step
+				reset_step_par; unset ext; first_step=0; unset pnames;
+			fi
+			# increase step index by one
+			i=$(($i + 1))
+		done
+		# increase sub index by one
+		n=$(($n + 1))
 	fi
+
+
+
+	# 	# RUN SMOOTHING (iff not in DARTEL)
+	# 	if [[ ${sim_array[$i]} -eq 0 ]]; then
+	# 		n=0; for s in "${SUBS[@]}"; do
+	# 			echo "${label}"
+
+	# 			# unset variables
+	# 			reset_step_par; unset ext; unset pnames
+
+	# 			# assign variables for this step
+	# 			p=${step_softs[$i]}
+	# 			step_name=${step_names[$i]} 
+	# 			e=${step_exts[$i]}
+	# 			ext=${ext}${e}
+	# 			cur_soft=$p
+	# 			pnames="${pnames} $step_name"
+
+	# 			# write step to step pars file
+	# 			echo "${step_name}='$p'" >> "$stepfile"
+
+	# 			# subject's log file
+	# 			logfile=${wd_dir_full}/${s}/LOG.txt
+
+	# 			# if first subject, write out pfile based on step.par
+	# 			if [[ $n -eq 0 ]]; then 
+	# 				bash ${SCRIPT_DIR_UTIL}/write_pfile \
+	# 					${cur_soft} ${t} ${ext}
+	# 			fi
+
+	# 			# set paths to scripts/pfile for job
+	# 			#script_path="${SCRIPT_DIR}/${cur_soft}"
+	# 			run_script="${script_path}/sbatch_prep_${cur_soft}"
+	# 			pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
+
+	# 			# make run_name for job
+ #                		run_name="${cur_soft}${ext}_prep_${s}"
+
+	# 			# run job
+	# 			pushd ${script_path} > /dev/null
+	# 			tflag='-t 60'
+	# 			jflag="-J ${run_name}"
+	# 			oflag="-o ${OUT_DIR}/${run_name}-%j.out"
+	# 			dflag="--dependency=afterok:${prev_jobid}"
+	# 			flags="${!tflag} $oflag $jflag $mflag $dflag"
+	# 	                prev_jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" "${s}" | grep -o '[0-9]*')
+	# 			jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames}\
+ # in ${cur_soft} for subject ${s}"
+	# 			echo "${jobinfo_str}" | tee -a "${logfile_wd}"
+	# 			popd > /dev/null
+
+	# 			# increase sub index by one
+	# 			n=$(($n + 1))
+	# 		done
+	# 	fi
+	# fi
 
 	# Write '[PREP] Done.' in each subject's LOG.txt file
 	for s in "${SUBS[@]}"; do
