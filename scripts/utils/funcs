@@ -139,7 +139,6 @@ function num2subID {
 function get_subs {
 	label_func='[GETSUB]'
 	set -e # stop immediately when an error occurs
-	source "${PARS_DIR}/prep.par"
 	unset SUBS
 
 	# DETERMINE TASK
@@ -147,6 +146,7 @@ function get_subs {
 	$(isTSK $1) && tsk=$1 && shift
 	# if only one task in study
 	[[ ${NUM_TASKS} -eq 1 ]] && tsk=$TASKS
+	if [[ $PREP_SEP -eq 0 ]]; then parsfile=${PARS_DIR}/prep.par; else parsfile=${PARS_DIR}/prep_${t}.par; fi
 
 	# INPUT DIRECTORY
 	if $(isDIR $1); then

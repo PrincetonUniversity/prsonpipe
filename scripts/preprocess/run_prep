@@ -151,7 +151,8 @@ NORM is used, then REALIGN must be as well. Aborting..."
 	prepdir=prep/${t}/${wd_dir}
 
 	declare -a subs_array=( "$@" )
-	get_subs ${rawdir} ${prepdir} "${subs_array[@]}"
+	get_subs $t ${rawdir} ${prepdir} "${subs_array[@]}"
+
 
 	if [[ -z $SUBS ]]; then 
 		echo "${label} No subjects found for task $t. Moving on to next task..."; 
