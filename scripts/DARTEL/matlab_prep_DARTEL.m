@@ -1,4 +1,4 @@
-function DARTEL_spm8_vars(subs,pfile)
+function matlab_prep_DARTEL(subs,pfile)
 
 %=====================================================================%
 
