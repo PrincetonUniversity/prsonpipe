@@ -253,7 +253,7 @@ NORM is used, then REALIGN must be as well. Aborting..."
 						${cur_soft} ${t} ${ext}
 				fi
 				script_path="${SCRIPT_DIR}/${cur_soft}"
-				run_script="${script_path}/sbatch_${cur_soft}_prep"
+				run_script="${script_path}/sbatch_prep_${cur_soft}"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 				# RUN STEP/SUBMIT JOB
@@ -344,7 +344,7 @@ NORM is used, then REALIGN must be as well. Aborting..."
 
 		# path names
 		script_path="${SCRIPT_DIR}/${cur_soft}"
-		run_script="${script_path}/sbatch_${cur_soft}_prep"
+		run_script="${script_path}/sbatch_prep_${cur_soft}"
 		pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 		# make run_name for job
@@ -406,7 +406,7 @@ ${cur_soft} for subject(s) ${SUBS[@]}"
 
 				# set paths to scripts/pfile for job
 				script_path="${SCRIPT_DIR}/${cur_soft}"
-				run_script="${script_path}/sbatch_${cur_soft}_prep"
+				run_script="${script_path}/sbatch_prep_${cur_soft}"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
 				# make run_name for job

@@ -100,7 +100,7 @@ fi
 
 
 eval "cat << EOF  > $fname_full
-$(<${save_dir}/pfile_template.txt)
+$(<${save_dir}/pfile_template_${soft}.txt)
 EOF"
 
 
