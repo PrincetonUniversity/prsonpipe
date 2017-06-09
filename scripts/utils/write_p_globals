@@ -8,7 +8,7 @@
 # Requires  1, 2 or 3 input arguments
 # Arguments:
 #  If only one task listed in study_info.par:
-#    package (e.g. 'FSL')                        : creates a general pfile for the specified package based on pars.par
+#    package (e.g. 'FSL')                        : creates a general pfile for the specified package based on prep.par
 #    preprocessing prefixes (e.g. 'DARTEL' 'uw') : creates a pfile for those specific steps with extension
 #  If more than one task in study_info.par:
 #    'DARTEL' 'TSK'          : creates a general pfile for task TSK and read form that task's pars_<TSK>.par file

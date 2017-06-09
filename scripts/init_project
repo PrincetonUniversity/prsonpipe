@@ -3,7 +3,7 @@
 # This script sets up all the necessary paths and files to initialize a new project.
 # Run it from the scripts dir after filling out notes/study_info
 # JNM August 11, 2016
-# JNM August 23, 2016 copying pars.par for each task. Check number of task names (if empty add TSK, if not matching # of tasks error)
+# JNM August 23, 2016 copying prep.par for each task. Check number of task names (if empty add TSK, if not matching # of tasks error)
 #    Create backup of globals.par when entering study_info vars (.bak_globals.par) use this backup when overwriting.
 ###########################################
 #  Arguments:
