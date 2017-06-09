@@ -6,6 +6,7 @@
 
 ## subject IDs to exclude from analysis (format: s000), e.g. for missing data
 EXCLUDE_SUBS=(s000 s999)
+NRUNS=12
 
 ####################PREPROCESSING#########################
 

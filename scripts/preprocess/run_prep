@@ -261,7 +261,7 @@ NORM is used, then REALIGN must be as well. Aborting..."
 				run_time=$((60 * ${#ext} + 500))
 				# add an hour run if normalization is selected
 				if [[ ${ext[@]} =~ w ]]; then
-					add_time=$((60*$RUNS)) 
+					add_time=$((60*$NRUNS)) 
 					run_time=$((${run_time}+${add_time}))
 				fi
 
