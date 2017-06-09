@@ -21,6 +21,7 @@ label='[PREP]'
 
 # load settings and functions
 source ../globals.par
+				mflag="--mail-user=${USER_EMAIL}"
 
 pushd ${SCRIPT_DIR_UTIL} > /dev/null
 source funcs
@@ -276,7 +277,6 @@ NORM is used, then REALIGN must be as well. Aborting..."
 				j='%j'
 				tflag='-t=${run_time}'
 				jflag="-J ${run_name}"
-				mflag="--mail-user=${USER_EMAIL}"
 				oflag="--output=${OUT_DIR}/${run_name}-$j.out"
 				dflag="--dependency=afterok:${prev_jobid}"
 				flags="${!tflag} $oflag $jflag $mflag $dflag"
@@ -356,11 +356,9 @@ NORM is used, then REALIGN must be as well. Aborting..."
 		# submit job
 		tflag='-t ${run_time}'
                 jflag="-J ${run_name}"
-                mflag="--mail-user=${USER_EMAIL}"
-                dflag="--dependency=afterok:${prev_jobid}"
 		oflag="-o ${OUT_DIR}/${run_name}-%j.out"
-		flags="${!tflag} $oflag $jflag $mflag $dflag"
-                prev_jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
+		flags="${!tflag} $oflag $jflag $mflag"
+                prev_jobid=$(sbatch ${flags} ${dependency_flag} "${run_script}" -p "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
 
 		# print jobid to console
 		jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in \
@@ -416,7 +414,6 @@ ${cur_soft} for subject(s) ${SUBS[@]}"
 				pushd ${script_path} > /dev/null
 				tflag='-t 60'
 				jflag="-J ${run_name}"
-				mflag="--mail-user=${USER_EMAIL}"
 				oflag="-o ${OUT_DIR}/${run_name}-%j.out"
 				dflag="--dependency=afterok:${prev_jobid}"
 				flags="${!tflag} $oflag $jflag $mflag $dflag"
