@@ -40,6 +40,11 @@ fsl_template="${FSLDIR}/data/standard/MNI152_T1_2mm_brain" #MNI template to norm
 SMOOTH_SOFT='none'
 SMOOTH=8
 
+# Bandpass filter: 'FSL', 'none'
+FILTER='FSL'
+# high pass filter (none = -1)
+hFilter=-1
+lFilter=-1
 
 # voxel size at which to re-sample functionals (isotropic) (DARTEL)
 VOX_SIZE=2.0
@@ -50,12 +55,12 @@ VOX_SIZE=2.0
 ####(do not change)###(do not change)###(do not change)###(do not change)###
 
 ### Name of preprocessing (do not change)
-wd_dir="a$(echo ${SLICE_TIME^^} | cut -c1)r$(echo ${REALIGN^^} | cut -c1)u$(echo ${UNWARP^^} | cut -c1)w$(echo ${NORM^^} | cut -c1)s$(echo ${SMOOTH_SOFT^^} | cut -c1)"
+wd_dir="a$(echo ${SLICE_TIME^^} | cut -c1)r$(echo ${REALIGN^^} | cut -c1)u$(echo ${UNWARP^^} | cut -c1)w$(echo ${NORM^^} | cut -c1)s$(echo ${SMOOTH_SOFT^^} | cut -c1)f$(echo ${FILTER^^} | cut -c1)"
 # SET UP PREPROCESSING STEPS BASED ON PARAMETERS FILE
 # create arrays of step names, softwares, extensions in the order of execution
 # Create an array (step_names) of all the preprocessing step names
-declare -a step_names=("SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT")
+declare -a step_names=("SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT" "FILTER")
 # Create an array (step_softs) of all the preprocessing step's software
-declare -a step_softs=("$SLICE_TIME" "$REALIGN" "$UNWARP" "$NORM" "$SMOOTH_SOFT" )
+declare -a step_softs=("$SLICE_TIME" "$REALIGN" "$UNWARP" "$NORM" "$SMOOTH_SOFT" "$FILTER")
 # Create an array (step_exts) of all the preprocessing prefixes 
-declare -a step_exts=('a' 'r' 'u' 'w' 's')
+declare -a step_exts=('a' 'r' 'u' 'w' 's' 'f')

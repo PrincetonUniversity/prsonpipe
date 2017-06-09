@@ -87,6 +87,8 @@ if [[ $REALIGN == ${soft} ]]; then realign=1; else realign=0; fi
 if [[ $UNWARP == ${soft} ]]; then unwarp=1; else unwarp=0; fi
 
 if [[ $SMOOTH_SOFT == ${soft} ]]; then smooth=$SMOOTH; else smooth=0; fi
+    
+if [[ $FILTER == ${soft} ]]; then filter=1; else filter=0; fi
 
 if [[ $NORM == ${soft} ]]; then norm=1; else norm=0; fi
 

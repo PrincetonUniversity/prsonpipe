@@ -11,3 +11,7 @@ fsl_template="$fsl_template"
 
 EPI_ACCEL=$EPI_ACCEL
 EPI_ECHOSPACING=$EPI_ECHOSPACING
+
+FILTER=$filter
+hFilter="$hFilter"
+lFilter="$lFilter"

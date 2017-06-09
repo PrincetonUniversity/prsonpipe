@@ -196,6 +196,7 @@ with pfile ${pfile}" | tee -a "${logfile}"
     unwarp_file="${fsl_prep}/u${epi_name}"
     smooth_file="${fsl_prep}/s${epi_name}"
     normalize_file="${fsl_prep}/w${epi_name}"
+    filter_file="${fsl_prep}/f${epi_name}"
     SE_AP="${fsl_prep}/${tsk}_SE_AP.nii*"
     topup_dir="${PREP_DIR}/topup/${subid}"
     if [ ! -f $SE_AP ]; then 
@@ -286,6 +287,30 @@ EOF
       fslmaths $epi -s $sigma $smooth_file
       cp $smooth_file $epi
       echo "${label} $(date) Ran smoothing with $FWHM FWHM" | tee -a "$logfile"
+    fi
+
+    if [[ $FILTER == 1 ]]; then
+      # apply band pass filter
+      echo "$label $(date) bandpass filtering $epi"
+      # set default hp and lp
+      hp=-1
+      lp=-1
+      # get number of TRs in this run
+      TR=$( fslval "${epi}" "pixdim4" )
+      # high pass filter
+      if [[ $hFilter -ne -1 ]]; then
+          hp=$(echo "${hFilter}/(${TR}*2)" | bc -l )
+          echo "high pass filter is ${hFilter} seconds, sigma ${hp}"
+      fi
+      # low pass filter
+      if [[ $lFilter -ne -1 ]]; then lp=$(echo "$lFilter/($TR*2)" | bc -l ); fi
+      # filter epi
+      echo "using high pass sigma $hp, low pass sigma $lp"
+      tempMean_file="${fsl_prep}/tempMean"
+      fslmaths "${epi}" -Tmean "${tempMean_file}"
+      fslmaths "${epi}" -bptf "${hp}" "${lp}" -add "${tempMean_file}" "${filter_file}"
+      rm "${tempMean_file}.nii.gz"
+      echo "${label} $(date) Filtered ${epi} with high pass sigma $hp and low pass sigma $lp" | tee -a "$logfile"
     fi
   done
 done
