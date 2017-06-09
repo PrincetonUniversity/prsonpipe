@@ -76,7 +76,7 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 while getopts "p:i:o:l:" opt; do
   case $opt in
     p)
-      pfile=${SCRIPT_DIR_FSL}/$(basename $OPTARG)
+      pfile=${PARS_DIR}/$(basename $OPTARG)
       if [ ! -f $pfile ]; then
         echo "$label ERROR: pfile $pfile does not exist."
         exit 1
@@ -137,7 +137,7 @@ shift $((OPTIND -1))
 module load fsl
 
 # source the pfile
-source ${SCRIPT_DIR_FSL}/$(basename $pfile)
+source ${PARS_DIR}/$(basename $pfile)
 tsk=$TASK
 
 # if input_dir doesn't exist, use default from pfile

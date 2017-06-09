@@ -22,6 +22,7 @@ label='[PREP]'
 # load settings and functions
 source ../globals.par
 				mflag="--mail-user=${USER_EMAIL}"
+		script_path="${PARS_DIR}"
 
 pushd ${SCRIPT_DIR_UTIL} > /dev/null
 source funcs
@@ -253,7 +254,7 @@ NORM is used, then REALIGN must be as well. Aborting..."
 					bash ${SCRIPT_DIR_UTIL}/write_pfile \
 						${cur_soft} ${t} ${ext}
 				fi
-				script_path="${SCRIPT_DIR}/${cur_soft}"
+				#script_path="${SCRIPT_DIR}/${cur_soft}"
 				run_script="${script_path}/sbatch_prep_${cur_soft}"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
@@ -343,7 +344,6 @@ NORM is used, then REALIGN must be as well. Aborting..."
 		bash ${SCRIPT_DIR_UTIL}/write_pfile ${cur_soft} ${t} ${ext}
 
 		# path names
-		script_path="${SCRIPT_DIR}/${cur_soft}"
 		run_script="${script_path}/sbatch_prep_${cur_soft}"
 		pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
@@ -403,7 +403,7 @@ ${cur_soft} for subject(s) ${SUBS[@]}"
 				fi
 
 				# set paths to scripts/pfile for job
-				script_path="${SCRIPT_DIR}/${cur_soft}"
+				#script_path="${SCRIPT_DIR}/${cur_soft}"
 				run_script="${script_path}/sbatch_prep_${cur_soft}"
 				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 

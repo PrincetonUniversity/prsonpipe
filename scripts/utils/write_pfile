@@ -72,7 +72,7 @@ popd > /dev/null   # return to the previous directory, quietly
 #Add software name to directory variable (found in globals.par)
 #eval script_dir='$SCRIPT_DIR_'"${soft}"
 #get directory and filenames based on soft variable
-save_dir="${SCRIPT_DIR}/${soft}"
+save_dir=${PARS_DIR} #"${SCRIPT_DIR}/${soft}"
 fname_full=${save_dir}/p_${soft}${fname}.m
 spm8_dir=${PKG_DIR}/SPM8
 NIfTI_dir=${PKG_DIR}/NIfTI
