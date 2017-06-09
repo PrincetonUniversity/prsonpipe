@@ -310,6 +310,7 @@ EOF
       fslmaths "${epi}" -Tmean "${tempMean_file}"
       fslmaths "${epi}" -bptf "${hp}" "${lp}" -add "${tempMean_file}" "${filter_file}"
       rm "${tempMean_file}.nii.gz"
+      cp $filter_file $epi
       echo "${label} $(date) Filtered ${epi} with high pass sigma $hp and low pass sigma $lp" | tee -a "$logfile"
     fi
   done

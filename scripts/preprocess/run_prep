@@ -171,6 +171,8 @@ NORM is used, then REALIGN must be as well. Aborting..."
 	echo "${label} Normalization         = $NORM" | tee -a "$logfile_wd"
 	echo "${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)" | \
 		tee -a "$logfile_wd"
+	echo "${label} Bandpass Filter       = $FILTER (hpf: $hFilter, lpf: $lFilter)" | \
+		tee -a "$logfile_wd"
 	echo "${label}"
 	echo "${label} Writing prep files to ${wd_dir_full}"
 	

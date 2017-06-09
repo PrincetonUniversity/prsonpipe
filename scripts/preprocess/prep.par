@@ -43,7 +43,7 @@ SMOOTH=8
 # Bandpass filter: 'FSL', 'none'
 FILTER='FSL'
 # high pass filter (none = -1)
-hFilter=-1
+hFilter=128
 lFilter=-1
 
 # voxel size at which to re-sample functionals (isotropic) (DARTEL)
