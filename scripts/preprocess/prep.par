@@ -10,23 +10,23 @@ NRUNS=12
 
 ####################PREPROCESSING#########################
 
-### Slice time correction: 'FSL', 'SPM12w', 'none'
+### Slice time correction: 'FSL', 'SPM12W', 'none'
 SLICE_TIME='none'
 
-### Realignment/Motion correction: 'FSL', 'SPM12w', 'DARTEL', 'none'
+### Realignment/Motion correction: 'FSL', 'SPM12W', 'DARTEL', 'none'
 REALIGN='none'
 
-### Unwarping: 'FSL' (topup; must have spin echos), 'SPM12w', 'none'
+### Unwarping: 'FSL' (topup; must have spin echos), 'SPM12W', 'none'
 UNWARP='none'
 # if using topup (FSL) make sure to get these values from your scanning protocol:
 EPI_ACCEL=1 #acceleration factor
 EPI_ECHOSPACING=0.00072 #echo spacing 
 
-### Normalization: 'SPM12w' (will run SPM12 normalization), 'DARTEL' (run in SPM8),'none'
+### Normalization: 'SPM12W' (will run SPM12 normalization), 'DARTEL' (run in SPM8),'none'
 # (includes registration to MNI space, unwarping in DARTEL)
 NORM='none'
-## SPM12w normalization parameters ##
-# SPM12w normalization options: 'epi', 'spm12', ('dartel' - not currently working)
+## SPM12W normalization parameters ##
+# SPM12W normalization options: 'epi', 'spm12', ('dartel' - not currently working)
 NORMTYPE='SPM12'
 ## FSL normalization parameters ## 
 anat_bet_flag='-R -f 0.2' #flags added to anat skull stripping (bet) 
@@ -36,10 +36,10 @@ module load fsl
 fsl_template="${FSLDIR}/data/standard/MNI152_T1_2mm_brain" #MNI template to normalize to. 
   #Can change to 1mm if necessary 
 
-
-# Smoothing: 'FSL', 'SPM12w', 'DARTEL' (must use DARTEL for normalization too), 'none' size of smoothing kernel in FWHM
+# Smoothing: 'FSL', 'SPM12W', 'DARTEL' (must use DARTEL for normalization too), 'none' size of smoothing kernel in FWHM
 SMOOTH_SOFT='none'
 SMOOTH=8
+
 
 # voxel size at which to re-sample functionals (isotropic) (DARTEL)
 VOX_SIZE=2.0
