@@ -1,4 +1,4 @@
-function SPM12w_preprocess(sub,pfile)
+function matlab_prep_SPM12W(sub,pfile)
 	% Matlab function called by bash script run_SPM12w_prep
 	% adds package paths, creates temporary raw directory by copying current sdir (s000) in prepdir (prep/TSK/wd) to tmp_raw_dir
 	% runs spm12w_preprocess from pkg dir, then copies moves all files back to sdir from tmp_raw_dir, except those that are already there

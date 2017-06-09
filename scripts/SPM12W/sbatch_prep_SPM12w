@@ -159,9 +159,9 @@ for subid in "${run_subs[@]}"; do
 ${pfile}" | tee -a "${logfile}"
 
 	# run matlab from the command line as part of a submit job
-	module load matlab/R2015b
-	matlab -nosplash -nodisplay -nodesktop -r "addpath ${SCRIPT_DIR_SPMW}; try; \
-	matlab_SPM12w_prep('${subid}', '${pfile}'); catch me; \
+	module load matlab/R2016b
+	matlab -nosplash -nodisplay -nodesktop -r "try; \
+	matlab_prep_SPM12W('${subid}', '${pfile}'); catch me; \
 	fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
 
 	# if unwarp AND normalization are on, skip 'r' prefix (not written out if both of these steps are included)

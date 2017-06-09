@@ -15,7 +15,7 @@ NUM_TASKS=${#TASKS[@]}
 # prep software names
 FSL=FSL
 DARTEL=DARTEL
-SPMW=SPM12w
+SPMW=SPM12W
 SPM=SPM12
 PREP_SOFTS=("${FSL}" "${DARTEL}" "${SPMW}")
 
