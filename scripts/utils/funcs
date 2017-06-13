@@ -232,6 +232,7 @@ SLICE_TIME='none'
 REALIGN='none'
 UNWARP='none'
 NORM='none'
+FILTER='none'
 VOX_SIZE=$VOX_SIZE
 SMOOTH_SOFT='none'
 SMOOTH=$SMOOTH
