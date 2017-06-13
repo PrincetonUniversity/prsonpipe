@@ -362,7 +362,7 @@ NORM is used, then REALIGN must be as well. Aborting..."
 		oflag="-o ${OUT_DIR}/${run_name}-%j.out"
 		flags="${!tflag} $oflag $jflag $mflag"
                 prev_jobid=$(sbatch ${flags} ${dependency_flag} "${run_script}" -p "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
-
+        dartel_jobid=${prev_jobid}
 		# print jobid to console
 		jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in \
 ${cur_soft} for subject(s) ${SUBS[@]}"
@@ -377,91 +377,115 @@ ${cur_soft} for subject(s) ${SUBS[@]}"
 		# return to the previous directory, quietly
 		popd > /dev/null
 
-		step_softs=( "${step_softs[@]: -2}" )
-		sim_array=( "${sim_array[@]: -2}" )
-		[[ $step_softs == 'none' ]] && sim_array[1]=1 
 
-		i=0; for p in "${step_softs[@]}"; do
-			# SET UP PREPROCESING STEPS
-			step_name=${step_names[$i]}; e=${step_exts[$i]}
 
-			# if current step is set to 'none', skip and move on to next step
-			if [[ $p != 'none' ]]; then 
-				# add step extension to current software's extension list
-				ext=${ext}${e}
-				cur_soft=${p}
-				pnames="${pnames} ${step_name}"
+		if [[ ${sim_array[$i]} -ne 1 ]] || [[ ${sim_array[$(($i + 1))]} -ne 1 ]]; then
 
-				# turn on step in step.par
-				echo "${step_name}='${cur_soft}'" >> "$stepfile"
-				echo "EPI_ACCEL=${EPI_ACCEL}" >> "$stepfile"
-				echo "EPI_ECHOSPACING=${EPI_ECHOSPACING}" >> "$stepfile"
+
+			if [[ $SMOOTH_SOFT == ${DARTEL} ]]; then
+				step_softs=( "${step_softs[@]: -1}" )
+				step_exts=( "${step_exts[@]: -1}" )
+				step_names=( "${step_names[@]: -1}" )
+				sim_array=( "${sim_array[@]: -2}" )
+			else
+				step_softs=( "${step_softs[@]: -2}" )
+				step_exts=( "${step_exts[@]: -2}" )
+				step_names=( "${step_names[@]: -2}" )
+				sim_array=( "${sim_array[@]: -3}" )
+				[[ $step_softs == 'none' ]] && sim_array[1]=1 
 			fi
-			# check if next step uses same software, if so, run steps
-			if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
+			n=0; for s in "${SUBS[@]}"; do
+				echo "${label}"
 
-				# RUN STEP(S)
+				# unset variables
+				reset_step_par; unset ext; unset pnames
 
-				# # if all steps were set to none, skip to next task
-				# if [[ -z ${pnames} ]]; then  
-				# 	echo "${label} All steps set to 'none'. Moving on to next task..."
-				# 	echo "${label} WARNING: All steps set to 'none'" | tee -a $logfile_wd
-				# 	break 2
-				# fi
+				prev_jobid=${dartel_jobid}
 
-				# WRITE P_FILE
-				# if first subject, write out pfile based on step.par
-				if [[ $n -eq 0 ]]; then 
-					bash ${SCRIPT_DIR_UTIL}/write_pfile \
-						${cur_soft} ${t} ${ext}
-				fi
-				#script_path="${SCRIPT_DIR}/${cur_soft}"
-				run_script="${script_path}/sbatch_prep_${cur_soft}"
-				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
-				# RUN STEP/SUBMIT JOB
+				i=0; for p in "${step_softs[@]}"; do
+					# SET UP PREPROCESING STEPS
+					step_name=${step_names[$i]}; e=${step_exts[$i]}
 
-				# set run_time
-				run_time=$((60 * ${#ext} + 500))
-				# add an hour run if normalization is selected
-				if [[ ${ext[@]} =~ w ]]; then
-					add_time=$((60*$NRUNS)) 
-					run_time=$((${run_time}+${add_time}))
-				fi
+					# if current step is set to 'none', skip and move on to next step
+					if [[ $p != 'none' ]]; then 
+						# add step extension to current software's extension list
+						ext=${ext}${e}
+						cur_soft=${p}
+						pnames="${pnames} ${step_name}"
 
-				# make run_name for job
-				run_name="${cur_soft}${ext}_prep_${s}"
+						# turn on step in step.par
+						echo "${step_name}='${cur_soft}'" >> "$stepfile"
+						echo "EPI_ACCEL=${EPI_ACCEL}" >> "$stepfile"
+						echo "EPI_ECHOSPACING=${EPI_ECHOSPACING}" >> "$stepfile"
+					fi
+					# check if next step uses same software, if so, run steps
+					if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
 
-				# move into software's script directory, quietly
-				pushd ${script_path} > /dev/null   
+						# RUN STEP(S)
 
-				# submit job
-				j='%j'
-				tflag='-t=${run_time}'
-				jflag="-J ${run_name}"
-				oflag="--output=${OUT_DIR}/${run_name}-$j.out"
-				dflag="--dependency=afterok:${prev_jobid}"
-				flags="${!tflag} $oflag $jflag $mflag $dflag"
-				prev_jobid=$(sbatch $flags "${run_script}" -p "$pfile" "$s" | grep -o '[0-9]*')
-				# save/print jobid number
-				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames}\
- in ${cur_soft} for subject ${s}"
-				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
-				
-				# Append job ID to list of job IDs DARTEL has to wait for
-				all_jobs+=":${prev_jobid}"
+						# # if all steps were set to none, skip to next task
+						# if [[ -z ${pnames} ]]; then  
+						# 	echo "${label} All steps set to 'none'. Moving on to next task..."
+						# 	echo "${label} WARNING: All steps set to 'none'" | tee -a $logfile_wd
+						# 	break 2
+						# fi
 
-				# return to the previous directory, quietly
-				popd > /dev/null   
+						# WRITE P_FILE
+						# if first subject, write out pfile based on step.par
+						if [[ $n -eq 0 ]]; then 
+							bash ${SCRIPT_DIR_UTIL}/write_pfile \
+								${cur_soft} ${t} ${ext}
+						fi
+						#script_path="${SCRIPT_DIR}/${cur_soft}"
+						run_script="${script_path}/sbatch_prep_${cur_soft}"
+						pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
 
-				# clear variables for next step
-				reset_step_par; unset ext; first_step=0; unset pnames;
-			fi
-			# increase step index by one
-			i=$(($i + 1))
-		done
-		# increase sub index by one
-		n=$(($n + 1))
+						# RUN STEP/SUBMIT JOB
+
+						# set run_time
+						run_time=$((60 * ${#ext} + 500))
+						# add an hour run if normalization is selected
+						if [[ ${ext[@]} =~ w ]]; then
+							add_time=$((60*$NRUNS)) 
+							run_time=$((${run_time}+${add_time}))
+						fi
+
+						# make run_name for job
+						run_name="${cur_soft}${ext}_prep_${s}"
+
+						# move into software's script directory, quietly
+						pushd ${script_path} > /dev/null   
+
+						# submit job
+						j='%j'
+						tflag='-t=${run_time}'
+						jflag="-J ${run_name}"
+						oflag="--output=${OUT_DIR}/${run_name}-$j.out"
+						dflag="--dependency=afterok:${prev_jobid}"
+						flags="${!tflag} $oflag $jflag $mflag $dflag"
+						prev_jobid=$(sbatch $flags "${run_script}" -p "$pfile" "$s" | grep -o '[0-9]*')
+						# save/print jobid number
+						jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} \
+in ${cur_soft} for subject ${s}"
+						echo "${jobinfo_str}" | tee -a "${logfile_wd}"
+						
+						# Append job ID to list of job IDs DARTEL has to wait for
+						all_jobs+=":${prev_jobid}"
+
+						# return to the previous directory, quietly
+						popd > /dev/null   
+
+						# clear variables for next step
+						reset_step_par; unset ext; first_step=0; unset pnames;
+					fi
+					# increase step index by one
+					i=$(($i + 1))
+				done
+				# increase sub index by one
+				n=$(($n + 1))
+			done
+		fi
 	fi
 
 
