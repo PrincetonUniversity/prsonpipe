@@ -6,7 +6,7 @@
 p.pkg_dir       = '${pkg_dir}';
 p.spm8_dir      = '${spm8_dir}';
 p.NIfTI_dir     = '${NIfTI_dir}';
-p.scripts_dir   = '${PROJECT_DIR}/${SCRIPT_DIR_DARTEL}';
+p.scripts_dir   = '${PARS_DIR}';
 
 % study directory
 p.proj_dir      = '${PROJECT_DIR}';
