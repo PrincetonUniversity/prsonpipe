@@ -5,28 +5,28 @@
 % p_glm_default.m
 % glm parameters for transition analyses
 
-% Set environmental variables based on globals.par
+% Get environmental variables based on globals.par
 global realigns
-clear globals_file
+
+[~, fstr] = system('echo "$USER"');
+netid = strrep(fstr,sprintf('\n'),'');
+
+clear globals_file;
 [~, fstr] = system('script_dir="$(dirname -- "$(pwd)")"; echo "${script_dir%scripts*}scripts/globals.m"');
 globals_file 		= strrep(fstr,sprintf('\n'),'');
+
 run(globals_file)
 
-% Paths (no need to change)
-glm.study_dir 		= PROJECT_DIR;		% do not change
-glm.prep_name 		= [tsk filesep wd]; % do not change
-addpath(fullfile(PKG_DIR, 'PSNL_funcs'))
-addpath(fullfile(PKG_DIR, 'spm12'))
-addpath(fullfile(PKG_DIR, 'catstruct'))
-addpath(fullfile(PKG_DIR, 'spm12w_1702'))
-
 % User input paths
-glm.username 		= '<netID>'; 		% enter your netID here
-tsk 				= 'TSK';			% enter the task you want to run
-wd 					= 'aNrNuNwNsN';		% enter the preprocessing directory
-glm.glm_name 		= 'myGLM';			% enter a unique name to call this GLM
-glm.ons_dir  		= glm.glm_name; 			% enter the directory in which the onsets are stored
+glm.username        = netid;
+tsk                 = 'TSK';			% enter the task you want to run
+wd                  = 'aNrNuNwNsNfF';	% enter the preprocessing directory
+glm.glm_name        = 'myGLM';			% enter a unique name to call this GLM
+glm.ons_dir         = 'TSK_onsets'; 	% enter the directory in which the onsets are stored
 
+% Paths (no need to change)
+glm.study_dir       = PROJECT_DIR;		% do not change
+glm.prep_name       = [tsk filesep wd]; % do not change
 
 % GLM Model Inclusions - 1=yes 0=no
 glm.include_run 	= 'all'; % Specify run to model: 'all' or runs (e.g. [1,3])
@@ -37,23 +37,19 @@ glm.duration    	= 0; 	% Event/Block Duration (same units as glm.time).
                        		% Dur files will override.
 
 % GLM Conditions (seperate by commas)
-numevents			= 2;  % number of conditions
-for i = 1:numevents
-	% will output glm.events = {event01, event02};
-	glm.events{i} 	= ['event' num2dubstr(i)]; % condition names
-end
+glm.events          = {'private', 'share'};
 glm.blocks     		= {};
 glm.regressors 		= {};
 
 %% GLM Parametric modualtors - Special keyword: 'allthethings'
-glm.parametrics 	= {'event01xpar', 'event02xpar'};
+glm.parametrics 	= {};
 
 % GLM Onsets File Specifications
 glm.time			= 'secs';
 glm.durtime			= 'secs';
-tr 					= 0; % length of TR
-ntr 				= 0; % number of TRs in one run
-glm.nses 			= 0; % number of runs
+tr 					= 2.25; % length of TR
+ntr 				= 107; % number of TRs in one run
+glm.nses 			= 2; % number of runs
 glm.tr 				= ones(1,glm.nses)*tr; % same length of TR for each run
 glm.nvols 			= ones(1,glm.nses)*ntr; % same number of TRs for each run
 glm.hrf 			= 'hrf';
@@ -79,3 +75,10 @@ glm.con.housewine 	= 'housewine';
 % RFX Specification
 glm.rfx_name 		= 'rfx_mvpa';
 glm.rfx_conds 		= {'allVSbaseline'};
+
+% add packages
+addpath(fullfile(PKG_DIR, 'PSNL_funcs'))
+addpath(fullfile(PKG_DIR, 'spm12'))
+addpath(fullfile(PKG_DIR, 'catstruct'))
+addpath(fullfile(PKG_DIR, 'spm12w_1702'))
+addpath(fullfile(PKG_DIR, 'NIfTI'))

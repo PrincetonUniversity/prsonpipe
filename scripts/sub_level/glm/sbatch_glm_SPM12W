@@ -68,7 +68,7 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 while getopts "p:l:" opt; do
   case $opt in
     p)
-      pfile=${SCRIPT_DIR_SPMW}/$(basename $OPTARG)
+      pfile=${SCRIPT_DIR}/sub_level/glm/$(basename $OPTARG)
       if [ ! -f $pfile ]; then
         echo "$label ERROR: pfile $pfile does not exist."
         exit 1
@@ -110,5 +110,5 @@ sub=$SUBIDS
 
 module load matlab
 matlab -nosplash -nodisplay -nodesktop -r \
-   "try; matlab_SPM12w_glm('${sub}','${pfile}'); catch me; fprintf('%s / %s\n', \
+   "try; matlab_glm_SPM12W('${sub}','${pfile}'); catch me; fprintf('%s / %s\n', \
    me.identifier, me.message); end; exit" | tee -a "${logfile}"

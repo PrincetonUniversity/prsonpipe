@@ -1,5 +1,5 @@
 % Run first level analysis based on pfile
-function matlab_SPM12w_glm(sub,pfile)
+function matlab_glm_SPM12W(sub,pfile)
 run(pfile)
 
 global realigns
@@ -16,3 +16,5 @@ realigns=realign;
 
 spm12w_glm_compute('sid', sub, 'glm_file', pfile)
 spm12w_glm_contrast('sid', sub, 'glm_file', pfile)
+cd([SCRIPT_DIR filesep 'sub_level' filesep 'glm'])
+matlab_glm_masking(sub,pfile);

@@ -77,7 +77,7 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 while getopts "p:i:o:l:d:" opt; do
   case $opt in
     p)
-      pfile=${SCRIPT_DIR_SPMW}/$(basename $OPTARG)
+      pfile=${SCRIPT_DIR}/sub_level/glm/$(basename $OPTARG)
       if [ ! -f $pfile ]; then
         echo "$label ERROR: pfile $pfile does not exist."
         exit 1
@@ -85,7 +85,7 @@ while getopts "p:i:o:l:d:" opt; do
       echo "$label Using pfile: $pfile"
       ;;
     i)
-          input_dir=$OPTARG
+          input_dir=${PREP_DIR}/$OPTARG
       if ! $(isDIR ${input_dir}); then
         echo "$label ERROR: input directory $input_dir is not a directory."
         exit 1
@@ -94,12 +94,13 @@ while getopts "p:i:o:l:d:" opt; do
       echo "$label input_dir: $input_dir"
       ;;
     o)
-          output_dir=$OPTARG
-      if ! $(isDIR ${output_dir}); then
-        echo "$label ERROR: output directory $output_dir is not a directory."
-        exit 1
-      fi
-      output_dir=$(full_dir $output_dir)
+          output_dir=${PROJECT_DIR}/analysis/${USER}/glm/$OPTARG
+          mkdir -p $output_dir
+      # if ! $(isDIR ${output_dir}); then
+      #   echo "$label ERROR: output directory $output_dir is not a directory."
+      #   exit 1
+      # fi
+      # output_dir=$(full_dir $output_dir)
       echo "$label output_dir: $output_dir"
       ;;
     l)
@@ -139,30 +140,39 @@ while getopts "p:i:o:l:d:" opt; do
     esac
 done
 [[ -z $pfile ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
+[[ -z ${input_dir} ]] && echo "$label ERROR: -i flag required. Use -h for help." && exit 1
+[[ -z ${output_dir} ]] && echo "$label ERROR: -o flag required. Use -h for help." && exit 1
 #remove used input args
 shift $((OPTIND -1))
 
 ############################## MAIN BODY OF SCRIPT #############################
-# extract the wd and wd/sdir folder location from the pfile by grabbing the quoted section
-# of the line that starts with "p.prepdir /whitespace/ = " and ends before ";"
-wd_name=$(grep -oP 'wd\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
-TSK=$(grep -oP 'tsk\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
-wd_dir=${PREP_DIR}/${TSK}/${wd_name}
+# # extract the wd and wd/sdir folder location from the pfile by grabbing the quoted section
+# # of the line that starts with "p.prepdir /whitespace/ = " and ends before ";"
+# wd_name=$(grep -oP 'wd\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
+# TSK=$(grep -oP 'tsk\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
+# wd_dir=${PREP_DIR}/${TSK}/${wd_name}
 
-# extract the glm folder location from the pfile by grabbing the quoted section of the line that starts with "glm.glm_name /whitespace/ = " and ends before ";"
-glm_name=$(grep -oP 'glm.glm_name\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
-username=$(grep -oP 'glm.username\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
-glm_basedir=${PROJECT_DIR}/analysis/${username}/glm
-! $(isDIR $glm_basedir) && mkdir $glm_basedir
-glm_dir=${glm_basedir}/${glm_name}
-! $(isDIR $glm_dir) && mkdir $glm_dir
+# # extract the glm folder location from the pfile by grabbing the quoted section of the line that starts with "glm.glm_name /whitespace/ = " and ends before ";"
+# glm_name=$(grep -oP 'glm.glm_name\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
+# username=$(grep -oP 'glm.username\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
+# d=${PROJECT_DIR}/analysis/${username}
+# ! $(isDIR $d) && mkdir $d
+# glm_basedir=${d}/glm
+# ! $(isDIR $glm_basedir) && mkdir $glm_basedir
+# glm_dir=${glm_basedir}/${glm_name}
+# ! $(isDIR $glm_dir) && mkdir $glm_dir
 
-# if input_dir doesn't exist, use default from pfile
-[[ -z ${input_dir} ]] && input_dir=${wd_dir}
-# if output_dir doesn't exist, use default from pfile
-[[ -z ${output_dir} ]] && output_dir=${glm_dir}
+# # if input_dir doesn't exist, use default from pfile
+# [[ -z ${input_dir} ]] && input_dir=${wd_dir}
+# # if output_dir doesn't exist, use default from pfile
+# [[ -z ${output_dir} ]] && output_dir=${glm_dir}
 # if logfile doesn't exist, use default from pfile
-[[ -z $flogfile ]] && logdir=${glm_dir} && logfile=${logdir}/LOG_glmlvl1_${TSK}_${wd}.txt
+logfile_name=LOG_glm.txt
+[[ -z $flogfile ]] && logfile=${output_dir}/${logfile_name}
+
+pfile_name=$(basename $pfile)
+DATE=`date +%Y%m%d`
+cp ${pfile} ${output_dir}/${DATE}_${pfile_name}
 
 #check if there are remaining arguments, that have not yet been processed
 # if so, get subject IDs by calling get_subs
@@ -171,21 +181,19 @@ run_subs=( "${SUBS[@]}" )
 
 unset all_jobs
 
-if [[ ! -d $glm_dir ]]; then mkdir $glm_dir; fi
-
-#If there is only one task, set prep sep to 0 so pars.par gets sourced instead of pars_TSK.par
-[[ $PREP_SEP -eq 0 ]] && source ${PARS_DIR}/pars.par || source ${PARS_DIR}/pars_${TSK}.par
-
 for sub in ${run_subs[@]}; do
   echo "${label} Beginning level 1 GLM analysis of $sub for $TSK with pfile $pfile" | tee -a $logfile
-  logfile_sub=${glm_dir}/LOG_glmlvl1_${tsk}_${wd_dir}_${sub}.txt
+  subdir=${output_dir}/${sub}
+  mkdir -p ${subdir}
+  logfile_sub=${subdir}/${logfile_name}
 
   jobname=glm_${sub}
   flags="-o ${OUT_DIR}/${jobname}-%j.out --mail-user=$USER_EMAIL -J ${jobname} ${dependency_flag}"
-  prev_jobid=$(sbatch $flags sbatch_SPM12w_glm -p $pfile -l ${logfile_sub} $sub | grep -o '[0-9]*')
+  prev_jobid=$(sbatch $flags sbatch_glm_SPM12W -p $pfile -l ${logfile_sub} $sub | grep -o '[0-9]*')
   all_jobs+=":${prev_jobid}"
     
   echo "${label} ${jobname} job ${prev_jobid} submitted for level 1 GLM for $subject with pfile $pfile" | tee -a ${logfile_sub} $logfile
+  echo ${label}
 done
 
 echo "${label} dependency_flag=--dependency=afterok${all_jobs}"
