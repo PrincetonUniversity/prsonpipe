@@ -22,9 +22,12 @@ runorder_file=auxil/runorders/run-order.txt
 pars_dir=scripts/preprocess
 
 
-if [[ -z $1 ]] && [[ -n $(find ../ -name '*.nii') || -s ../${runorder_file} || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
+if [[ -z $1 ]] && [[ -s ../${runorder_file} || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
   echo "[INIT] This project has already been initialized." 
   echo "[INIT] If you really want to proceed, and overwrite your previous work, run init_project overwrite"
+  if [[ ! -f .globals.par.bak ]]; then
+    cp globals.par .globals.par.bak
+  fi
   exit 1
 fi
 
