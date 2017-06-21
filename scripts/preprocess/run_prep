@@ -1,44 +1,119 @@
 #!/bin/bash
 #
-# preprocess runs the preprocessing steps
+# June 21, 2017: Miriam Weaverdyck added flags and style standards.
+# run_prep reads in prep_TSK.par or prep.par pfiles and launches each of the 
+# steps as efficiently as possible. Sequential steps that use the same software
+# will be run together. Every subject is run separately, unless group normalization
+# in DARTEL is turned on.
 #
-# This script was inspired by NeuroPipe. 
 ################################################################################----------
 # Packages used:
-#  none
+#  matlab
+#
 # Files sourced:
 #  globals.par
 #  funcs
+#  prep.par (or prep_TSK.par)
+#
+# Flags:
+#  [-h]         : help
+#  [-c]         : skip conversion
+#  [-p]         : pfile to be sourced (default = prep.par or prep_TSK.par)
+#  [-d] 		: dependency jobIDs (e.g. 1111111:2222222:3333333)
+#
 # Arguments:
-#  none 	: will run all tasks with all NEW subjects (on a task by task basis)
-#  TSK		: will run tasks listed before subids, if exists (must be first arguments)
-#  [subs] 	: subject array -- e.g. (1 {3..5}); "${var[@]}"; s001 02 s005; 'all'
-################################################################################----------
+#  [subs] 	: subjects to run
+#
+###############################################################################----------
 
-set -e # stop immediately when an error occurs
-
+set -e
 label='[PREP]'
 
-# load settings and functions
-source ../globals.par
-				mflag="--mail-user=${USER_EMAIL}"
-		script_path="${PARS_DIR}"
+######################### SOURCE FILES ########################################
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
+source ${SCRIPT_DIR_UTIL}/funcs
 
-pushd ${SCRIPT_DIR_UTIL} > /dev/null
-source funcs
-first_jobid=1
-#first_jobid=$(sbatch first_job | grep -o '[0-9]*')
-popd > /dev/null
+convert=true
 
-if [[ $1 == "no-convert" ]]; then shift; else 
+######################### SET UP & PARSE ARGUMENTS #############################
+function help_func () {
+cat << END
+  sbatch_SPM12w_prep [-piold]
+  Description:
+  ------------
+	Launches preprocessing steps for each subject based on 
+	specified parameters in prep.par
+  Usage:
+  ------
+    [<subs>]
+      subjects to run, keywords: 'all', 'new'
+	[-h | --help | -help]
+	  Display this help
+	[-c]
+	  Skip conversion
+	[-p <filename>]
+	  filename of pfile
+	[-d <jobIDs>]
+	  jobIDs that these jobs will be dependent on. Form: 1111111:2222222:3333333
+END
+}
+#First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
+
+#Parse flags other than help
+while getopts "p:cd:" opt; do
+  case $opt in
+    p)
+      pfile=${PARS_DIR}/$(basename $OPTARG)
+      if [ ! -f $pfile ]; then
+        echo "$label ERROR: pfile $pfile does not exist."
+        exit 1
+      fi
+      echo "$label Using pfile: $pfile"
+      ;;
+    c)
+      convert=false
+      echo "$label Skipping conversion."
+      ;;
+    d)
+      jobIDs=$OPTARG
+      if $(isNUM ${jobIDs:0}); then
+        first_jobid=$jobIDs
+      else
+        echo "${label} ERROR: $jobIDs is not a valid dependency arg. Use -h for help."
+        exit 1
+      fi
+      ;;
+    \?)
+      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+      ;;
+    : ) #Catch options without arguments
+      echo "$label ERROR: -$OPTARG requires an argument. Use -h for help."
+      exit 1
+    esac
+done
+#remove used input args
+shift $((OPTIND -1))
+
+[[ -z $first_jobid ]] && first_jobid=1
+
+mflag="--mail-user=${USER_EMAIL}"
+script_path="${PARS_DIR}"
+
 # CONVERT NEW DATA
-# Convert new subject data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz
-convert_log=${PROJECT_DIR}/auxil/archive/LOG_convert.txt
-echo "${label} $(date) -- Converting all dcm files to nii ---" | tee -a "${convert_log}"
-pushd ${SCRIPT_DIR_UTIL} > /dev/null
-bash run_convert
-popd > /dev/null
-wait_for_it '[CONVERT]' $convert_log
+if ${convert}; then
+	# Convert new subject data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz
+	convert_log=${PROJECT_DIR}/auxil/archive/LOG_convert.txt
+	echo "${label} $(date) -- Converting all dcm files to nii ---" | tee -a "${convert_log}"
+	pushd ${SCRIPT_DIR_UTIL} > /dev/null
+	bash ${SCRIPT_DIR_UTIL}/run_convert
+	popd > /dev/null
+	wait_for_it '[CONVERT]' $convert_log
 fi
 
 # DETERMINE WHICH TASKS TO RUN
