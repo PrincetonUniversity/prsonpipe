@@ -18,6 +18,7 @@
 # Flags:
 #  [-h]         : help
 #  [-c]         : skip conversion
+#  [-t]         : task
 #  [-p]         : pfile to be sourced (default = prep.par or prep_TSK.par)
 #  [-d] 		: dependency jobIDs (e.g. 1111111:2222222:3333333)
 #
@@ -49,28 +50,33 @@ cat << END
 	specified parameters in prep.par
   Usage:
   ------
-    [<subs>]
-      subjects to run, keywords: 'all', 'new'
+	[<subs>]
+	  Subjects to run
+	  Keywords: 'all', 'new'
 	[-h | --help | -help]
 	  Display this help
 	[-c]
 	  Skip conversion
+	[-t <TSK>]
+	  Run task 'TSK' only (default runs all). 
+	  Valid tasks: ${TASKS[@]}
 	[-p <filename>]
-	  filename of pfile
+	  filename of pfile (default is 'prep.par' or 'prep_TSK.par')
 	[-d <jobIDs>]
-	  jobIDs that these jobs will be dependent on. Form: 1111111:2222222:3333333
+	  jobIDs that these jobs will be dependent on. 
+	  Valid form: 1111111:2222222:3333333
 END
 }
 #First, check for help flag (multi-character flags not supported by getopts)
 if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 
 #Parse flags other than help
-while getopts "p:cd:" opt; do
+while getopts "ct:p:d:" opt; do
   case $opt in
     p)
       pfile=${PARS_DIR}/$(basename $OPTARG)
       if [ ! -f $pfile ]; then
-        echo "$label ERROR: pfile $pfile does not exist."
+        echo "$label ERROR: pfile $pfile does not exist. Use -h for help."
         exit 1
       fi
       echo "$label Using pfile: $pfile"
@@ -78,6 +84,14 @@ while getopts "p:cd:" opt; do
     c)
       convert=false
       echo "$label Skipping conversion."
+      ;;
+    t)
+      tasks=$OPTARG
+      if $(isTSK $tasks); then
+      	echo "$label ERROR: $tasks is not a valid task. Use -h for help."
+      	exit 1
+      fi
+      echo "$label Inputted task: $tasks"
       ;;
     d)
       jobIDs=$OPTARG
@@ -116,23 +130,12 @@ if ${convert}; then
 	wait_for_it '[CONVERT]' $convert_log
 fi
 
-# DETERMINE WHICH TASKS TO RUN
-# if one or more input argument, check if first is task name.  
-if [[ $# -ge 1 ]] && [[ -d ${RAW_DIR}/${1} ]]; then 
-	# If so, start making list of tasks to run
-	TASKS=(${1}); shift;
-	# check other arguments until you get to one that is not a task
-	while [[ $# -ge 1 ]]; do
-		# If arg is task name, add to task list and shift to next arg
-		if [[ -d ${RAW_DIR}/${1} ]]; then TASKS=("${TASKS[@]}" ${1}); shift; 
-                else break; 
-                fi
-	done
-fi
-echo "${label} Running task(s): ${TASKS[@]}"; 
+# SELECT TASKS
+[[ -z $tasks ]] && $tasks=( ${TASKS[@]} )
+echo "${label} Running task(s): ${tasks[@]}"; 
 
-# RUN TASKS
-for t in "${TASKS[@]}"; do 
+# CYCLE THROUGH EACH TASK
+for t in "${tasks[@]}"; do 
 	echo "${label}"
 	echo "${label} $(date) >>> Starting task $t <<<"
 
@@ -140,6 +143,12 @@ for t in "${TASKS[@]}"; do
 	# source task's pars file
 	if [[ $PREP_SEP -eq 0 ]]; then parsfile=prep.par; else parsfile=prep_${t}.par; fi
 	source ${PARS_DIR}/${parsfile}
+
+	# PATH/FILE NAMES
+	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
+	stepfile=${PARS_DIR}/step.par
+	logfile=${wd_dir_full}/LOG.txt
+	logfile_wd=${logfile}
 
 	# make sure that all steps are correct
 	# DARTEL: must run normalization, if used at all, if r used, then u='none'
@@ -189,19 +198,6 @@ NORM is used, then REALIGN must be as well. Aborting..."
 		exit
 	fi
 
-
-	# STORE PATH/FILE NAMES
-	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
-	stepfile=${PARS_DIR}/step.par
-	logfile=${wd_dir_full}/LOG.txt
-	logfile_wd=${logfile}
-	
-	# CREATE WORKING DIRECTORY IN PREP
-	if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
-	DATE=`date +%Y%m%d`
-	cp ${PARS_DIR}/${parsfile} ${wd_dir_full}/${DATE}_${parsfile}
-
-
 	# Create array based on order of used preprocessing software, such that:
 	# 0 means the parameter uses a different software than the previous step
 	# 1 means the parameter uses the same software as the previous step
@@ -224,6 +220,13 @@ NORM is used, then REALIGN must be as well. Aborting..."
 		i=$(($i + 1)); 
 	done
 	echo ${sim_array[@]}
+
+
+	# CREATE WORKING DIRECTORY IN PREP
+	if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
+	DATE=`date +%Y%m%d`
+	cp ${PARS_DIR}/${parsfile} ${wd_dir_full}/${DATE}_${parsfile}
+
 
 	# CREATE LIST OF SUBJECT IDS
 	# call get_subs function
