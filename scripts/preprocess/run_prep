@@ -61,6 +61,9 @@ cat << END
 	[-t <TSK>]
 	  Run task 'TSK' only (default runs all). 
 	  Valid tasks: ${TASKS[@]}
+	[-a <prepdir>]
+	  Does NOT overwrite previously preprocessed data. Uses epi_r##.nii.gz files in 
+	  ${PREP_DIR}/<TSK>/<prepdir> as raw and runs all steps in pfile on those files
 	[-p <filename>]
 	  filename of pfile (default is 'prep.par' or 'prep_TSK.par')
 	[-d <jobIDs>]
@@ -284,14 +287,15 @@ NORM is used, then REALIGN must be as well. Aborting..."
 		if ! ${keep_prep} && [[ -d "${wd_dir_sub}" ]]; then 
 			# if -a flag was not used and the subject already exists, delete
 			echo "${label} $(date) ${wd_dir_sub} already exists. Deleting..."\
-				 | tee -a "$logfile_wd"; 
+				 | tee -a "${logfile_wd}"; 
 			rm -rf ${wd_dir_sub}; 
 		fi
 		if [[ ! -d "${wd_dir_sub}" ]]; then 
 			# copy sub folder from raw/tsk to prep/tsk/wd
 			echo "${label} $(date) Copying ${s}'s raw folder to ${wd_dir_sub}..." | \
-				tee -a "$logfile_wd"
+				tee -a "${logfile_wd}" 
 			cp -r ${RAW_DIR}/${t}/${s} ${wd_dir_sub}
+		else echo "${label} $(date) Using preprocessed data as raw" | tee -a "${logfile_wd}" "${logfile}"
 		fi
 
 		# empty all variables to start new with this subject
@@ -372,7 +376,7 @@ NORM is used, then REALIGN must be as well. Aborting..."
 				# save/print jobid number
 				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames}\
  in ${cur_soft} for subject ${s}"
-				echo "${jobinfo_str}" | tee -a "${logfile_wd}"
+				echo "${jobinfo_str}" | tee -a "${logfile_wd}" "${logfile}"
 				
 				# Append job ID to list of job IDs DARTEL has to wait for
 				all_jobs+=":${prev_jobid}"
