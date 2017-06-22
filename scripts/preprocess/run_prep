@@ -39,6 +39,7 @@ source "${d%scripts*}/scripts/globals.par"
 source ${SCRIPT_DIR_UTIL}/funcs
 
 convert=true
+keep_prep=false
 
 ######################### SET UP & PARSE ARGUMENTS #############################
 function help_func () {
@@ -71,7 +72,7 @@ END
 if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 
 #Parse flags other than help
-while getopts "ct:p:d:" opt; do
+while getopts "ct:p:d:a:" opt; do
   case $opt in
     p)
       pfile=${PARS_DIR}/$(basename $OPTARG)
@@ -87,7 +88,7 @@ while getopts "ct:p:d:" opt; do
       ;;
     t)
       tasks=$OPTARG
-      if $(isTSK $tasks); then
+      if ! $(isTSK $tasks); then
       	echo "$label ERROR: $tasks is not a valid task. Use -h for help."
       	exit 1
       fi
@@ -101,6 +102,16 @@ while getopts "ct:p:d:" opt; do
         echo "${label} ERROR: $jobIDs is not a valid dependency arg. Use -h for help."
         exit 1
       fi
+      ;;
+    a)
+      keep_prep=true
+      prev_wd_dir=$OPTARG
+      dname=${PREP_DIR}/*/${prev_wd_dir}
+      if ! $(isDIR ${dname}); then
+      	echo "${label} ERROR: ${dname} is not a valid directory. Use -h for help."
+      	exit 1
+      fi
+      echo "$label Using ${prev_wd_dir} as prep directory. WARNING: Using preprocessed data, not raw."
       ;;
     \?)
       echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
@@ -123,7 +134,7 @@ script_path="${PARS_DIR}"
 if ${convert}; then
 	# Convert new subject data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz
 	convert_log=${PROJECT_DIR}/auxil/archive/LOG_convert.txt
-	echo "${label} $(date) -- Converting all dcm files to nii ---" | tee -a "${convert_log}"
+	echo "$label $(date) -- Converting all dcm files to nii --" | tee -a "${convert_log}"
 	pushd ${SCRIPT_DIR_UTIL} > /dev/null
 	bash ${SCRIPT_DIR_UTIL}/run_convert
 	popd > /dev/null
@@ -131,7 +142,7 @@ if ${convert}; then
 fi
 
 # SELECT TASKS
-[[ -z $tasks ]] && $tasks=( ${TASKS[@]} )
+[[ -z $tasks ]] && tasks=( "${TASKS[@]}" )
 echo "${label} Running task(s): ${tasks[@]}"; 
 
 # CYCLE THROUGH EACH TASK
@@ -140,11 +151,12 @@ for t in "${tasks[@]}"; do
 	echo "${label} $(date) >>> Starting task $t <<<"
 
 	# GET PARAMETERS
-	# source task's pars file
+	# source task's prep.par file
 	if [[ $PREP_SEP -eq 0 ]]; then parsfile=prep.par; else parsfile=prep_${t}.par; fi
 	source ${PARS_DIR}/${parsfile}
 
 	# PATH/FILE NAMES
+	[[ ! -z ${prev_wd_dir} ]] && wd_dir=${prev_wd_dir} 
 	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
 	stepfile=${PARS_DIR}/step.par
 	logfile=${wd_dir_full}/LOG.txt
@@ -219,8 +231,6 @@ NORM is used, then REALIGN must be as well. Aborting..."
 		if [[ $p != 'none' ]]; then sim_array[$i]=1; break; fi; 
 		i=$(($i + 1)); 
 	done
-	echo ${sim_array[@]}
-
 
 	# CREATE WORKING DIRECTORY IN PREP
 	if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
@@ -229,13 +239,7 @@ NORM is used, then REALIGN must be as well. Aborting..."
 
 
 	# CREATE LIST OF SUBJECT IDS
-	# call get_subs function
-	rawdir=raw/$t
-	prepdir=prep/${t}/${wd_dir}
-
-	declare -a subs_array=( "$@" )
-	get_subs $t ${rawdir} ${prepdir} "${subs_array[@]}"
-
+	get_subs $t ${RAW_DIR}/$t ${PREP_DIR}/${t}/${wd_dir} "$@"
 
 	if [[ -z $SUBS ]]; then 
 		echo "${label} No subjects found for task $t. Moving on to next task..."; 
@@ -266,27 +270,29 @@ NORM is used, then REALIGN must be as well. Aborting..."
 		# CHECK IF SUBJ EXIST IN TSK
 		# if subject does not exist, then exit
 		if [[ -z $s ]]; then 
-			echo "${label} Can't find subject ${s}. Aborting...";
-			exit; 
+			echo "${label} WARNING: Can't find subject ${s}. Skipping...";
+			continue; 
 		fi
 
 		first_step=1; prev_jobid=${first_jobid}
 
-		# STORE FILENAMES/PATHS FOR SUBJ
+		# FILENAMES/PATHS FOR SUBJ
 		wd_dir_sub=${wd_dir_full}/${s}
+		logfile=${wd_dir_sub}/LOG.txt
 
 		# SET UP SUBJ FOLDER IN PREP
-		# copy sub folder from raw/tsk to prep/tsk/wd
-		if [[ -d "${wd_dir_sub}" ]]; then 
+		if ! ${keep_prep} && [[ -d "${wd_dir_sub}" ]]; then 
+			# if -a flag was not used and the subject already exists, delete
 			echo "${label} $(date) ${wd_dir_sub} already exists. Deleting..."\
-				 | tee -a "$logfile_wd"; rm -rf ${wd_dir_sub}; 
+				 | tee -a "$logfile_wd"; 
+			rm -rf ${wd_dir_sub}; 
 		fi
-		echo "${label} $(date) Copying ${s}'s raw folder to ${wd_dir_sub}..." | \
-			tee -a "$logfile_wd"
-		cp -r ${RAW_DIR}/${t}/${s} ${wd_dir_sub}
-
-		# START LOGFILE
-		logfile=${wd_dir_sub}/LOG.txt
+		if [[ ! -d "${wd_dir_sub}" ]]; then 
+			# copy sub folder from raw/tsk to prep/tsk/wd
+			echo "${label} $(date) Copying ${s}'s raw folder to ${wd_dir_sub}..." | \
+				tee -a "$logfile_wd"
+			cp -r ${RAW_DIR}/${t}/${s} ${wd_dir_sub}
+		fi
 
 		# empty all variables to start new with this subject
 		reset_step_par; unset ext; unset pnames
