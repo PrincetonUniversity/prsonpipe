@@ -21,10 +21,17 @@
 # sbatch variables
 #SBATCH -J retreive-%j
 #SBATCH -o ../output/retrieve-%j.out
+#SBATCH -t 120
 
 # stop immediately when an error occurs
 set -e 
 label='[RET_CON]'
+
+if [[ $(hostname) == della* ]]; then 
+  echo "${label} ERROR: retrieve_from_conquest cannot be run on Della. \
+Use rsync to copy your files from conquest to tigress, then run retrieve_dcm."
+  exit 1
+fi
 
 function help_func () {
 cat << END
