@@ -58,6 +58,7 @@ d="$(dirname -- "$(pwd)")"
 # source globals.par
 source "${d%scripts*}/scripts/globals.par"
 source ${SCRIPT_DIR_UTIL}/funcs
+module load pigz     # (for della)
 
 # add necessary names (no longer in globals.sh)
 DICOM_DIR="${BACKUP_DIR}/raw"
