@@ -26,6 +26,7 @@
 # sbatch variables
 #SBATCH -J retreive-%j
 #SBATCH -o ../output/retrieve-%j.out
+#SBATCH -t 60
 
 set -e # fail immediately on error
 label='[RET_DCM]'
@@ -53,9 +54,9 @@ END
 if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 if [[ $1 == -f ]]; then force=true; shift; fi 
 #Get the name of the directory this script is in, to create full path to globals.par
-script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
-#Assuming the scripts dir is somewhere in the full path, this finds globals.par
-source "${script_dir%scripts/*}/globals.par"
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
 source ${SCRIPT_DIR_UTIL}/funcs
 
 # add necessary names (no longer in globals.sh)
