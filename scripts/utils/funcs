@@ -527,3 +527,39 @@ function full_dir {
 		echo "${PROJECT_DIR}/${input}"
 	fi
 }
+
+################################################################################
+#11)
+# get_json_value
+# jmildner@princeton.edu, 24 June 2017
+# Read value for a key from a json file
+################################################################################
+# Arguments:
+#  key    : name of field in json file you want to read
+#  file   : full path to json file
+# Output:
+#  value of the specified field in the json file.
+################################################################################
+function read_json_value {
+  label_func='[JSON]'
+  if [[ $# != 2 ]]; then
+    echo "${label_func} provide both a key and file."
+    exit 1
+  fi
+  key=$1
+  jsonfile=$2
+  if [[ ! -f $jsonfile ]]; then
+    jsondir=$(full_dir $(dirname ${jsonfile}))
+    jsonfilename=$(basename ${jsonfile})
+    jsonfile="${jsondir}/${jsonfilename}"
+    if [[ ! -f $jsonfile ]]; then
+      echo "${func_label} Can't find json file ${jsonfile}."
+      exit 1
+    fi
+   fi
+  
+  cat ${jsonfile} | \
+    python2 -c "import sys, json; print json.load(sys.stdin)[sys.argv[1]]" $key
+
+}
+
