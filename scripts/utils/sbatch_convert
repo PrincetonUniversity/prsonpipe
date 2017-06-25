@@ -5,14 +5,15 @@
 ###################################################
 # Packages used:
 #    FSL
-#    MicroGL (dcm2niix)
+#    dcm2niix
+#    pigz (built in on spock, module on della)
 # Arguments:    
-#   1. subject (subID, e.g. s003)
-#   2. full subject (scanner subID, e.g. 160530_tamir_socdep_003)
+#   1. subject (subID, e.g. s003, or full subject ID, e.g. yymmdd_tamir_study_###)
+#   2. path to master log file (i.e. run_convert log file)
 #SBATCH -J "convert"
-#SBATCH -o ../../output/convert_%j.out
+#SBATCH -o ../output/convert_%j.out
 #SBATCH -p all
-#SBATCH -t 2880
+#SBATCH -t 70
 #SBATCH --mail-type=FAIL
 
 set -e  # fail immediately on error
@@ -22,13 +23,19 @@ d="$(dirname -- "$(pwd)")"
 # source globals.par
 source "${d%scripts*}/scripts/globals.par"
 
-module load mricrogl # Make sure all necessary packages are available (spock) -JNM
-module load dcm2niix # (for della)
-module load pigz     # (for della)
+# Load modules for spock & della -JNM
+uname -n | grep -q della && module load pigz
 module load fsl/5.0.9
+module load dcm2niix
 
 findsub=$1
 masterlog=$2
+
+if [[ -z ${findsub} ]]; then 
+  echo "Please provide a subject ID, and (optionally) a master/run_convert logfile"
+  exit
+fi
+
 #Read sub ID list to get full subject name
 subid_list="${PROJECT_DIR}/auxil/archive/subid_list.txt"
 #Find the line with subject ID in subid_list, and get the first field
@@ -42,6 +49,7 @@ run_order_file="${PROJECT_DIR}/auxil/runorders/${full_subj}.txt"
 ERROR_FLAG=ERROR_RUN
 PREFIX=scan
 output_ext=.nii #If changing the extension, make sure to also change the dcm2niix conversion flag
+bids_ext=.json
 gz=1 #1 for gzipped nifti's 2 for no gzip
 
 label="[CONVERT]"
@@ -51,14 +59,15 @@ FSLOUTPUTTYPE=NIFTI #Convert 16-bit scans to FLOAT32 data type to retain UINT16 
 #unpack and convert data to nifti
 temp_dicom_dir=$(mktemp -d -t tmp.XXXXXX)
 temp_output_dir=$(mktemp -d -t tmp.XXXXXX)
-logfile="${temp_output_dir}/LOG_convert_${subj}.txt"
+logfile="${temp_output_dir}/convert_logs/LOG_convert_${subj}.txt"
+mkdir -p $(dirname ${logfile})
 
 echo "${label} Unpacking $subj at $(date)" | tee "${logfile}"
 
 function error() {
  ## Output: error message if necessary, clean up temp dir.
   echo "${label} cleaning up..." | tee -a ${logfile}
-  mv ${logfile} ${output_dir}/$(basename ${logfile})
+  mv ${logfile} "${output_dir}/${logfile#$temp_output_dir}"
   rm -rf ${temp_dicom_dir}
   rm -rf ${temp_output_dir}
   rm -f ${stripped_run_order_file}
@@ -72,7 +81,7 @@ trap 'error' EXIT
 tar --extract --gunzip --file=$dicom_archive --directory=$temp_dicom_dir
 
 echo "${label} Converting to nifti at $(date)" | tee -a "${logfile}"
-dcm2niix -b n -z n -o $temp_output_dir -f ${PREFIX}_%2s $temp_dicom_dir 1>/dev/null
+dcm2niix -b y -z n -o $temp_output_dir -f ${PREFIX}_%2s $temp_dicom_dir 1>/dev/null
 
 #make sure naming scheme does not output too many leading zeros (bug in dcm2niix)
 for filename in $temp_output_dir/*${output_ext}; do
@@ -111,6 +120,7 @@ fi
 # that many TRs, and exit with an error if not.
 number=0
 file_array=(${temp_output_dir}/*${output_ext})
+bids_array=(${temp_output_dir}/*${bids_ext})
 
 {
 while read name num_expected_trs; do
@@ -121,6 +131,7 @@ while read name num_expected_trs; do
   # convert the scan
   niigz_file_prefix="${temp_output_dir}/${name}"
   mv "${file_array[$number]}" ${niigz_file_prefix}${output_ext}
+  mv "${bids_array[$number]}" "${niigz_file_prefix}${bids_ext}"
 
   if [ -n "$num_expected_trs" ]; then
     num_actual_trs=$(fslnvols ${niigz_file_prefix})
@@ -138,7 +149,16 @@ done
 rm -f $temp_output_dir/${PREFIX}*
 rm -f $stripped_run_order_file
 
-mv ${logfile} ${output_dir}/$(basename ${logfile})
+
+echo "${label} Zipping and moving converted files at $(date)" | tee -a ${logfile}
+
+# move the log file to raw/convert_logs and remove the log file dir
+mkdir -p "${output_dir}/$(dirname ${logfile#$temp_output_dir})"
+mv ${logfile} "${output_dir}/${logfile#$temp_output_dir}"
+if [[ $(dirname ${logfile}) != ${temp_output_dir} ]]; then
+  rm -rf $(dirname ${logfile})
+fi
+
 #move the nifti's to the right directory
 pushd ${output_dir} > /dev/null
 
@@ -146,7 +166,7 @@ subdirs=(${TASKS[@]/%/\/${subj}})
 mkdir ${subdirs[@]}
 
 if [[ $gz -eq 1 ]]; then
-  pigz ${temp_output_dir}/*
+  pigz ${temp_output_dir}/*${output_ext}
 fi
 
 
@@ -173,5 +193,7 @@ done
 
 rm -rf $temp_output_dir
 rm -rf $temp_dicom_dir
-echo "${label} $subj done at $(date)" | tee -a "${output_dir}/$(basename ${logfile})"
+echo "${label} $subj done at $(date)" | tee -a "${output_dir}/${logfile#$temp_output_dir}"
+
+
 trap - EXIT

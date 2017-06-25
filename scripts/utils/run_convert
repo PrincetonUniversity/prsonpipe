@@ -36,6 +36,8 @@ Usage:
     Display this help
   [-d <job ID>]
     sbatch dependency for convert_data jobs
+  [-l <logfile>]
+    custom path to log file (default: raw/LOG_convert.txt)
   [-f]
     force convert (overwrite raw if it already exists)
   [subjects]
@@ -58,7 +60,7 @@ SUBID_LIST=${PROJECT_DIR}/auxil/archive/subid_list.txt
 
 #logfile variables (flag can overwrite filename initialized here)
 label="[CONVERT]"
-logfile=${PROJECT_DIR}/auxil/archive/LOG_convert.txt
+logfile=${PROJECT_DIR}/raw/LOG_convert.txt
 
 #Parse flags other than help
 while getopts ":l:d:fh" opt; do
@@ -121,7 +123,6 @@ fi
 exec 9<> $SUBID_LIST #open file descriptor for subid_list.txt file -JNM
 #read in lines from subid_list, assign them to variables, and loop through subid_list
   while read -r -u 9 full_subj subj imgtype; do
-    echo "${label}" | tee -a $logfile
     #test if imagetype in subid_list is dicom. Could support other types in the future
     if [[ $imgtype != 'dicom' ]]; then
       echo "${label} No dicom data available for subject $full_subj" | tee -a $logfile
@@ -165,6 +166,7 @@ exec 9<> $SUBID_LIST #open file descriptor for subid_list.txt file -JNM
     job_id=$(sbatch $init_dep_flag -t 60 ${SCRIPT_DIR_UTIL}/sbatch_convert $subj $logfile | grep -o '[0-9]*')
     jobs+=":$job_id"
     echo "$label Submitted job $job_id to convert subject $subj" | tee -a $logfile
+    echo "${label}" | tee -a $logfile
   done
 
 # Create dependency for finish jobs
@@ -175,7 +177,7 @@ if [[ -z "$jobs" ]]; then
   #if no jobs were started, finish without invoking finish_log (to avoid queue)
   echo "${label} DONE. No subjects converted. $(date)" | tee -a $logfile
 else 
-  sbatch -t 1 -J finish_convert -p all $dependency_flag finish_log ${label} ${logfile}
+  sbatch -t 1 -J finish_convert -p all $dependency_flag ${SCRIPT_DIR_UTIL}/finish_log ${label} ${logfile}
 fi
 
 exec 9>&- #close subid_list.txt. file
