@@ -3,20 +3,20 @@
 # 8/11/16 updated to look in taskdirs
 ################################################################################----------
 # CONTENTS:
-# 1) num2subID				:	called by get_subs, converts array to proper subID form
-# 2) get_subs				:	takes in an array of subjects and returns an
-#								array of subject IDs in form s000
-# 3) reset_step_par			:	overwrites pars.par with nothing turned on
-# 4) wait_for_it			:	waits until log file contains "[STEP] Done."
-# 5) update_nii				:	updates niftis to their most recently modified formats
-# 6) make_matlab_array		:	makes matlab array of sub nums (000) from bash
-# 								array (may be matlab-style [1 2 3])
-# ??7) make_smatlab_array	:	makes matlab array of sub ids ('s000') from bash array
-# 								(may be matlab-style [1 2 3])
-# 8) unzip_epi_anat			:	unzips all epi*.nii.gz and anat*.nii.gz files
-# 								based on inputted subs and directory using unpigz
-# ??9) zip_all				:	zips all files based on inputted subs and
-#								directory using pigz
+# 1) whatisit <var> : tests if var is a task, subject ID, number, or directory.
+#                     isTSK, isSUB, isNUM, isDIR test one type and return true or false
+# 2) num2subID <nums[@]> : takes in array of numbers and returns an array of subject IDs.
+# 3) get_subs	<TSK> [<subs[@]>] : finds subject IDs based on task and subject numbers 
+# 4) reset_step_par : overwrites pars.par with nothing turned on
+# 5) wait_for_it <label> <logfile> : waits until logfile contains "[label] Done."
+# 6) update_nii <dir | steps | subs[@]>: updates epis to most recently modified versions
+# 7) make_matlab_array <nums[@] | subs[@]> : turns array into matlab array of sub nums (000)
+# 8) make_smatlab_array	<nums[@] | subs[@]> : turns array into matlab array of sub ids (000)
+# 9) unzip_epi_anat <subs[@] | dir> : unzips all epi*.nii.gz and anat*.nii.gz files for
+#                                     inputted subs and directory using unpigz
+# 10) zip_all <subs[@] | dir> : zips all .nii files for subs and directory using pigz
+# 11) full_dir <dir> : outputs the full path to directory (checks /dir, ./dir, proj_dir/dir)
+# 12) read_json_value <key> <file>  : returns value of field <key> in json <file>
 ################################################################################----------
 
 # Get the name of the directory this script is in, to create full path to globals.par
@@ -28,18 +28,31 @@ source "${script_dir%scripts*}/scripts/globals.par"
 
 ################################################################################----------
 # 1)
-# whatis $var
+# whatisit $var
 # author: Miriam Weaverdyck August 3, 2016
-# This function takes in an array of numbers and returns an array of subject IDs.
-# Called by get_subs - same args and output
+# This function tests if var is a task, subject ID, number, or directory.
+# Helper functions isTSK, isSUB, isNUM, isDIR test for one type and return true or false
 # Arguments:
 #  var
+# Output:
+#  3 letter code for the variable type (codes defined in globals.par)
+# Example usage:
+#  Using whatisit:
+#   if [[ whatisit ${subject} == ${isSUB} ]]; then do something; fi
+#  Using shorter form:
+#   if [[ $(isSUB ${subject}) == true ]]; then do something; fi 
 ###########################################
 
 function whatisit {
 	label_fun='[WHAT]'
 	var=$1
-
+  
+  isNUM=NUM   # whatisit x -> x is a number (#)
+  isSUB=SUB   # whatisit x -> x is a subject ID (s###)
+  isDIR=DIR   # whatisit x -> x is an existing directory (prep/TSK)
+  isTSK=TSK   # whatisit x -> x is a task according to TASKS[@] (TSK)
+  isIDK=IDK   # whatisit x -> does not know what x is
+  
 	if [[ -z $var ]]; then echo ${return_opts[0]}; return 0; fi
 
 	# test if var is a task
@@ -77,7 +90,7 @@ function isIDK { if [[ $(whatisit $1) == $isIDK ]]; then echo true; else echo fa
 function join_by { local IFS="$1"; shift; echo "$*"; }
 
 ################################################################################----------
-# 1)
+# 2)
 # num2subID ${var[@]}
 # author: Miriam Weaverdyck August 3, 2016
 # This function takes in an array of numbers and returns an array of subject IDs.
@@ -121,7 +134,7 @@ function num2subID {
 }
 
 ################################################################################----------
-# 2)
+# 3)
 # get_subs function
 # author: Miriam Weaverdyck August 3, 2016
 # This function returns an array of subject IDs in form s000
@@ -217,7 +230,7 @@ function get_subs {
 }
 
 ################################################################################
-# 3)
+# 4)
 # reset_step_par
 # author: Miriam Weaverdyck August 10, 2016
 # This function rewrites step.par such that all preprocessing steps are off
@@ -244,7 +257,7 @@ EOT
 }
 
 ################################################################################
-# 4)
+# 5)
 # wait_for_it
 # author Miriam Weaverdyck, August 22, 2016
 # This function waits until logfile contains "[STEP_label_func] Done."
@@ -284,7 +297,7 @@ echo "${label_func} ${step_label_func} finished (based on logfile $logfile). Mov
 }
 
 ################################################################################
-# 5)
+# 6)
 # update_nii
 # author Miriam Weaverdyck, August 23, 2016
 # This function updates niftis based on prefix input
@@ -353,7 +366,7 @@ function update_nii {
 }
 
 ################################################################################
-# 6)
+# 7)
 # make_matlab_array
 # author Miriam Weaverdyck, August 25, 2016
 # This function makes a matlab array from an array input
@@ -387,7 +400,7 @@ function make_matlab_array {
 }
 
 ################################################################################
-# 7)
+# 8)
 # make_smatlab_array
 # author Miriam Weaverdyck, August 25, 2016
 # This function makes a matlab array from an array input
@@ -431,7 +444,7 @@ function make_smatlab_array {
 }
 
 ################################################################################
-# 8)
+# 9)
 # unzip_epi_anat
 # author Miriam Weaverdyck, September 15, 2016
 # This function unzips epi*.nii.gz and anat*.nii.gz using parallel gzip
@@ -470,7 +483,7 @@ function unzip_epi_anat {
 }
 
 ################################################################################
-# 9)
+# 10)
 # zip_all
 # author Miriam Weaverdyck, September 15, 2016
 # This function zips all files based on inputted subs and directory using pigz
@@ -499,7 +512,7 @@ function zip_all {
 }
 
 ################################################################################
-# 10)
+# 11)
 # full_dir
 # author Miriam Weaverdyck, May 1, 2017
 # This function outputs the full path to a directory
@@ -529,8 +542,8 @@ function full_dir {
 }
 
 ################################################################################
-#11)
-# get_json_value
+#12)
+# read_json_value
 # jmildner@princeton.edu, 24 June 2017
 # Read value for a key from a json file
 ################################################################################
