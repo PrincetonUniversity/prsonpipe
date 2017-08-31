@@ -165,19 +165,10 @@ ${pfile}" | tee -a "${logfile}"
 	fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
 
 	# if unwarp AND normalization are on, skip 'r' prefix (not written out if both of these steps are included)
-	uw=$(echo "${steps}" | grep -Po 'u' || true)
-	uw=${uw}$(echo "${steps}" | grep -Po 'w' || true)
-	if [[ ${#uw} == 'uw' ]]; then
-		unset prefix
-		for (( i=0; i<${#steps}; i++ )); do
-		    step="${steps:$i:1}";
-		    #skip realignment
-		    if [[ $step == r ]]; then continue; fi;
-		    prefix=${prefix}${step};
-		done
-		steps=$prefix
-		echo "${label} 'r' removed. steps=$steps"
-	fi
+        if [[ $(echo ${steps} | grep -o 'uw') ]]; then
+          steps=$(echo ${steps} | sed 's/r//')
+          echo "${label} 'r' removed. steps=$steps"
+        fi
 
 	# update epi_r##.nii* files to their most recent versions
 	update_nii ${wd_dir} ${steps} ${SUBIDS[@]}
