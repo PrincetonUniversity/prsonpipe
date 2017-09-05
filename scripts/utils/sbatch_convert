@@ -7,11 +7,11 @@
 #    FSL
 #    dcm2niix
 #    pigz (built in on spock, module on della)
-# Arguments:    
+# Arguments:
 #   1. subject (subID, e.g. s003, or full subject ID, e.g. yymmdd_tamir_study_###)
 #   2. path to master log file (i.e. run_convert log file)
 #SBATCH -J "convert"
-#SBATCH -o ../output/convert_%j.out
+#SBATCH -o convert_%j.out
 #SBATCH -p all
 #SBATCH -t 70
 #SBATCH --mail-type=FAIL
@@ -31,7 +31,7 @@ module load dcm2niix
 findsub=$1
 masterlog=$2
 
-if [[ -z ${findsub} ]]; then 
+if [[ -z ${findsub} ]]; then
   echo "Please provide a subject ID, and (optionally) a master/run_convert logfile"
   exit
 fi
@@ -126,7 +126,7 @@ bids_array=(${temp_output_dir}/*${bids_ext})
 while read name num_expected_trs; do
   if [[ $name == $ERROR_FLAG ]]; then
     let "number += 1"
-    continue 
+    continue
   fi
   # convert the scan
   niigz_file_prefix="${temp_output_dir}/${name}"
