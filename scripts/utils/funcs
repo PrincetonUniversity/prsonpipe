@@ -1,12 +1,13 @@
 #!/bin/bash -e/
 # author: Miriam Weaverdyck 8/10/16
+# update: Judith Mildner 09/2017
 # 8/11/16 updated to look in taskdirs
 ################################################################################----------
 # CONTENTS:
 # 1) whatisit <var> : tests if var is a task, subject ID, number, or directory.
 #                     isTSK, isSUB, isNUM, isDIR test one type and return true or false
 # 2) num2subID <nums[@]> : takes in array of numbers and returns an array of subject IDs.
-# 3) get_subs	<TSK> [<subs[@]>] : finds subject IDs based on task and subject numbers 
+# 3) get_subs	<TSK> [<subs[@]>] : finds subject IDs based on task and subject numbers
 # 4) reset_step_par : overwrites pars.par with nothing turned on
 # 5) wait_for_it <label> <logfile> : waits until logfile contains "[label] Done."
 # 6) update_nii <dir | steps | subs[@]>: updates epis to most recently modified versions
@@ -15,8 +16,11 @@
 # 9) unzip_epi_anat <subs[@] | dir> : unzips all epi*.nii.gz and anat*.nii.gz files for
 #                                     inputted subs and directory using unpigz
 # 10) zip_all <subs[@] | dir> : zips all .nii files for subs and directory using pigz
-# 11) full_dir <dir> : outputs the full path to directory (checks /dir, ./dir, proj_dir/dir)
-# 12) read_json_value <key> <file>  : returns value of field <key> in json <file>
+# 11) full_dir <dir> [<search_path>]: outputs full path to directory
+#                            (checks /dir, ./dir, proj_dir/dir, search_path/dir (if provided))
+# 12) full_file <file> [<search_path>]: like full_dir, but for files. Outputs full path to file
+# 13) read_json_value <key> <file>  : returns value of field <key> in json <file>
+# 14) element_in_array <element> <array> : returns true if element is in array, else false
 ################################################################################----------
 
 # Get the name of the directory this script is in, to create full path to globals.par
@@ -40,19 +44,19 @@ source "${script_dir%scripts*}/scripts/globals.par"
 #  Using whatisit:
 #   if [[ whatisit ${subject} == ${isSUB} ]]; then do something; fi
 #  Using shorter form:
-#   if [[ $(isSUB ${subject}) == true ]]; then do something; fi 
+#   if [[ $(isSUB ${subject}) == true ]]; then do something; fi
 ###########################################
 
 function whatisit {
 	label_fun='[WHAT]'
 	var=$1
-  
+
   isNUM=NUM   # whatisit x -> x is a number (#)
   isSUB=SUB   # whatisit x -> x is a subject ID (s###)
   isDIR=DIR   # whatisit x -> x is an existing directory (prep/TSK)
   isTSK=TSK   # whatisit x -> x is a task according to TASKS[@] (TSK)
   isIDK=IDK   # whatisit x -> does not know what x is
-  
+
 	if [[ -z $var ]]; then echo ${return_opts[0]}; return 0; fi
 
 	# test if var is a task
@@ -251,7 +255,6 @@ SMOOTH_SOFT='none'
 SMOOTH=$SMOOTH
 SNR='none'
 SLICES=0
-
 # turn on these steps:
 EOT
 }
@@ -403,18 +406,18 @@ function make_matlab_array {
 # 8)
 # make_smatlab_array
 # author Miriam Weaverdyck, August 25, 2016
-# This function makes a matlab array from an array input
+# This function makes a matlab cell array from an array input
 ###########################################
 # Arguments (1 total):
-#  array[@] 	: bash type array (may be matlab [1 2 3] format).  If array of (s000 s001 etc) or (1 2 3), converts to ['s000' 's001' etc]
+#  array[@] 	: bash type array (may be matlab [1 2 3] format).  If array of (s000 s001 etc) or (1 2 3), converts to {'s000' 's001' etc}
 ###########################################
 
 function make_smatlab_array {
-	re_num='^[0-9]+$'
+	re_num='[0-9]'
 	bash_array=( "$@" )
 	unset num; unset c
 	# check if subjects in matlab array or bash array
-	if [[ ${bash_array:0:1} == '[' ]]; then
+	if [[ ${bash_array:0:1} == '[' ]] || [[ ${bash_array:0:1} == '{' ]]; then
 		# input was matlab array
 		matlab_array=''
 		# for every element of the inputted array
@@ -437,10 +440,11 @@ function make_smatlab_array {
 	else
 		num2subID ${bash_array[@]}
 		# input was bash array
-		matlab_array='['
+		matlab_array='{'
 		for s in "${SUBIDS[@]}"; do matlab_array="${matlab_array}'${s}' "; done
-		matlab_array="${matlab_array}]"
+		matlab_array="${matlab_array}}"
 	fi
+  echo "${matlab_array}"
 }
 
 ################################################################################
@@ -514,35 +518,76 @@ function zip_all {
 ################################################################################
 # 11)
 # full_dir
-# author Miriam Weaverdyck, May 1, 2017
+# author Miriam Weaverdyck, May 1, 2017. Edit by JM August 29, 2017
 # This function outputs the full path to a directory
 ###########################################
-# Arguments (1 total):
-#  input	: directory
+# Arguments (at least 1):
+#  input        : directory
+#  [search path]: directory to look in
 ###########################################
 
 function full_dir {
-	label_func='[FULLDIR]'
-	input=$1
-	if ! $(isDIR $input); then
-		echo "$label_func ERROR: Could not find $input. Inputted directory must be: "
-		echo "$label_func     a) an absolute path (e.g. /jukebox/tamir/), or "
-		echo "$label_func     b) a relative path from your project directory (e.g. prep/TSK/), or"
-		echo "$label_func     c) a relative path from your current directory (e.g. ./DARTEL if you are in scripts)"
-		exit 1
-	elif [[ -d $input ]]; then
+  label_func='[FULLDIR]'
+  input=$1
+  search_path=$2
+  if [[ -z ${input} ]]; then
+    echo "${label_func} You must provide a directory as input," \
+          " (optionally) followed by a path to search"
+    exit 1
+  elif [[ -d $input ]]; then
 		# absolute path
 		if [[ ${input:0:1} == '/' ]]; then echo "$input"
 		# relative path from current directory
 		else echo "$(pwd)/${input}"; fi
-	else
+	elif [[ -d "${PROJECT_DIR}/${input}" ]]; then
 		# relative path from project directory
 		echo "${PROJECT_DIR}/${input}"
+  elif [[ ! -z ${search_path} ]] && [[ -d ${search_path}/${input} ]]; then
+    echo ${search_path}/${input}
+  else
+    echo "$label_func ERROR: ${input} could not be found in: \n" \
+        "$(pwd), \n ${PROJECT_DIR}, or \n ${search_path}."
 	fi
 }
 
 ################################################################################
-#12)
+# 12)
+# full_file
+# author Judith Mildner, August 29, 2017
+# This function outputs the full path to a file, if it exists
+###########################################
+# Arguments (at least 1):
+#  input        : file to create path to
+#  [search path]: directory to look in
+###########################################
+
+function full_file {
+  label_func='[FULLFILE]'
+  input=$1
+  search_path=$2
+  if [[ -z ${input} ]]; then
+    echo "${label_func} You must provide a directory as input," \
+          " (optionally) followed by a path to search"
+    exit 1
+  elif [[ ! -z ${search_path} ]] && [[ -f ${search_path}/${input} ]]; then
+    echo ${search_path}/${input}
+  elif [[ -f $input ]]; then
+    # absolute path
+    if [[ ${input:0:1} == '/' ]]; then echo "$input"
+    # relative path from current directory
+    else echo "$(pwd)/${input}"
+    fi
+  elif [[ -f "${PROJECT_DIR}/${input}" ]]; then
+    # relative path from project directory
+    echo "${PROJECT_DIR}/${input}"
+  else
+    echo "$label_func ERROR: ${input} could not be found in: \n" \
+        "$(pwd), \n ${PROJECT_DIR}, or \n ${search_path}."
+  fi
+}
+
+################################################################################
+#13)
 # read_json_value
 # jmildner@princeton.edu, 24 June 2017
 # Read value for a key from a json file
@@ -570,9 +615,28 @@ function read_json_value {
       exit 1
     fi
    fi
-  
+
   cat ${jsonfile} | \
     python2 -c "import sys, json; print json.load(sys.stdin)[sys.argv[1]]" $key
 
 }
 
+################################################################################
+#14)
+# element_in_array
+# jmildner@princeton.edu, 24 June 2017
+# Check if an element is in an array (see https://stackoverflow.com/questions/3685970)
+################################################################################
+# Arguments:
+#  element    : variable you want to find
+#  array      : array you want to find the element in (in the form ${array[@]})
+# Output:
+#  true or false
+################################################################################
+function element_in_array {
+  local e match
+  match="$1"
+  shift
+  for e in $@; do [[ "$e" == "$match" ]] && found=1 && echo 'true'; done
+  if [[ -z ${found} ]]; then  echo 'false'; fi
+}
