@@ -18,12 +18,12 @@
 # Flags:
 #  [-h]         : help
 #  [-c]         : skip conversion
-#  [-t]         : task
-#  [-p]         : pfile to be sourced (default = prep.par or prep_TSK.par)
-#  [-d]     : dependency jobIDs (e.g. 1111111:2222222:3333333)
+#  [-t] <TSK>   : task
+#  [-p] <pfile> : pfile to be sourced (default = prep.par or prep_TSK.par)
+#  [-d] <jobID> : dependency jobIDs (e.g. 1111111:2222222:3333333)
 #
 # Arguments:
-#  [subs]   : subjects to run
+#  [subs]   : subjects to run (keyword 'all' accepted)
 #
 ###############################################################################----------
 set -e
@@ -31,16 +31,15 @@ label='[PREP]'
 
 function help_func () {
 cat << END
-  sbatch_SPM12w_prep [-piold]
+sbatch_SPM12w_prep [-t <TSK>] [-p <parfile>] [-a <prepdir>] [-d <jobID(s)>] [-ch] [<subs>]
+  
   Description:
   ------------
   Launches preprocessing steps for each subject based on
   specified parameters in prep.par
+  
   Usage:
   ------
-  [<subs>]
-    Subjects to run
-    Keywords: 'all', 'new'
   [-h | --help | -help]
     Display this help
   [-c]
@@ -56,6 +55,9 @@ cat << END
   [-d <jobIDs>]
     jobIDs that these jobs will be dependent on.
     Valid form: 1111111:2222222:3333333
+  [<subs>]
+    Subjects to run
+    Keywords: 'all', 'new'
 END
 }
 #First, check for help flag (multi-character flags not supported by getopts)
