@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # June 21, 2017: Miriam Weaverdyck added flags and style standards.
-# run_prep reads in prep_TSK.par or prep.par pfiles and launches each of the 
+# run_prep reads in prep_TSK.par or prep.par pfiles and launches each of the
 # steps as efficiently as possible. Sequential steps that use the same software
 # will be run together. Every subject is run separately, unless group normalization
 # in DARTEL is turned on.
@@ -20,15 +20,46 @@
 #  [-c]         : skip conversion
 #  [-t]         : task
 #  [-p]         : pfile to be sourced (default = prep.par or prep_TSK.par)
-#  [-d] 		: dependency jobIDs (e.g. 1111111:2222222:3333333)
+#  [-d]     : dependency jobIDs (e.g. 1111111:2222222:3333333)
 #
 # Arguments:
-#  [subs] 	: subjects to run
+#  [subs]   : subjects to run
 #
 ###############################################################################----------
-
 set -e
 label='[PREP]'
+
+function help_func () {
+cat << END
+  sbatch_SPM12w_prep [-piold]
+  Description:
+  ------------
+  Launches preprocessing steps for each subject based on
+  specified parameters in prep.par
+  Usage:
+  ------
+  [<subs>]
+    Subjects to run
+    Keywords: 'all', 'new'
+  [-h | --help | -help]
+    Display this help
+  [-c]
+    Skip conversion
+  [-t <TSK>]
+    Run task 'TSK' only (default runs all).
+    Valid tasks: ${TASKS[@]}
+  [-a <prepdir>]
+    Does NOT overwrite previously preprocessed data. Uses epi_r##.nii.gz files in
+    ${PREP_DIR}/<TSK>/<prepdir> as raw and runs all steps in pfile on those files
+  [-p <filename>]
+    filename of pfile (default is 'prep.par' or 'prep_TSK.par')
+  [-d <jobIDs>]
+    jobIDs that these jobs will be dependent on.
+    Valid form: 1111111:2222222:3333333
+END
+}
+#First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 
 ######################### SOURCE FILES ########################################
 # Get the name of the directory this script is in to create full path to globals.par
@@ -42,48 +73,17 @@ convert=true
 keep_prep=false
 
 ######################### SET UP & PARSE ARGUMENTS #############################
-function help_func () {
-cat << END
-  sbatch_SPM12w_prep [-piold]
-  Description:
-  ------------
-	Launches preprocessing steps for each subject based on 
-	specified parameters in prep.par
-  Usage:
-  ------
-	[<subs>]
-	  Subjects to run
-	  Keywords: 'all', 'new'
-	[-h | --help | -help]
-	  Display this help
-	[-c]
-	  Skip conversion
-	[-t <TSK>]
-	  Run task 'TSK' only (default runs all). 
-	  Valid tasks: ${TASKS[@]}
-	[-a <prepdir>]
-	  Does NOT overwrite previously preprocessed data. Uses epi_r##.nii.gz files in 
-	  ${PREP_DIR}/<TSK>/<prepdir> as raw and runs all steps in pfile on those files
-	[-p <filename>]
-	  filename of pfile (default is 'prep.par' or 'prep_TSK.par')
-	[-d <jobIDs>]
-	  jobIDs that these jobs will be dependent on. 
-	  Valid form: 1111111:2222222:3333333
-END
-}
-#First, check for help flag (multi-character flags not supported by getopts)
-if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
-
 #Parse flags other than help
 while getopts "ct:p:d:a:" opt; do
   case $opt in
     p)
-      pfile=${PARS_DIR}/$(basename $OPTARG)
-      if [ ! -f $pfile ]; then
-        echo "$label ERROR: pfile $pfile does not exist. Use -h for help."
+      parsfile=$(full_file ${OPTARG} ${SCRIPT_DIR_PREP})
+      if [ ! -f $parsfile ]; then
+        echo "$label ERROR: pfile does not exist. Use -h for help."
+        echo -e "$parsfile"
         exit 1
       fi
-      echo "$label Using pfile: $pfile"
+      echo "$label Using pfile: $parsfile"
       ;;
     c)
       convert=false
@@ -92,8 +92,8 @@ while getopts "ct:p:d:a:" opt; do
     t)
       tasks=$OPTARG
       if ! $(isTSK $tasks); then
-      	echo "$label ERROR: $tasks is not a valid task. Use -h for help."
-      	exit 1
+        echo "$label ERROR: $tasks is not a valid task. Use -h for help."
+        exit 1
       fi
       echo "$label Inputted task: $tasks"
       ;;
@@ -102,17 +102,21 @@ while getopts "ct:p:d:a:" opt; do
       if $(isNUM ${jobIDs:0}); then
         first_jobid=$jobIDs
       else
-        echo "${label} ERROR: $jobIDs is not a valid dependency arg. Use -h for help."
+        echo "${label} ERROR: $jobIDs is not a valid sbatch dependency. Use -h for help."
         exit 1
       fi
       ;;
     a)
       keep_prep=true
       prev_wd_dir=$OPTARG
-      dname=${PREP_DIR}/*/${prev_wd_dir}
-      if ! $(isDIR ${dname}); then
-      	echo "${label} ERROR: ${dname} is not a valid directory. Use -h for help."
-      	exit 1
+      if [[ ! -d $(full_dir ${prev_wd_dir} ${PREP_DIR}) ]]; then
+        dname=${PREP_DIR}/*/${prev_wd_dir}
+        if ! $(isDIR ${dname}); then
+          echo "${label} ERROR: ${dname} is not a valid directory. Use -h for help."
+          exit 1
+        fi
+      else
+        prev_wd_dir=$(full_dir ${prev_wd_dir})
       fi
       echo "$label Using ${prev_wd_dir} as prep directory. WARNING: Using preprocessed data, not raw."
       ;;
@@ -127,524 +131,508 @@ while getopts "ct:p:d:a:" opt; do
 done
 #remove used input args
 shift $((OPTIND -1))
-
+#leftovers are subject IDs
+input_subjects="$@"
+#set directory with parameters to globals.par's SCRIPT_DIR_PREP
+#pars_dir=${SCRIPT_DIR_PREP}
+# If no job dependency is specified, set it to 1 to start immediately
 [[ -z $first_jobid ]] && first_jobid=1
-
-mflag="--mail-user=${USER_EMAIL}"
-script_path="${PARS_DIR}"
-
-# CONVERT NEW DATA
+# Set up standard sbatch flags
+mflag="--mail-user=${USER_EMAIL}" # Email address
+##############################***  SCRIPT BODY ***##############################
+#***** CONVERT NEW DATA *****#
 if ${convert}; then
-	# Convert new subject data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz
-	convert_log=${PROJECT_DIR}/auxil/archive/LOG_convert.txt
-	echo "$label $(date) -- Converting all dcm files to nii --" | tee -a "${convert_log}"
-	pushd ${SCRIPT_DIR_UTIL} > /dev/null
-	bash ${SCRIPT_DIR_UTIL}/run_convert
-	popd > /dev/null
-	wait_for_it '[CONVERT]' $convert_log
+  # Convert new data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz (if not done yet)
+  convert_log=${PROJECT_DIR}/raw/LOG_convert.txt
+  echo "$label $(date) -- Converting all dcm files to nii --" | tee -a "${convert_log}"
+  bash ${SCRIPT_DIR_UTIL}/run_convert -l ${convert_log}
+  wait_for_it '[CONVERT]' $convert_log
 fi
-
-# SELECT TASKS
+#***** write_pfile function *****#
+function write_pfile {
+  # WARNING: this function uses only global variables, make sure it matches run section
+  # set wroking directory
+  work_dir=${wd_dir_full}
+  # initialize step variables as 0
+  local qa=0;slice_time=0;realign=0;unwarp=0;smooth=0;norm=0;filter=0
+  # if SPMW is selected, set some special defaults
+  if [[ ${run_program} == ${SPMW} ]]; then 
+    norm='none'
+    [[ ${#run_steps[@]} < 2 ]] && cleanup=0 || cleanup=3 
+  fi
+  # Turn on each step in run_steps in the pfile
+  for step in ${run_steps[@]}; do
+    case ${step} in
+      SLICE_TIME)
+        slice_time=1
+      ;;
+      REALIGN)
+        realign=1
+      ;;
+      UNWARP)
+        unwarp=1
+        if [[ ${run_program} == ${DARTEL} ]]; then
+          if [[ -z ${epi_readout_time} ]]; then
+            bppe=$(read_json_value 'BandwidthPerPixelPhaseEncode' \
+              "${wd_dir_sub}/epi_r01.json")
+             # spm definition of readout time
+             epi_readout_time=$( echo "(1/${bppe})*1000" | bc -l)
+          fi
+          # make this a matlab cell array
+          no_fieldmap_subs=$(make_smatlab_array ${no_fieldmap_subs[@]})
+          # directory in matlab format
+          [[ -z ${fieldmap_dir} ]] && fieldmap_dir="fullfile(PREP_DIR, p.task, 'topup')"
+        else
+          #fsl definition of readout time
+          [[ -z ${epi_readout_time} ]] && epi_readout_time=$(read_json_value \
+            'TotalReadoutTime' "${wd_dir_sub}/epi_r01.json")
+          #directory in bash format
+          [[ -z ${fieldmap_dir} ]] && fieldmap_dir="${PREP_DIR}/${task}/topup"
+        fi
+      ;;
+      NORM)
+        if [[ ${run_program} == ${SPMW} ]]; then
+          norm=${NORMTYPE}
+        else
+          norm=1
+        fi
+      ;;
+      SMOOTH_SOFT)
+        smooth=${SMOOTH} #set to smoothing kernel
+      ;;
+      FILTER)
+        filter=1
+      ;;
+    esac
+  done
+  # Write a pfile
+  pfile_name="p_${run_program}_${task}${run_exts}.m"
+  pfile="${SCRIPT_DIR_PREP}/${pfile_name}"
+  # Replace all variables in template pfile with their values and save
+  eval "cat << EOF  > ${pfile}
+    $(<${SCRIPT_DIR_PREP}/pfile_template_${run_program}.txt)
+EOF"
+  unset qa slice_time realign unwarp norm smooth filter
+}
+#***** PROCESS EACH TASK *****#
+# Select all tasks if none is given
 [[ -z $tasks ]] && tasks=( "${TASKS[@]}" )
-echo "${label} Running task(s): ${tasks[@]}"; 
-
-# CYCLE THROUGH EACH TASK
-for t in "${tasks[@]}"; do 
-	echo "${label}"
-	echo "${label} $(date) >>> Starting task $t <<<"
-
-	# GET PARAMETERS
-	# source task's prep.par file
-	if [[ $PREP_SEP -eq 0 ]]; then parsfile=prep.par; else parsfile=prep_${t}.par; fi
-	source ${PARS_DIR}/${parsfile}
-
-	# PATH/FILE NAMES
-	[[ ! -z ${prev_wd_dir} ]] && wd_dir=${prev_wd_dir} 
-	wd_dir_full=${PREP_DIR}/${t}/${wd_dir}
-	stepfile=${PARS_DIR}/step.par
-	logfile=${wd_dir_full}/LOG.txt
-	logfile_wd=${logfile}
-
-	# make sure that all steps are correct
-	# DARTEL: must run normalization, if used at all, if r used, then u='none'
-	# FSL: if u=FSL, then r=FSL
-	# SPM12w: if w=SPM12w, then r=SPM12w
-	i=0
-	for p in "${step_softs[@]}"; do
-		step_name=${step_names[$i]}
-		# check if $p is a valid software
-		snum=0
-		if [[ $p != 'none' ]]; then
-			for s in "${PREP_SOFTS[@]}"; do 
-				if [[ $s == $p ]]; then break; fi
-				snum=$((${snum} + 1))
-			done
-			if [[ ${snum} -eq ${#PREP_SOFTS[@]} ]]; then
-				echo "${label} ERROR: ${step_name}=$p is not a valid software choice. \
-Each step must be set to one of the following: none ${PREP_SOFTS[@]}";
-				exit
-			fi
-		fi
-		# DARTEL
-		if [[ $p == ${DARTEL} ]]; then 
-			if [[ ${NORM} != ${DARTEL} ]]; then
-				echo "${label} ERROR: ${step_name}=${p} but NORM=${NORM}. \
-In ${DARTEL}, NORM must always be used.";
-				exit
-			fi
-			if [[ ${REALIGN} == ${DARTEL} ]] && [[ ${UNWARP} != 'none' ]]; 
-			then echo "${label} ERROR: ${step_name}=${p} but UNWARP=${UNWARP}. \
-In ${DARTEL}, if REALIGN is used, then UNWARP must be set to 'none'."
-			exit
-			fi
-		fi
-		i=$(($i + 1))
-	done
-	# FSL
-	if [[ ${UNWARP} == ${FSL} ]] && [[ ${REALIGN} != ${FSL} ]]; then 
-		echo "${label} ERROR: UNWARP=${UNWARP} but REALIGN=${REALIGN}. In ${FSL}, \
-if UNWARP is used, then REALIGN must be as well. Aborting..."
-		exit
-	fi
-	# SPM12w
-	if [[ ${NORM} == ${SPMW} ]] && [[ ${REALIGN} != ${SPMW} ]]; then 
-		echo "${label} ERROR: NORM=${NORM} but REALIGN=${REALIGN}. In ${SPMW}, if \
-NORM is used, then REALIGN must be as well. Aborting..."
-		exit
-	fi
-
-	# Create array based on order of used preprocessing software, such that:
-	# 0 means the parameter uses a different software than the previous step
-	# 1 means the parameter uses the same software as the previous step
-	i=0; for p in "${step_softs[@]}"; do
-		# check if current step is same as cur_soft (current software parameter)
-		if [[ $p != 'none' ]]; then 
-			if [[ $p == $cur_soft ]]; then sim_array[$i]=1; 
-			else sim_array[$i]=0; 
-			fi; 
-			cur_soft=$p; 
-		else 
-			sim_array[$i]=1; 
-		fi
-		i=$(($i + 1))
-	done
-	sim_array[$i]=0
-	# set first software choice to 1
-	i=0; for p in "${step_softs[@]}"; do 
-		if [[ $p != 'none' ]]; then sim_array[$i]=1; break; fi; 
-		i=$(($i + 1)); 
-	done
-
-	# CREATE WORKING DIRECTORY IN PREP
-	if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
-	DATE=`date +%Y%m%d`
-	cp ${PARS_DIR}/${parsfile} ${wd_dir_full}/${DATE}_${parsfile}
-
-
-	# CREATE LIST OF SUBJECT IDS
-	get_subs $t ${RAW_DIR}/$t ${PREP_DIR}/${t}/${wd_dir} "$@"
-
-	if [[ -z $SUBS ]]; then 
-		echo "${label} No subjects found for task $t. Moving on to next task..."; 
-		continue; 
-	fi
-
-	# LIST STEPS THAT WILL BE RUN AND SAVE THEM TO THE TASK'S LOG FILE
-	echo "${label}" | tee -a "$logfile_wd"
-	echo "${label} $(date) *** Running subjects ${SUBS[@]} in task $t ***" | tee -a \
-		"$logfile_wd"
-	echo "${label} Slice Time Correction = $SLICE_TIME" | tee -a "$logfile_wd"
-	echo "${label} Motion Correction     = $REALIGN" | tee -a "$logfile_wd"
-	echo "${label} Unwarping             = $UNWARP" | tee -a "$logfile_wd"
-	echo "${label} Normalization         = $NORM" | tee -a "$logfile_wd"
-	echo "${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)" | \
-		tee -a "$logfile_wd"
-	echo "${label} Bandpass Filter       = $FILTER (hpf: $hFilter, lpf: $lFilter)" | \
-		tee -a "$logfile_wd"
-	echo "${label}"
-	echo "${label} Writing prep files to ${wd_dir_full}"
-	
-	# RUN SUBJECTS
-	# Run each subject, one at a time
-	n=0; for s in "${SUBS[@]}"; do
-		echo "${label}"
-		echo "${label} $(date) == beginning preprocessing of $s =="
-
-		# CHECK IF SUBJ EXIST IN TSK
-		# if subject does not exist, then exit
-		if [[ -z $s ]]; then 
-			echo "${label} WARNING: Can't find subject ${s}. Skipping...";
-			continue; 
-		fi
-
-		first_step=1; prev_jobid=${first_jobid}
-
-		# FILENAMES/PATHS FOR SUBJ
-		wd_dir_sub=${wd_dir_full}/${s}
-		logfile=${wd_dir_sub}/LOG.txt
-
-		# SET UP SUBJ FOLDER IN PREP
-		if ! ${keep_prep} && [[ -d "${wd_dir_sub}" ]]; then 
-			# if -a flag was not used and the subject already exists, delete
-			echo "${label} $(date) ${wd_dir_sub} already exists. Deleting..."\
-				 | tee -a "${logfile_wd}"; 
-			rm -rf ${wd_dir_sub}; 
-		fi
-		if [[ ! -d "${wd_dir_sub}" ]]; then 
-			# copy sub folder from raw/tsk to prep/tsk/wd
-			echo "${label} $(date) Copying ${s}'s raw folder to ${wd_dir_sub}..." | \
-				tee -a "${logfile_wd}" 
-			cp -r ${RAW_DIR}/${t}/${s} ${wd_dir_sub}
-		else echo "${label} $(date) Using preprocessed data as raw" | tee -a "${logfile_wd}" "${logfile}"
-		fi
-
-		# empty all variables to start new with this subject
-		reset_step_par; unset ext; unset pnames
-
-		# GO THROUGH STEPS
-		i=0; for p in "${step_softs[@]}"; do
-			# SET UP PREPROCESING STEPS
-			step_name=${step_names[$i]}; e=${step_exts[$i]}
-
-			# if current step is set to 'none', skip and move on to next step
-			if [[ $p != 'none' ]]; then 
-
-				# check if current step NORM in DARTEL
-				if [[ ${step_name} == 'NORM' ]] && [[ $NORM == ${DARTEL} ]]; then 
-					# if not last subject, reset step par and ext
-					if [[ $n -ne $((${#SUBS[@]} - 1)) ]]; then 
-						reset_step_par; unset ext; 
-					fi; 
-					continue 2; 
-				fi
-				# add step extension to current software's extension list
-				ext=${ext}${e}
-				cur_soft=${p}
-				pnames="${pnames} ${step_name}"
-
-				# turn on step in step.par
-				echo "${step_name}='${cur_soft}'" >> "$stepfile"
-				echo "EPI_ACCEL=${EPI_ACCEL}" >> "$stepfile"
-				echo "EPI_ECHOSPACING=${EPI_ECHOSPACING}" >> "$stepfile"
-			fi
-			# check if next step uses same software, if so, run steps
-			if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
-
-				# RUN STEP(S)
-
-				# if all steps were set to none, skip to next task
-				if [[ -z ${pnames} ]]; then  
-					echo "${label} All steps set to 'none'. Moving on to next task..."
-					echo "${label} WARNING: All steps set to 'none'" | tee -a $logfile_wd
-					break 2
-				fi
-
-				# WRITE P_FILE
-				# if first subject, write out pfile based on step.par
-				if [[ $n -eq 0 ]]; then 
-					bash ${SCRIPT_DIR_UTIL}/write_pfile \
-						${cur_soft} ${t} ${ext}
-				fi
-				#script_path="${SCRIPT_DIR}/${cur_soft}"
-				run_script="${script_path}/sbatch_prep_${cur_soft}"
-				pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
-
-				# RUN STEP/SUBMIT JOB
-
-				# set run_time
-				run_time=$((60 * ${#ext} + 500))
-				# add an hour run if normalization is selected
-				if [[ ${ext[@]} =~ w ]]; then
-					add_time=$((60*$NRUNS)) 
-					run_time=$((${run_time}+${add_time}))
-				fi
-
-				# make run_name for job
-				run_name="${cur_soft}${ext}_prep_${s}"
-
-				# move into software's script directory, quietly
-				pushd ${script_path} > /dev/null   
-
-				# submit job
-				j='%j'
-				tflag='-t=${run_time}'
-				jflag="-J ${run_name}"
-				oflag="--output=${OUT_DIR}/${run_name}-$j.out"
-				dflag="--dependency=afterok:${prev_jobid}"
-				flags="${!tflag} $oflag $jflag $mflag $dflag"
-				prev_jobid=$(sbatch $flags "${run_script}" -p "$pfile" "$s" | grep -o '[0-9]*')
-				# save/print jobid number
-				jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames}\
- in ${cur_soft} for subject ${s}"
-				echo "${jobinfo_str}" | tee -a "${logfile_wd}" "${logfile}"
-				
-				# Append job ID to list of job IDs DARTEL has to wait for
-				all_jobs+=":${prev_jobid}"
-
-				# return to the previous directory, quietly
-				popd > /dev/null   
-
-				# clear variables for next step
-				reset_step_par; unset ext; first_step=0; unset pnames;
-			fi
-			# increase step index by one
-			i=$(($i + 1))
-		done
-		# increase sub index by one
-		n=$(($n + 1))
-	done
-	# setup dependency flag for DARTEL
-	unset dependency_flag
-	all_jobs=${all_jobs#:} # remove the leading : from all_jobs list for sbatch
-	if [[ -n $all_jobs ]]; then 
-		dependency_flag="--dependency=afterok:${all_jobs}"
-	fi 
-
-	# DARTEL
-	# if normalization is run in DARTEL, run group
-	if [[ $NORM == ${DARTEL} ]]; then
-		echo "${label}"
-		echo "${label} $(date) == beginning group preprocessing of ${SUBS[@]} =="
-
-		# SET UP FOR DARTEL
-
-		# set i to NORM index (second to last)
-		i=$((${#step_softs[@]} - 3))  
-
-		# store vars
-		p=${step_softs[$i]}; step_name=${step_names[$i]}; e=${step_exts[$i]}
-
-		# add step extension to current ext list and turn step on in step.par
-		ext=${ext}${e}; cur_soft=${p}; pnames="${pnames} ${step_name}"
-		echo "${step_name}='${p}'" >> "$stepfile"
-
-		# if smoothing also uses DARTEL, add s to ext and turn on in step.par
-		i=$(($i + 1)); 
-		if [[ ${sim_array[$i]} -eq 1 ]] && [[ ${step_softs[$i]} != 'none' ]]; then
-			step_name=${step_names[$i]}; e=${step_exts[$i]}; 
-			ext=${ext}${e}; pnames="${pnames} $step_name"
-			echo "${step_name}='$p'" >> "$stepfile"
-		fi
-
-		# RUN DARTEL
-
-		# if few than 20 subs, DARTEL run_time = 48 hours, else run_time=72hrs
-		if [[ ${#SUBS[@]} -le 20 ]]; then run_time=2880; else run_time=4320; fi
-
-		# write pfile for DARETL
-		bash ${SCRIPT_DIR_UTIL}/write_pfile ${cur_soft} ${t} ${ext}
-
-		# path names
-		run_script="${script_path}/sbatch_prep_${cur_soft}"
-		pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
-
-		# make run_name for job
-		run_name="${cur_soft}${ext}_prep"
-
-		# move into software's script directory, quietly
-		pushd ${script_path} > /dev/null   	
-
-		# submit job
-		tflag='-t ${run_time}'
-                jflag="-J ${run_name}"
-		oflag="-o ${OUT_DIR}/${run_name}-%j.out"
-		flags="${!tflag} $oflag $jflag $mflag"
-                prev_jobid=$(sbatch ${flags} ${dependency_flag} "${run_script}" -p "$pfile" ${SUBS[@]} | grep -o '[0-9]*')
-        dartel_jobid=${prev_jobid}
-		# print jobid to console
-		jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} in \
-${cur_soft} for subject(s) ${SUBS[@]}"
-		echo ${jobinfo_str}
-
-		# write to each sub's logfiles
-		for s in "${SUBS[@]}"; do
-			logfile=${wd_dir_full}/${s}/LOG.txt
-			echo "${jobinfo_str}" >> "${logfile}"
-		done
-
-		# return to the previous directory, quietly
-		popd > /dev/null
-
-
-
-		if [[ ${sim_array[$i]} -ne 1 ]] || [[ ${sim_array[$(($i + 1))]} -ne 1 ]]; then
-
-
-			if [[ $SMOOTH_SOFT == ${DARTEL} ]]; then
-				step_softs=( "${step_softs[@]: -1}" )
-				step_exts=( "${step_exts[@]: -1}" )
-				step_names=( "${step_names[@]: -1}" )
-				sim_array=( "${sim_array[@]: -2}" )
-			else
-				step_softs=( "${step_softs[@]: -2}" )
-				step_exts=( "${step_exts[@]: -2}" )
-				step_names=( "${step_names[@]: -2}" )
-				sim_array=( "${sim_array[@]: -3}" )
-				[[ $step_softs == 'none' ]] && sim_array[1]=1 
-			fi
-			n=0; for s in "${SUBS[@]}"; do
-				echo "${label}"
-
-				# unset variables
-				reset_step_par; unset ext; unset pnames
-
-				prev_jobid=${dartel_jobid}
-
-
-				i=0; for p in "${step_softs[@]}"; do
-					# SET UP PREPROCESING STEPS
-					step_name=${step_names[$i]}; e=${step_exts[$i]}
-
-					# if current step is set to 'none', skip and move on to next step
-					if [[ $p != 'none' ]]; then 
-						# add step extension to current software's extension list
-						ext=${ext}${e}
-						cur_soft=${p}
-						pnames="${pnames} ${step_name}"
-
-						# turn on step in step.par
-						echo "${step_name}='${cur_soft}'" >> "$stepfile"
-						echo "EPI_ACCEL=${EPI_ACCEL}" >> "$stepfile"
-						echo "EPI_ECHOSPACING=${EPI_ECHOSPACING}" >> "$stepfile"
-					fi
-					# check if next step uses same software, if so, run steps
-					if [[ ${sim_array[$((${i} + 1))]} -eq 0 ]]; then 
-
-						# RUN STEP(S)
-
-						# # if all steps were set to none, skip to next task
-						# if [[ -z ${pnames} ]]; then  
-						# 	echo "${label} All steps set to 'none'. Moving on to next task..."
-						# 	echo "${label} WARNING: All steps set to 'none'" | tee -a $logfile_wd
-						# 	break 2
-						# fi
-
-						# WRITE P_FILE
-						# if first subject, write out pfile based on step.par
-						if [[ $n -eq 0 ]]; then 
-							bash ${SCRIPT_DIR_UTIL}/write_pfile \
-								${cur_soft} ${t} ${ext}
-						fi
-						#script_path="${SCRIPT_DIR}/${cur_soft}"
-						run_script="${script_path}/sbatch_prep_${cur_soft}"
-						pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
-
-						# RUN STEP/SUBMIT JOB
-
-						# set run_time
-						run_time=$((60 * ${#ext} + 500))
-						# add an hour run if normalization is selected
-						if [[ ${ext[@]} =~ w ]]; then
-							add_time=$((60*$NRUNS)) 
-							run_time=$((${run_time}+${add_time}))
-						fi
-
-						# make run_name for job
-						run_name="${cur_soft}${ext}_prep_${s}"
-
-						# move into software's script directory, quietly
-						pushd ${script_path} > /dev/null   
-
-						# submit job
-						j='%j'
-						tflag='-t=${run_time}'
-						jflag="-J ${run_name}"
-						oflag="--output=${OUT_DIR}/${run_name}-$j.out"
-						dflag="--dependency=afterok:${prev_jobid}"
-						flags="${!tflag} $oflag $jflag $mflag $dflag"
-						prev_jobid=$(sbatch $flags "${run_script}" -p "$pfile" "$s" | grep -o '[0-9]*')
-						# save/print jobid number
-						jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames} \
-in ${cur_soft} for subject ${s}"
-						echo "${jobinfo_str}" | tee -a "${logfile_wd}"
-						
-						# Append job ID to list of job IDs DARTEL has to wait for
-						all_jobs+=":${prev_jobid}"
-
-						# return to the previous directory, quietly
-						popd > /dev/null   
-
-						# clear variables for next step
-						reset_step_par; unset ext; first_step=0; unset pnames;
-					fi
-					# increase step index by one
-					i=$(($i + 1))
-				done
-				# increase sub index by one
-				n=$(($n + 1))
-			done
-		fi
-	fi
-
-
-
-	# 	# RUN SMOOTHING (iff not in DARTEL)
-	# 	if [[ ${sim_array[$i]} -eq 0 ]]; then
-	# 		n=0; for s in "${SUBS[@]}"; do
-	# 			echo "${label}"
-
-	# 			# unset variables
-	# 			reset_step_par; unset ext; unset pnames
-
-	# 			# assign variables for this step
-	# 			p=${step_softs[$i]}
-	# 			step_name=${step_names[$i]} 
-	# 			e=${step_exts[$i]}
-	# 			ext=${ext}${e}
-	# 			cur_soft=$p
-	# 			pnames="${pnames} $step_name"
-
-	# 			# write step to step pars file
-	# 			echo "${step_name}='$p'" >> "$stepfile"
-
-	# 			# subject's log file
-	# 			logfile=${wd_dir_full}/${s}/LOG.txt
-
-	# 			# if first subject, write out pfile based on step.par
-	# 			if [[ $n -eq 0 ]]; then 
-	# 				bash ${SCRIPT_DIR_UTIL}/write_pfile \
-	# 					${cur_soft} ${t} ${ext}
-	# 			fi
-
-	# 			# set paths to scripts/pfile for job
-	# 			#script_path="${SCRIPT_DIR}/${cur_soft}"
-	# 			run_script="${script_path}/sbatch_prep_${cur_soft}"
-	# 			pfile="${script_path}/p_${cur_soft}_${t}${ext}.m"
-
-	# 			# make run_name for job
- #                		run_name="${cur_soft}${ext}_prep_${s}"
-
-	# 			# run job
-	# 			pushd ${script_path} > /dev/null
-	# 			tflag='-t 60'
-	# 			jflag="-J ${run_name}"
-	# 			oflag="-o ${OUT_DIR}/${run_name}-%j.out"
-	# 			dflag="--dependency=afterok:${prev_jobid}"
-	# 			flags="${!tflag} $oflag $jflag $mflag $dflag"
-	# 	                prev_jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" "${s}" | grep -o '[0-9]*')
-	# 			jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run${pnames}\
- # in ${cur_soft} for subject ${s}"
-	# 			echo "${jobinfo_str}" | tee -a "${logfile_wd}"
-	# 			popd > /dev/null
-
-	# 			# increase sub index by one
-	# 			n=$(($n + 1))
-	# 		done
-	# 	fi
-	# fi
-
-	# Write '[PREP] Done.' in each subject's LOG.txt file
-	for s in "${SUBS[@]}"; do
-		# iff the subject's folder exists
-		if [[ -d ${wd_dir_full}/${s} ]]; then
-			logfile=${wd_dir_full}/${s}/LOG.txt
-			echo "${label} Done. $(date)" >> "$logfile"
-		fi
-	done
-
-	# Write Done. to task logifle
-	echo "${label}" | tee -a "${logfile_wd}"
-	echo "${label} Done. $(date)" | tee -a "${logfile_wd}"
-	echo "${label}" >> "${logfile_wd}"
+echo "${label} Running task(s): ${tasks[@]}";
+
+# Cycle through each task
+for task in "${tasks[@]}"; do
+  echo "${label}"
+  echo "${label} $(date) >>> Starting task ${task} <<<"
+
+  # Get parameters from prep.par or prep_TSK.par
+  if [[ ! -z ${parsfile} ]]; then
+    parsfile=${parsfile}
+  elif [[ $PREP_SEP -eq 0 ]]; then
+    parsfile=${SCRIPT_DIR_PREP}/prep.par
+  else
+    parsfile=${SCRIPT_DIR_PREP}/prep_${task}.par
+  fi
+  source ${parsfile}
+
+  # Set path and file names
+  # work directory
+  wd_dir_full=${PREP_DIR}/${task}/${wd_dir}
+  [[ ! -z ${prev_wd_dir} ]] && wd_dir_full=${prev_wd_dir}
+  # file to turn steps on/off during processing
+  stepfile=${SCRIPT_DIR_PREP}/step.par
+  # logfile (master logfile in wd)
+  logfile_wd=${wd_dir_full}/LOG.txt
+
+  #***** Validate programs chosen in par file *****#
+
+   # trim down the 'none' steps so we don't have to keep looping through them
+   for program_index in ${!step_softs[@]}; do
+     # if program is a case-insensitive match to 'none' (grep -i)
+     if [[ $( echo ${step_softs[${program_index}]} | grep -i 'none') ]]; then
+       # unset sets the value to '', meaning it keeps the length of the array the same
+       unset step_softs[${program_index}]
+       unset step_names[${program_index}]
+       unset step_exts[${program_index}]
+    fi
+  done
+   # now, remake the arrays to remove the steps that were unset in the previous loop
+   step_softs=( ${step_softs[@]} )
+   step_names=( ${step_names[@]} )
+   step_exts=( ${step_exts[@]} )
+  # check if the are not all set to none, which would leave us with an empty array now 
+   if [[ -z ${step_softs[@]} ]]; then
+     echo "${label} All steps set to 'none'. Moving on to next task..."
+     echo "${label} WARNING: All steps set to 'none'"
+     continue
+   fi
+  # loop through all programs specified
+  for program_index in "${!step_softs[@]}"; do
+    step_name=${step_names[${program_index}]}
+    program=${step_softs[${program_index}]}
+    # check if $program is a real option (i.e. listed in globals.par's PREP_SOFTS)
+    if [[ $(element_in_array "${program}" "${PREP_SOFTS[@]}") == 'false' ]]; then
+        echo -e "${label} ERROR: ${step_name}=${program} is not a valid software choice. \n\
+          Each step must be set to one of the following: none ${PREP_SOFTS[@]}"
+        exit
+    fi
+    # check if choices are correct (e.g. unwarp and realign in the same software)
+    case $program in
+      # For DARTEL, normalization should be on, unwarp requires topup
+      ${DARTEL})
+      if [[ ${NORM} != ${DARTEL} ]]; then
+        echo "${label} ERROR: ${step_name}=${program} but NORM=${NORM}. \
+          In ${DARTEL}, NORM must always be used.";
+        exit
+      fi
+      if [[ ${UNWARP} == ${DARTEL} ]] && [[ ${FIELDMAP} == 'none' ]];
+      then echo "${label} ERROR: UNWARP=${DARTEL} but FIELDMAP is off. \
+        In ${DARTEL}, if UNWARP is used, then topup must be used for a fieldmap."
+      exit
+      fi
+      if [[ ${UNWARP} == ${DARTEL} ]] && [[ ${REALIGN} != ${DARTEL} ]]; then
+        echo "${label} ERROR: UNWARP=${UNWARP} but REALIGN=${REALIGN}. \
+        If UNWARP is done in ${DARTEL}, then REALIGN must be as well."
+        exit
+      fi
+      ;;
+      # For FSL, realign must be on if unwarp is used
+      ${FSL})
+      if [[ ${UNWARP} == ${FSL} ]] && [[ ${REALIGN} != ${FSL} ]]; then
+        echo "${label} ERROR: UNWARP=${UNWARP} but REALIGN=${REALIGN}. In ${FSL}, \
+          if UNWARP is used, then REALIGN must be as well. Aborting..."
+        exit
+      fi
+      ;;
+      # For SPMw, Normalization and realignment must both be used
+      ${SPMW})
+      if [[ ${NORM} == ${SPMW} ]] && [[ ${REALIGN} != ${SPMW} ]]; then
+        echo "${label} ERROR: NORM=${NORM} but REALIGN=${REALIGN}. In ${SPMW}, if \
+          NORM is used, then REALIGN must be as well. Aborting..."
+        exit
+      fi
+      ;;
+    esac
+  done
+
+  # CREATE WORKING DIRECTORY IN PREP
+  if [[ ! -d ${wd_dir_full} ]]; then mkdir ${wd_dir_full}; fi
+  DATE=$(date +%Y%m%d)
+  cp ${parsfile} ${wd_dir_full}/${DATE}_$(basename ${parsfile})
+
+  # CREATE LIST OF SUBJECT IDS
+  get_subs ${task} ${RAW_DIR}/${task} ${wd_dir_full} "${input_subjects}"
+  if [[ -z $SUBS ]]; then
+    echo "${label} No subjects found for task ${task}. Moving on to next task...";
+    continue;
+  fi
+
+  # print out steps and put them in log file
+  cat <<- EOM | tee "${logfile_wd}"
+  ${label}
+  ${label} $(date) *** Running subjects ${SUBS[@]} in task ${task} ***
+  ${label} Slice Time Correction = $SLICE_TIME
+  ${label} Motion Correction     = $REALIGN
+  ${label} Unwarping             = $UNWARP
+          with FIELDMAP = $FIELDMAP
+  ${label} Normalization         = $NORM
+  ${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)
+  ${label} Bandpass Filter       = $FILTER (hpf: $hFilter, lpf: $lFilter)
+  ${label}
+  ${label} Writing prep files to ${wd_dir_full}
+EOM
+
+  #***** Run subjects *****#
+  # Run each subject, one at a time n=0;
+  init_step_softs=(${step_softs[@]})
+  init_step_names=(${step_names[@]})
+  init_step_exts=(${step_exts[@]})
+  for subject in "${SUBS[@]}"; do
+    echo "${label}"
+    echo "${label} $(date) == starting preprocessing of ${subject} ==" \
+      | tee -a ${logfile_wd}
+
+    # check if subject exists in task
+    if [[ -z ${subject} ]]; then
+      echo "${label} WARNING: Can't find subject ${subject}. Skipping..." \
+        | tee -a ${logfile_wd}
+      continue;
+    fi
+
+    # this is first step
+    first_step=1
+    prev_jobid=${first_jobid}
+    # subject paths and filenames
+    wd_dir_sub=${wd_dir_full}/${subject}
+    logfile=${wd_dir_sub}/LOG.txt
+
+    # set up subject folder in prep
+    if [[ ${keep_prep} == false ]] && [[ -d "${wd_dir_sub}" ]]; then
+      # if -a flag was not used and the subject already exists, delete
+      echo "${label} $(date) ${wd_dir_sub} already exists. Deleting..."\
+        | tee -a "${logfile_wd}";
+      rm -rf ${wd_dir_sub};
+    fi
+    if [[ ! -d "${wd_dir_sub}" ]]; then
+      # copy sub folder from raw/tsk to prep/tsk/wd
+      echo "${label} $(date) Copying ${subject}'s raw folder to ${wd_dir_sub}..." \
+        | tee -a "${logfile_wd}"
+      cp -fr "${RAW_DIR}/${task}/${subject}" "${wd_dir_sub}"
+    else
+      echo "${label} $(date) Using preprocessed data as raw" \
+        | tee -a "${logfile_wd}" "${logfile}"
+    fi
+
+    #**** Run topup first if it's on and the subject is not in no_fieldmap_subs *****#
+    if [[ ${FIELDMAP} == ${TOPUP} ]]; then 
+      if [[ $(element_in_array "${subject}" "${no_fieldmap_subs[@]}") == 'false' ]]; then
+        prev_jobid=$(sbatch --dependency="afterok:${prev_jobid}" "${mflag}" -D ${OUT_DIR} \
+          sbatch_prep_TOPUP "${wd_dir_sub}" | grep -o '[0-9]*')
+        echo "${label} started topup job ${prev_jobid} for ${subject} on task ${task}"
+        all_jobs+=":${prev_jobid}"
+      fi
+    fi
+
+    #***** Run the other steps in 3 phases: individual, group (DARTEL), individual *****#
+    # Phase 1: keep going till we hit DARTEL or run out of steps
+    current_program='init'
+    step_softs=(${init_step_softs[@]})
+    step_names=(${init_step_names[@]})
+    step_exts=(${init_step_exts[@]})
+    while [[ ${current_program} != ${DARTEL} ]] && [[ ! -z ${step_softs[@]} ]]; do
+      for step_index in ${!step_softs[@]}; do
+        current_program=${step_softs[${step_index}]}
+        # if prev step is empty, pretend it's the same as current
+        if [[ -z ${previous_program} ]];then previous_program=${current_program}; fi;
+        # Run it if the software changes
+        if [[ ${current_program} != ${previous_program} ]]; then
+          # create the pfile (function relies on run variables specified above)
+          # make changes there, and you need to change the function too
+          write_pfile
+          # set up run/sbatch variables
+          run_script=${SCRIPT_DIR_PREP}/sbatch_prep_${run_program}
+          # set run_time
+          run_time=$((60 * ${#ext} + 500))
+          # add an hour run if normalization is selected
+          if [[ ${ext[@]} =~ w ]]; then
+            add_time=$((60*$NRUNS))
+            run_time=$((${run_time}+${add_time}))
+          fi
+          # sbatch flags
+          sbatch_name="${run_program}${run_exts}_prep_${subject}"
+          jflag="-J ${sbatch_name}"
+          tflag="-t ${run_time}"
+          oflag="--output=${OUT_DIR}/${sbatch_name}_%j.out"
+          dflag="--dependency=afterok:${prev_jobid}"
+          flags="${tflag} ${oflag} ${jflag} ${mflag} ${dflag}"
+          # run it
+          prev_jobid=$(sbatch $flags "${run_script}" -p "$pfile" "$subject" \
+            | grep -o '[0-9]*')
+          # save/print jobid number
+          jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run\
+ ${run_steps[@]} in ${run_program} for subject ${subject}"
+          echo "${jobinfo_str}" | tee -a "${logfile_wd}" "${logfile}"
+          # Append job ID to list of job IDs DARTEL has to wait for
+          all_jobs+=":${prev_jobid}"
+
+          # set current software to the next step
+          current_program=${step_softs[${step_index}]}
+
+          # clear previous program and run arrays
+          unset previous_program run_steps run_index run_exts run_program
+          # remove these steps from the step arrays
+          if [[ ${#step_softs[@]} != 1 ]]; then
+            step_softs=( ${step_softs[@]:${step_index}} )
+            step_names=( ${step_names[@]:${step_index}} )
+            step_exts=( ${step_exts[@]:${step_index}} )
+          else
+            unset step_softs step_names step_exts
+          fi
+          break
+        # If it's not time to run, add the steps to the run parameters
+        else
+          # break out of the for loop if we're not running anything and we're on DARTEL
+          [[ ${current_program} == ${DARTEL} ]] && break
+          # If we're not on DARTEL, add the current step to run steps
+          run_steps=( ${run_steps[@]} ${step_names[${step_index}]} )
+          run_program=${current_program}
+          run_index=${step_index}
+          run_exts=${run_exts}${step_exts[${step_index}]}
+          if [[ ${#step_softs[@]} == 1 ]];then
+            previous_program='end'
+          else
+            previous_program=${current_program}
+          fi
+        fi
+      done
+    done
+  done
+
+# Phase 2: group stage
+  while [[ ${current_program} == ${DARTEL} ]] && [[ ! -z ${step_softs[@]} ]]; do
+    echo "${label}"
+    echo "${label} $(date) == beginning group preprocessing of ${SUBS[@]} =="
+    for step_index in ${!step_softs[@]}; do
+      current_program=${step_softs[${step_index}]}
+      # if prev step is empty, pretend it's the same as current
+      if [[ -z ${previous_program} ]];then previous_program=${current_program}; fi;
+      # Run it if the software changes
+      if [[ ${current_program} != ${previous_program} ]]; then
+        # create the pfile (function relies on run variables specified above)
+        # make changes there, and you need to change the function too
+        write_pfile
+        # set up run/sbatch variables
+        run_script=${SCRIPT_DIR_PREP}/sbatch_prep_${run_program}
+        # set number of cores according to number of subjects (max at 20 or 12)
+        if [[ $(hostname | grep -o 'spock') ]]; then
+          maxcores=12
+        elif [[ $(hostname | grep -o 'della') ]]; then
+          maxcores=20
+        fi
+        [[ ${#SUBS[@]} > ${maxcores} ]] && ncores=${maxcores} || ncores=${#SUBS[@]}
+        # get the number of times each step runs sequentially (subs/cores)
+        # ensure proper rounding by adding denominator-1 to numerator
+        n_iterations=$(( (${#SUBS[@]} + ( ${ncores} - 1 ) ) / ${ncores} ))
+        # get the number of processes executed sequentially (iterations*number of steps)
+        n_sequential_steps=$(( ${#run_exts} * ${n_iterations} ))
+        #  add time if DARTEL is creating a template
+        [[ ${new_template} == 1 ]] && dartel_time=500 || dartel_time=0
+        # run time is 60 minutes per step + dartel time if we're making a template
+        run_time=$(( 60 * ${n_sequential_steps} + ${dartel_time} ))
+        # sbatch flags
+        sbatch_name="${run_program}${run_exts}_prep"
+        jflag="-J ${sbatch_name}"
+        tflag="-t ${run_time}"
+        oflag="--output=${OUT_DIR}/${sbatch_name}_%j.out"
+        dflag="--dependency=afterok${all_jobs}"
+        memflag="--mem-per-cpu=3000"
+        if [[ ${#SUBS[@]} -ge ${maxcores} ]]; then
+          coreflag="-c ${maxcores}"
+        else
+          coreflag="-c ${#SUBS[@]}"
+        fi
+        flags="${tflag} ${oflag} ${jflag} ${mflag} ${dflag} ${memflag} ${coreflag}"
+        # run it
+        group_jobid=$(sbatch $flags "${run_script}" -p "$pfile" "${SUBS[@]}" \
+          | grep -o '[0-9]*')
+        # save/print jobid number
+        jobinfo_str="${label} $(date) job ${group_jobid} submitted to run\
+ ${run_steps[@]} in ${run_program} for subjects ${SUBS[@]}"
+        echo "${jobinfo_str}" | tee -a "${logfile_wd}"
+        # write to each sub's logfiles
+        for s in "${SUBS[@]}"; do
+          logfile=${wd_dir_full}/${s}/LOG.txt
+          echo "${jobinfo_str}" >> "${logfile}"
+        done
+        ## CLEAN UP: clear run variables and remove finished steps from step_softs
+        # set current software to the next step
+        current_program='finished'
+        # clear previous program and run arrays
+        unset previous_program run_steps run_index run_exts run_program
+        # remove these steps from the step arrays
+        if [[ ${#step_softs[@]} != 1 ]]; then
+          step_softs=( ${step_softs[@]:${step_index}} )
+          step_names=( ${step_names[@]:${step_index}} )
+          step_exts=( ${step_exts[@]:${step_index}} )
+        break
+        else
+          unset step_softs step_names step_exts
+        fi
+      # If it's not time to run, add the steps to the run parameters
+      else
+        run_steps=( ${run_steps[@]} ${step_names[${step_index}]} )
+        run_program=${current_program}
+        run_index=${step_index}
+        run_exts=${run_exts}${step_exts[${step_index}]}
+        if [[ ${#step_softs[@]} == 1 ]];then
+          previous_program='end'
+        else
+          previous_program=${current_program}
+        fi
+      fi
+    done
+  done
+
+  # Phase 3: keep going till we run out of steps
+  init_step_softs=(${step_softs[@]})
+  init_step_names=(${step_names[@]})
+  init_step_exts=(${step_exts[@]})
+  for subject in ${SUBS[@]}; do
+    prev_jobid=${group_jobid}
+    step_softs=(${init_step_softs[@]})
+    step_names=(${init_step_names[@]})
+    step_exts=(${init_step_exts[@]})
+    # subject paths and filenames
+    wd_dir_sub=${wd_dir_full}/${subject}
+    logfile=${wd_dir_sub}/LOG.txt
+    while [[ ! -z ${step_softs[@]} ]]; do
+      for step_index in ${!step_softs[@]}; do
+        current_program=${step_softs[${step_index}]}
+        # if prev step is empty, pretend it's the same as current
+        if [[ -z ${previous_program} ]];then previous_program=${current_program}; fi;
+        # Run it if the software changes
+        if [[ ${current_program} != ${previous_program} ]]; then
+          # create the pfile (function relies on run variables specified above)
+          # make changes there, and you need to change the function too
+          write_pfile
+          # set up run/sbatch variables
+          run_script=${SCRIPT_DIR_PREP}/sbatch_prep_${run_program}
+          # set run_time
+          run_time=$((60 * ${#ext} + 500))
+          # add an hour run if normalization is selected
+          if [[ ${ext[@]} =~ w ]]; then
+            add_time=$((60*$NRUNS))
+            run_time=$((${run_time}+${add_time}))
+          fi
+          # sbatch flags
+          sbatch_name="${run_program}${run_exts}_prep_${subject}"
+          jflag="-J ${sbatch_name}"
+          tflag="-t ${run_time}"
+          oflag="--output=${OUT_DIR}/${sbatch_name}_%j.out"
+          dflag="--dependency=afterok:${prev_jobid}"
+          flags="${tflag} ${oflag} ${jflag} ${mflag} ${dflag}"
+          # run it
+          prev_jobid=$(sbatch $flags "${run_script}" -p "$pfile" "$subject" \
+            | grep -o '[0-9]*')
+          # save/print jobid number
+          jobinfo_str="${label} $(date) job ${prev_jobid} submitted to run\
+ ${run_steps[@]} in ${run_program} for subject ${subject}"
+          echo "${jobinfo_str}" | tee -a "${logfile_wd}" "${logfile}"
+          # Append job ID to list of job IDs DARTEL has to wait for
+          all_jobs+=":${prev_jobid}"
+
+          # set current software to the next step
+          current_program=${step_softs[${step_index}]}
+          # clear previous program and run arrays
+          unset previous_program run_steps run_index run_exts run_program
+          # remove these steps from the step arrays
+          if [[ ${#step_softs[@]} != 1 ]]; then
+            step_softs=( ${step_softs[@]:${step_index}} )
+            step_names=( ${step_names[@]:${step_index}} )
+            step_exts=( ${step_exts[@]:${step_index}} )
+          else
+            unset step_softs step_names step_exts
+          fi
+          break
+        # If it's not time to run, add the steps to the run parameters
+        else
+          run_steps=( ${run_steps[@]} ${step_names[${step_index}]} )
+          run_program=${current_program}
+          run_index=${step_index}
+          run_exts=${run_exts}${step_exts[${step_index}]}
+          if [[ ${#step_softs[@]} == 1 ]];then
+            previous_program='end'
+          else
+            previous_program=${current_program}
+          fi
+        fi
+      done
+    done
+    echo "${label} Done. $(date)" >> "$logfile"
+  done
+
+  # Write Done. to task logfile
+  echo "${label}" | tee -a "${logfile_wd}"
+  echo "${label} Done. $(date)" | tee -a "${logfile_wd}"
+  echo "${label}" >> "${logfile_wd}"
 done
 

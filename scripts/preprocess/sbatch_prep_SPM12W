@@ -38,6 +38,8 @@ set -e
 echo "on host: `hostname` "
 label='[SPM12W]'
 
+module load matlab/R2016b
+[[ $(hostname | grep della) ]] && module load pigz
 ######################### SOURCE FILES ########################################
 # Get the name of the directory this script is in to create full path to globals.par
 d="$(dirname -- "$(pwd)")"
@@ -77,7 +79,7 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 while getopts "p:i:o:l:" opt; do
   case $opt in
     p)
-      pfile=${PARS_DIR}/$(basename $OPTARG)
+      pfile=${SCRIPT_DIR_PREP}/$(basename $OPTARG)
       if [ ! -f $pfile ]; then
         echo "$label ERROR: pfile $pfile does not exist."
         exit 1
@@ -152,24 +154,22 @@ steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K.*?(?=.m)')
 
 # cycle through subjects since SPM12w can't run more than one subject at a time
 for subid in "${run_subs[@]}"; do 
-	if [[ -z $flogfile ]]; then logfile=${logdir}${subid}/LOG_spmw.txt; 
+	if [[ -z $flogfile ]]; then logfile=${logdir}/${subid}/LOG_spmw.txt; 
 	else logfile=$flogfile; fi
 
 	echo "${label} $(date) Beginning SPM12w analysis of subject ${subid} with pfile \
 ${pfile}" | tee -a "${logfile}"
 
 	# run matlab from the command line as part of a submit job
-	module load matlab/R2016b
 	matlab -nosplash -nodisplay -nodesktop -r "try; \
 	matlab_prep_SPM12W('${subid}', '${pfile}'); catch me; \
 	fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
 
 	# if unwarp AND normalization are on, skip 'r' prefix (not written out if both of these steps are included)
-        if [[ $(echo ${steps} | grep -o 'uw') ]]; then
+  if [[ $(echo ${steps} | grep -o 'uw') ]]; then
           steps=$(echo ${steps} | sed 's/r//')
           echo "${label} 'r' removed. steps=$steps"
         fi
-
 	# update epi_r##.nii* files to their most recent versions
 	update_nii ${wd_dir} ${steps} ${SUBIDS[@]}
 

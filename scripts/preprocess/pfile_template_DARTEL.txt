@@ -1,40 +1,68 @@
 % Parameters file for SPM8 DARTEL normalization
 % Last updated: August 2016
 % =======1=========2=========3=========4=========5=========6=========7=========8
+%get path to where this file lives
+pfile_dir = mfilename('fullpath');
+% path to here up to 'scripts' (where globals is)
+scripts_dir = regexp(pfile_dir, '.*/scripts', 'match');
+% add this to path to run get_globals
+run(fullfile(scripts_dir{1}, 'globals.m'))
+
+% take the three uppercase letters after a '_' (_[A-Z]{3}) that come before
+% one or more lowercase letters ([a-z]*) before the end of the filename ($)
+p.task = regexp(pfile_dir, '_([A-Z]{3})[a-z]*$', 'tokens');
+% turn this into a string
+p.task = char(p.task{:});
+% If you pfile does not end in the task and steps (e.g. ..._TSKruws.m),
+% comment the two p.task lines above and uncomment and fill out this one:
+% p.task = 'TSK'; %Three letter task name
 
 % SPM packages to load
-p.pkg_dir       = '${pkg_dir}';
-p.spm8_dir      = '${spm8_dir}';
-p.NIfTI_dir     = '${NIfTI_dir}';
-p.scripts_dir   = '${PARS_DIR}';
+p.pkg_dir       = PKG_DIR;
+p.spm12_dir     = fullfile(MATLAB_PKG_DIR, 'spm12');
+p.NIfTI_dir     = fullfile(MATLAB_PKG_DIR, 'NIfTI');
 
+%% preprocessing parameters
+p.realign       = ${realign}; % Perform realignment (motion correction)? (1=yes, 0=no)
+p.undistort     = ${unwarp}; % Perform undistortion (unwarping)? (1=yes, 0=no)
+p.smooth        = ${smooth}; % FWHM of smoothing kernel (set to 0 for no smoothing)
+p.normalize     = ${norm}; % Perform normalization? (1=yes, 0=no)
+p.vox_size      = ${VOX_SIZE}; % Resample to this voxel size
+p.template      = ${new_template}; % create new template? (1 = create new, 0 = use existing)
+
+%% Fieldmap settings (for undistortion using realign & unwarp)
+% fieldmap parent directory, if undistort is on (expects subject dirs in here)
+p.fieldmap_dir  = ${fieldmap_dir};
+p.fieldmap_name = '${fieldmap_name}'; % will look for this in subject's dir inside fieldmap_dir
+p.magnitude_name = '${magnitude_name}'; % name of magnitude image (also in fieldmap_dir)
+% names of subjects that do not have fieldmaps (if undistort is on, will skip
+% unwarp for these)
+p.nofieldmap_subs = ${no_fieldmap_subs};
+% epi readout time in milliseconds (see wiki for more info)
+p.epi_readout_time = ${epi_readout_time};
+% direction of blips along y (1 = PA, -1 = AP). Flip this to the other setting
+% if your unwarped epi looks worse than the raw epi.
+p.blipdir = ${blipdir};
+%% DARTEL template settings
+% If using existing, what directory is it in?
+p.templateDir=${template_dir};
+% What comes after 'Template_n' (e.g. 'Template_6') in the template filename?
+p.templateSuffix='${template_suffix}';
+% For a Dartel template you made previously and did not rename, the
+% templateSuffix would simply be '.nii'
+
+% path for tissue probability maps (in spm12/tpm) for 'new segment'
+p.TPMimg        = ${TPM_img};
+
+%% Directories and filenames
 % study directory
-p.proj_dir      = '${PROJECT_DIR}';
-p.output        = '${OUT_DIR}';
-
-% execute the job immediately? (0 = no, 1 = yes)
-p.execTAG       = 1;
-
-% customizable preprocessing parameters
-p.vox_size      = ${VOX_SIZE};
-p.smooth        = ${smooth};
-p.normalize     = ${norm};
-p.realign       = ${realign};
-
+p.proj_dir      = PROJECT_DIR;
+p.output        = OUT_DIR;
 % subjects directory containing subject folders
-p.subdir        = '${wd_raw}';
+p.prepdir        = '${work_dir}';
 % pattern for finding subject folders (use wildcards)
 p.subID         = 's*';
-% do which subjects? ('all' to do all)
-%p.subTAG        = 'all'; # DARTEL does not currently use subTAG
 % pattern for finding functional run files (use wildcards)
-p.runID         = 'epi_r*';
+p.epiID         = 'epi_r*';
 % pattern for finding matched-bandwidth image (use wildcards)
-p.mprageID      = 'anat*.nii';
-
-% format of your raw functional images (1=img/hdr, 2=4D nii)
-p.funcFormat    = 2;
-
-% path for tissue probability maps (in spm8/tpm) for 'new segment'
-p.TPMimg        = '$spm8_dir/toolbox/Seg/TPM.nii';
-
+p.anatID      = 'anat*.nii';

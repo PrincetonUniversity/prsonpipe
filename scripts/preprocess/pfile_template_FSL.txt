@@ -1,16 +1,13 @@
-PREP="${PREP_DIR}/${t}/${wd_dir}"
-TASK=$1
+PREP="${work_dir}"
+TASK="${task}"
 SLICETIME=$slice_time
 MOTION=$realign
-UNWARP=$unwarp
 FWHM=$smooth
 NORM=$norm
 anat_bet_flag="$anat_bet_flag"
 epi_bet_flag="$epi_bet_flag"
 fsl_template="$fsl_template"
-
-EPI_ACCEL=$EPI_ACCEL
-EPI_ECHOSPACING=$EPI_ECHOSPACING
+epi_readout_time=${epi_readout_time}
 
 FILTER=$filter
 hFilter="$hFilter"

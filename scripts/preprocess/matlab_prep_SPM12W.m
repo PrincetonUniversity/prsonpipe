@@ -14,11 +14,11 @@ function matlab_prep_SPM12W(sub,pfile)
     addpath(p.r2agui_dir)
     
     % create temp raw directory
-    tmpdir=[p.prepdir 'SPMw_temp_raw/'];
-    tmp_rawdir=[tmpdir p.sid '/'];
+    tmpdir=fullfile(p.prepdir, 'SPMw_temp_raw/');
+    tmp_rawdir=fullfile(tmpdir, p.sid);
     mkdir(tmp_rawdir);
-    orig_prep=[p.prepdir p.sid];
-    disp([label 'Moving sub directory ' p.prepdir p.sid ' to ' tmp_rawdir '...'])
+    orig_prep=p.datadir;
+    disp([label 'Moving sub directory ' orig_prep ' to ' tmp_rawdir '...'])
     movefile([orig_prep '/*'],tmp_rawdir);
     rmdir(orig_prep);
 
@@ -43,7 +43,7 @@ function matlab_prep_SPM12W(sub,pfile)
         % if not ./ or ../, move to sdir with new_fname
 	    d=regexp(fname,'\.');
 	    if (isempty(d) || d(1) ~= 1)
-	        movefile([tmp_rawdir '/' fname],[p.datadir new_fname]);
+	        movefile(fullfile(tmp_rawdir,fname),fullfile(p.datadir,new_fname));
 	    end
     end
     del=1;

@@ -26,18 +26,23 @@
 #  subs		: subjects to run
 ################################################################################----------
 
-#SBATCH -J dartel_prep							# Job name
-#SBATCH --workdir=./							# Working directory
-#SBATCH -o DARTEL_prep-%j.out 		# Output file
-#SBATCH --mem-per-cpu=20480						# Amount of memory in MB (1GB = 1024 MB)
-#SBATCH --mail-type=FAIL						# Type of emails to send
-#SBATCH -t 2880									# Time : Default time is 48 hours (2880 min)
-#SBATCH -p all                                	# DON'T CHANGE
+#SBATCH -J dartel_prep              # Job name
+#SBATCH --workdir=./                # Working directory
+#SBATCH -o DARTEL_prep-%j.out       # Output file
+#SBATCH --mem-per-cpu=20480         # Amount of memory in MB (1GB = 1024 MB)
+#SBATCH --mail-type=FAIL            # Type of emails to send
+#SBATCH -t 2880                     # Time : Default time is 48 hours (2880 min)
+#SBATCH -p all                      # DON'T CHANGE
 
 set -e
+
 echo "on host: `hostname` "
 label='[DARTEL]'
+matlab_label='DARTEL.M'
 
+# load matlab script
+module load matlab/R2016b
+[[ $(hostname | grep della) ]] && module load pigz
 ######################### SOURCE FILES ########################################
 # Get the name of the directory this script is in to create full path to globals.par
 d="$(dirname -- "$(pwd)")"
@@ -78,7 +83,7 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 while getopts "p:i:o:l:" opt; do
   case $opt in
     p)
-      pfile=${PARS_DIR}/$(basename $OPTARG)
+      pfile=${SCRIPT_DIR_PREP}/$(basename $OPTARG)
       if [ ! -f $pfile ]; then
         echo "$label ERROR: pfile $pfile does not exist."
         exit 1
@@ -131,7 +136,7 @@ shift $((OPTIND -1))
 ############################## MAIN BODY OF SCRIPT #############################
 # extract the wd folder location from the pfile by grabbing the quoted section 
 # of the line that starts with "p.subdir /whitespace/ = " and ends before ";"
-wd_dir=$(grep -oP 'p.subdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
+wd_dir=$(grep -oP 'p.prepdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
 # get task name based on wd_dir
 tsk_dir=$(dirname $wd_dir)
 tsk=${tsk_dir: -3}
@@ -148,17 +153,6 @@ tsk=${tsk_dir: -3}
 get_subs $input_dir $output_dir "$@"
 run_subs=( "${SUBS[@]}" )
 
-# extract prefix list from parameters file by finding the string between 3 uppercase letters and .m
-steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K.*?(?=.m)')
-
-# get wd dartel logfile
-# if normalization is in steps, logfile should be in wd folder (group processesing). If not, then only one subject so log to sdir
-# if [[ ${steps} =~ w ]]; then logfile=${wd_dir}/LOG_dartel.txt; 
-# else 
-# 	logfile=${wd_dir}/${run_subs}/LOG_dartel.txt; 
-# 	if [[ ${#run_subs[@]} -gt 1 ]]; then echo "${label} WARNING: More than one subject being run without normalization.  Logfile = ${logfile}"; fi
-# fi
-
 logfile_wd=${wd_dir}/LOG.txt
 
 # turn SUBIDS into a matlab array of numbers (not subIDs)
@@ -166,24 +160,10 @@ matlab_array=$(make_matlab_array ${run_subs[@]})
 
 echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" | tee -a "${logfile_wd}"
 
-# unzip the epi* and anat files in the subject directories within wd_dir
-unzip_epi_anat ${wd_dir} ${SUBIDS[@]}
-
-# load matlab script
-module load matlab/R2016b
-matlab -nosplash -nodisplay -nodesktop -r "try; matlab_prep_DARTEL(${matlab_array},'${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" | tee -a "${logfile}"
-
-unset $prefix
-for (( i=0; i<${#steps}; i++ )); do
-    step="${steps:$i:1}";
-    #skip realignment and unwarping 
-    if [[ $step == r ]] || [[ $step == u ]]; then continue; fi;
-    prefix=${prefix}${step};
-done
-steps=$prefix
-
-# update epi_r##.nii* files to their most recent versions
-update_nii ${wd_dir} ${steps} ${run_subs[@]}
+# Run the matlab script and pipe only the lines with the matlab label to the log file
+matlab -nosplash -nodisplay -nodesktop -r "try; matlab_prep_DARTEL(${matlab_array},'${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" \
+| tee /dev/tty | grep ${matlab_label} >> "${logfile_wd}"
+# /dev/tty above is the terminal output (send a copy there, send another to grep)
 
 echo "${label} DONE. $(date)" | tee -a "${logfile_wd}"
 

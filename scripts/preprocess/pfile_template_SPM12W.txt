@@ -2,38 +2,52 @@
 % Parameters file for fMRI preprocessing
 % Last updated: August, 2016
 % =======1=========2=========3=========4=========5=========6=========7=========8
+%get path to where this file lives
+pfile_dir = mfilename('fullpath');
+% path to here up to 'scripts' (where globals is)
+scripts_dir = regexp(pfile_dir, '.*/scripts', 'match');
+% add this to path to run get_globals
+run(fullfile(scripts_dir{1}, 'globals.m'))
+
+% take the three uppercase letters after a '_' (_[A-Z]{3}) that come before
+% one or more lowercase letters ([a-z]*) before the end of the filename ($)
+p.task = regexp(pfile_dir, '_([A-Z]{3})[a-z]*$', 'tokens');
+% turn this into a string
+p.task = char(p.task{:});
+% If you pfile does not end in the task and steps (e.g. ..._TSKruws.m),
+% comment the two p.task lines above and uncomment and fill out this one:
+% p.task = 'TSK'; %Three letter task name
 
 % User name
 p.username      = '${USER}';
 
 % Packages to add
-p.pkg_dir        = '${PKG_DIR}/';
-p.spm12_dir      = [p.pkg_dir 'spm12'];
-p.spm12w_dir     = [p.pkg_dir 'spm12w_new1608'];
-p.dicm2nii_dir   = [p.pkg_dir 'dicm2nii'];
-p.r2agui_dir     = [p.pkg_dir 'r2agui_v27'];
+p.pkg_dir        = PKG_DIR;
+p.spm12_dir      = fullfile(MATLAB_PKG_DIR, 'spm12');
+p.spm12w_dir     = fullfile(MATLAB_PKG_DIR, 'spm12w_new1608');
+p.dicm2nii_dir   = fullfile(MATLAB_PKG_DIR, 'dicm2nii');
+p.r2agui_dir     = fullfile(MATLAB_PKG_DIR, 'r2agui_v27');
 
 % Paths and names
-p.study_dir     = '${PROJECT_DIR}/';
-p.prepdir       = '${PREP_DIR}/${t}/${wd_dir}/';
-p.datadir       = [p.prepdir p.sid '/'];
+p.study_dir     = PROJECT_DIR;
+p.prepdir       = '${work_dir}';
+p.datadir       = fullfile(p.prepdir,p.sid);
 p.prep_name     = '${SPMW}';
-p.rawdir        = ['${wd_raw}/SPMw_temp_raw/' p.sid];
-p.qadir         = ['${QA_DIR}/${t}/' p.prep_name '/'];
+p.rawdir        = fullfile(p.prepdir,'SPMw_temp_raw', p.sid);
+p.qadir         = fullfile(QA_DIR,p.task, p.prep_name);
 
 % Preprocessing Routines - 1=yes 0=no
           
 p.slicetime     = ${slice_time};        
 p.realign       = ${realign};        
-p.unwarp        = ${unwarp};            % Unwarping (correct field inhomogeneties)      
-p.smoothing     = ${smooth};            % Size of smoothing kernel in FWHM (0 for no smoothing)
-p.snr           = 0; %${qa};            % make SNR analysis document
-p.slices        = 0; %${qa};        % calculate slice noise
-p.cleanup       = 3;            % delete intermediate files 0 (keep all), 1 (keep last), 
+p.unwarp        = ${unwarp};    % Unwarping (correct field inhomogeneties)      
+p.smoothing     = ${smooth};    % Size of smoothing kernel in FWHM (0 for no smoothing)
+p.snr           = 0; %${qa};    % make SNR analysis document
+p.slices        = 0; %${qa};    % calculate slice noise
+p.cleanup       = ${cleanup};   % delete intermediate files 0 (keep all), 1 (keep last), 
                                 % 2 (keep last 2), 3 (keep last 2 and originals)
 p.cleanupzip    = 1;            % Zip up the final stages, assumes original niftis are also zipped
-
-% Not currently working
+% Only options 'none' and 'spm12' currently work
 p.normalize     = '${norm}';       % Normalize type ('none','epi','spm12','dartel')
 
 % Uncomment and set equal to 1 or 0 if changing from default

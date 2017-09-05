@@ -1,14 +1,17 @@
 #!/bin/bash -e/
 # author: Miriam Weaverdyck 8/1/16
+# edit Judith Mildner 09/05/17
 # Enter the parameters for your analyses below
 #
-######################GENERAL#############################
-
+##############################-------GENERAL------##############################
 ## subject IDs to exclude from analysis (format: s000), e.g. for missing data
 EXCLUDE_SUBS=(s000 s999)
-NRUNS=12
+NRUNS=1
 
-####################PREPROCESSING#########################
+##############################---PREPROCESSING----##############################
+### Field map from opposing direction spin echos (topup)?
+FIELDMAP='none' # 'none' or 'topup'
+    no_fieldmap_subs=('s000' 's999') #array of subject IDs without spin echos
 
 ### Slice time correction: 'FSL', 'SPM12W', 'none'
 SLICE_TIME='none'
@@ -16,51 +19,70 @@ SLICE_TIME='none'
 ### Realignment/Motion correction: 'FSL', 'SPM12W', 'DARTEL', 'none'
 REALIGN='none'
 
-### Unwarping: 'FSL' (topup; must have spin echos), 'SPM12W', 'none'
-UNWARP='none'
-# if using topup (FSL) make sure to get these values from your scanning protocol:
-EPI_ACCEL=1 #acceleration factor
-EPI_ECHOSPACING=0.00072 #echo spacing 
+### Unwarping: 'FSL', 'SPM12W', 'DARTEL', 'none'
+# NOTE: If you are using spin echos, this should be the same as REALIGN
+#       If you have no fieldmap, you should choose 'none' or 'SPM12W'
+UNWARP='DARTEL'
+    ## DARTEL (=actually SPM12) unwarp settings (should be fine with defaults)##
+    # direction of blips along y (1 = PA, -1 = AP)
+    blipdir=-1 #only change this if unwarped epis look worse than raw epis
+    # fieldmap parent directory(expects subject dirs in here)
+    fieldmap_dir="fullfile(PREP_DIR, p.task, 'topup')" #don't change if using DAMN topup
+    fieldmap_name='topup_fout_processed.nii'; #don't change if using DAMN topup
+    magnitude_name='magnitude.nii'; #don't change if using DAMN topup
+    epi_readout_time='' # leave blank to read from BIDS json (default)
 
 ### Normalization: 'SPM12W' (will run SPM12 normalization), 'DARTEL' (run in SPM8),'none'
 # (includes registration to MNI space, unwarping in DARTEL)
 NORM='none'
-## SPM12W normalization parameters ##
-# SPM12W normalization options: 'epi', 'spm12', ('dartel' - not currently working)
-NORMTYPE='SPM12'
-## FSL normalization parameters ## 
-anat_bet_flag='-R -f 0.2' #flags added to anat skull stripping (bet) 
-epi_bet_flag='-F' #flags added to functional skull stripping (bet)
-# More info on bet: http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET
-module load fsl
-fsl_template="${FSLDIR}/data/standard/MNI152_T1_2mm_brain" #MNI template to normalize to. 
-  #Can change to 1mm if necessary 
+  ## DARTEL normalization parameters ##
+    # voxel size at which to re-sample functionals (isotropic) (DARTEL)
+    VOX_SIZE=2.0
+    #create template based on subject data? (1=yes, 0=no)
+    new_template=1
+      #if using existing, what directory is it in? (default is cat12 template)
+      template_dir="fullfile(p.spm12_dir,'toolbox/cat12/templates_1.50mm')"
+      # What comes after 'Template_n' (e.g. 'Template_6') in the template filename?
+      template_suffix='_IXI555_MNI152.nii'
+      # For a Dartel template you made previously and did not rename, the
+      # templateSuffix would simply be '.nii'
+    #path for tissue probability maps (in spm12/tpm) for 'new segment'
+    TPM_img="fullfile(p.spm12_dir,'tpm/TPM.nii')"
+  ## SPM12W normalization parameters ##
+    # SPM12W normalization options: 'epi', 'spm12', ('dartel' - not currently working)
+    NORMTYPE='spm12'
+  ## FSL normalization parameters ##
+    anat_bet_flag='-R -f 0.2' #flags added to anat skull stripping (bet)
+    epi_bet_flag='-F' #flags added to functional skull stripping (bet)
+    # More info on bet: http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET
+    module load fsl/5.0.9
+    fsl_template="${FSLDIR}/data/standard/MNI152_T1_2mm_brain" #MNI template
+    #Can change to 1mm if necessary
 
-# Smoothing: 'FSL', 'SPM12W', 'DARTEL' (must use DARTEL for normalization too), 'none' size of smoothing kernel in FWHM
+
+# Smoothing: 'FSL', 'SPM12W', 'DARTEL' (must use DARTEL for normalization too), 'none'
 SMOOTH_SOFT='none'
-SMOOTH=8
+    # size of smoothing kernel in FWHM (mm)
+    SMOOTH=6
 
 # Bandpass filter: 'FSL', 'none'
 FILTER='FSL'
-# high pass filter (none = -1)
-hFilter=128
-lFilter=-1
+    # high pass filter (none = -1)
+    hFilter=128
+    # low pass filter (none = -1)
+    lFilter=-1
 
-# voxel size at which to re-sample functionals (isotropic) (DARTEL)
-VOX_SIZE=2.0
-
-
-
-
-####(do not change)###(do not change)###(do not change)###(do not change)###
+#####(DO NOT CHANGE)###(DO NOT CHANGE)###(DO NOT CHANGE)###(DO NOT CHANGE)#####
 
 ### Name of preprocessing (do not change)
-wd_dir="a$(echo ${SLICE_TIME^^} | cut -c1)r$(echo ${REALIGN^^} | cut -c1)u$(echo ${UNWARP^^} | cut -c1)w$(echo ${NORM^^} | cut -c1)s$(echo ${SMOOTH_SOFT^^} | cut -c1)f$(echo ${FILTER^^} | cut -c1)"
+wd_dir="a$(echo ${SLICE_TIME^^} | cut -c1)r$(echo ${REALIGN^^} | \
+	cut -c1)u$(echo ${UNWARP^^} | cut -c1)w$(echo ${NORM^^} | \
+	cut -c1)s$(echo ${SMOOTH_SOFT^^} | cut -c1)f$(echo ${FILTER^^} | cut -c1)"
 # SET UP PREPROCESSING STEPS BASED ON PARAMETERS FILE
 # create arrays of step names, softwares, extensions in the order of execution
 # Create an array (step_names) of all the preprocessing step names
 declare -a step_names=("SLICE_TIME" "REALIGN" "UNWARP" "NORM" "SMOOTH_SOFT" "FILTER")
 # Create an array (step_softs) of all the preprocessing step's software
 declare -a step_softs=("$SLICE_TIME" "$REALIGN" "$UNWARP" "$NORM" "$SMOOTH_SOFT" "$FILTER")
-# Create an array (step_exts) of all the preprocessing prefixes 
+# Create an array (step_exts) of all the preprocessing prefixes
 declare -a step_exts=('a' 'r' 'u' 'w' 's' 'f')
