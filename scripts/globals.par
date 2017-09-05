@@ -17,6 +17,7 @@ FSL=FSL
 DARTEL=DARTEL
 SPMW=SPM12W
 SPM=SPM12
+TOPUP='TOPUP'
 PREP_SOFTS=("${FSL}" "${DARTEL}" "${SPMW}")
 
 # directories
@@ -27,15 +28,9 @@ OUT_DIR=${PROJECT_DIR}/output
 SCRIPT_DIR=${PROJECT_DIR}/scripts
 
 # subdirectories in scripts
-PARS_DIR=${SCRIPT_DIR}/preprocess
 SCRIPT_DIR_SHORT=scripts
-#SCRIPT_DIR_FSL=${SCRIPT_DIR}/${FSL}
-#SCRIPT_DIR_DARTEL=${SCRIPT_DIR}/${DARTEL}
-#SCRIPT_DIR_SPM=${SCRIPT_DIR}/${SPM}
-#SCRIPT_DIR_SPMW=${SCRIPT_DIR}/${SPMW}
-SCRIPT_DIR_QA=${SCRIPT_DIR}/qa
-
-# scripts subdirectories
+SCRIPT_DIR_QA="${SCRIPT_DIR}/qa"
+SCRIPT_DIR_PREP="${SCRIPT_DIR}/preprocess"
 SCRIPT_DIR_SUBLVL="${SCRIPT_DIR}/sub_level"
 SCRIPT_DIR_UTIL="${SCRIPT_DIR}/utils"
 SCRIPT_DIR_ROI="${SCRIPT_DIR_SUBLVL}/roi"
@@ -48,22 +43,3 @@ isSUB=SUB   # whatisit(x) -> x is a subject ID (s###)
 isDIR=DIR   # whatisit(x) -> x is an existing directory (prep/TSK)
 isTSK=TSK   # whatisit(x) -> x is a task according to TASKS[@] (TSK)
 isIDK=IDK   # whatisit(x) does not know what x is
-
-####### DELETE ###################################################################
-# add necessary directories to the system path
-#export BXH_DIR=/jukebox/tamir/pkg/bxh_xcede_tools*/bin
-#export MAGICK_HOME=/jukebox/ntb/packages/ImageMagick-6.5.9-9
-#export BIAC_HOME=/jukebox/ntb/packages/BIAC_matlab/mr
-
-#BEHAVIORAL_DATA_DIR=behav
-#FIRSTLEVEL_DIR=analysis/firstlevel
-#SECONDLEVEL_DIR=analysis/secondlevel
-#EV_DIR=design
-#BEHAVIORAL_OUTPUT_DIR=output/behavioral
-#
-## Fill in below variables to fit your roi analysis -- all are used in roi.sh or scripts called within it
-#ROI_COORDS_FILE=design/roi.txt
-#LOCALIZER_DIR=analysis/firstlevel/localizer_hrf.feat
-#ROI_DIR=results/roi
-#ROI_KERNEL_TYPE=sphere
-#ROI_KERNEL_SIZE=4

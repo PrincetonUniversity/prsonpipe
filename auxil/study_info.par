@@ -40,7 +40,8 @@ PREP_SEP=0
 LAB_NAME=tamir
 
 # ENTER FULL PATH TO PACKAGES: directory containing packages you will load
-PKG_DIR=/jukebox/tamir/pkg
+PKG_DIR=/tigress/TAMIR/pkg
+MATLAB_PKG_DIR=/tigress/TAMIR/pkg/matlab
 
                    ####-DON'T TOUCH THIS-####
                    ###<<END_VARS>>        ###

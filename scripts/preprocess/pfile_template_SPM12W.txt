@@ -24,7 +24,7 @@ p.username      = '${USER}';
 % Packages to add
 p.pkg_dir        = PKG_DIR;
 p.spm12_dir      = fullfile(MATLAB_PKG_DIR, 'spm12');
-p.spm12w_dir     = fullfile(MATLAB_PKG_DIR, 'spm12w_new1608');
+p.spm12w_dir     = fullfile(MATLAB_PKG_DIR, 'spm12w');
 p.dicm2nii_dir   = fullfile(MATLAB_PKG_DIR, 'dicm2nii');
 p.r2agui_dir     = fullfile(MATLAB_PKG_DIR, 'r2agui_v27');
 
