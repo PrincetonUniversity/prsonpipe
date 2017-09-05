@@ -163,7 +163,7 @@ exec 9<> $SUBID_LIST #open file descriptor for subid_list.txt file -JNM
       find $output_dir -name $subj -prune -exec rm -rf {} \;
     fi
 
-    job_id=$(sbatch $init_dep_flag -t 60 -D ${OUT_DIR} \
+    job_id=$(sbatch $init_dep_flag -t 65 -D ${OUT_DIR} \
           ${SCRIPT_DIR_UTIL}/sbatch_convert $subj $logfile | grep -o '[0-9]*')
     jobs+=":$job_id"
     echo "$label Submitted job $job_id to convert subject $subj" | tee -a $logfile
