@@ -13,13 +13,13 @@ NRUNS=1
 FIELDMAP='none' # 'none' or 'topup'
     no_fieldmap_subs=('s000' 's999') #array of subject IDs without spin echos
 
-### Slice time correction: 'FSL', 'SPM12W', 'none'
+### Slice time correction: 'SPM12W', 'none'
 SLICE_TIME='none'
 
-### Realignment/Motion correction: 'FSL', 'SPM12W', 'DARTEL', 'none'
+### Realignment/Motion correction: 'SPM12W', 'DARTEL', 'none'
 REALIGN='none'
 
-### Unwarping: 'FSL', 'SPM12W', 'DARTEL', 'none'
+### Unwarping: 'SPM12W', 'DARTEL', 'none'
 # NOTE: If you are using spin echos, this should be the same as REALIGN
 #       If you have no fieldmap, you should choose 'none' or 'SPM12W'
 UNWARP='DARTEL'
@@ -60,7 +60,7 @@ NORM='none'
     #Can change to 1mm if necessary
 
 
-# Smoothing: 'FSL', 'SPM12W', 'DARTEL' (must use DARTEL for normalization too), 'none'
+# Smoothing: 'SPM12W', 'DARTEL' (must use DARTEL for normalization too), 'none'
 SMOOTH_SOFT='none'
     # size of smoothing kernel in FWHM (mm)
     SMOOTH=6
