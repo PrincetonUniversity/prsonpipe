@@ -10,7 +10,7 @@ NRUNS=1
 
 ##############################---PREPROCESSING----##############################
 ### Field map from opposing direction spin echos (topup)?
-FIELDMAP='none' # 'none' or 'topup'
+FIELDMAP='none' # 'none' or 'TOPUP'
     no_fieldmap_subs=('s000' 's999') #array of subject IDs without spin echos
 
 ### Slice time correction: 'SPM12W', 'none'
@@ -22,7 +22,7 @@ REALIGN='none'
 ### Unwarping: 'SPM12W', 'DARTEL', 'none'
 # NOTE: If you are using spin echos, this should be the same as REALIGN
 #       If you have no fieldmap, you should choose 'none' or 'SPM12W'
-UNWARP='DARTEL'
+UNWARP='none'
     ## DARTEL (=actually SPM12) unwarp settings (should be fine with defaults)##
     # direction of blips along y (1 = PA, -1 = AP)
     blipdir=-1 #only change this if unwarped epis look worse than raw epis
