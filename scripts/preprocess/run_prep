@@ -505,6 +505,8 @@ EOM
         jflag="-J ${sbatch_name}"
         tflag="-t ${run_time}"
         oflag="--output=${OUT_DIR}/${sbatch_name}_%j.out"
+	# If no jobs have been run yet, make dependency on initial job
+	[[ -z ${all_jobs} ]] && all_jobs=":${prev_jobid}"
         dflag="--dependency=afterok${all_jobs}"
         memflag="--mem-per-cpu=3000"
         if [[ ${#SUBS[@]} -ge ${maxcores} ]]; then
