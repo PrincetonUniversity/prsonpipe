@@ -722,7 +722,8 @@ parfor s = 1:length(subs_index)
     feval(gzip_nii, template_dir, label)
    end
 end
-
+fprintf('%s $s: Finished DARTEL preprocessing for subjects %s ', label, ...
+    datestr(now), strjoin(subnames))
 %% Clean up Matlab's output
 % Stop the parallel pool
 delete(gcp('nocreate'))
@@ -735,8 +736,7 @@ for i = 1:length(delete_data)
        delete(fullfile(delete_data(i).folder, delete_data(i).name));
    end
 end
-fprintf('%s $s: Finished DARTEL preprocessing for subjects %s ', label, ...
-    datestr(now), strjoin(subnames))
+
 return
 %% Functions
 function system_gzip_nii(nii_dir, label)
