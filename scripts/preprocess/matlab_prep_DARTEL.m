@@ -94,8 +94,8 @@ parpool(pc, pc.NumWorkers);
 subdirs=dir(fullfile(prep_dir,subID));
 fprintf('%s %s: Starting preprocessing \n', label, datestr(now))
 %preallocate subname cell array
-subnames=cell(length(subdirs));
-subnums=zeros(length(subdirs));
+subnames=cell(length(subdirs),1);
+subnums=zeros(length(subdirs),1);
 % make list of all subjects found in directory
 for i=1:length(subdirs)
   subnames{i}=subdirs(i).name;
