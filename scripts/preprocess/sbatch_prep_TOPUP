@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+#
+# jmildner@princeton.edu, August 12 2017
+#
+# Create fieldmap and magnitude image from opposing direction spin echos using
+# FSL's topup.
+################################################################################
+# Files sourced:
+#   globals.par
+#   utils/funcs
+# Arguments:
+#   <prep directory>    Full path to a subject directory in prep, containing
+#                         epi's and spin echos
+#   [-f]                Force topup to run, even if output already exists
+################################################################################
+#SBATCH -J FSL_topup               # Job name
+#SBATCH --workdir=./              # Working directory
+#SBATCH -o FSL_topup-%j.out     # Output file
+#SBATCH --mail-type=FAIL          # Type of emails to send
+#SBATCH -t 90                   # Run time : Default = 24 hours (2880 min)
+#SBATCH -p all                    # DON'T CHANGE
+
+module load fsl/5.0.9
+label='[TOPUP]'
+
+function help_func () {
+cat << END
+  sbatch_topup_FSL [-f] <subject prep directory>
+
+  Description:
+  ------------
+    Create fieldmap and magnitude image from opposing direction spin echos using
+    FSL's topup.
+
+  Usage:
+  ------
+    [-h | --help | -help]
+      Display this help
+    [-f]
+      Force topup to run, overwriting previous if it already exists.
+    <subject prep directory>
+      Full path to a subject directory in prep, containing epi's and spin echos
+
+END
+}
+
+# First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ --help|-help|-h ]]; then help_func; exit; fi
+
+######################### SOURCE FILES ########################################
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
+source "${SCRIPT_DIR_UTIL}/funcs"
+
+label='[TOPUP]'
+
+# Parse arguments
+while getopts ":hf" opt; do
+    case "$opt" in
+    h|\?)
+        help_func
+        exit 0
+        ;;
+    f)  overwrite=1
+        ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [[ $# != 1 ]]; then
+  help_func
+  echo "Please specify a path to a subject's prep directory."
+  exit 1
+fi
+
+prep_dir="${1}"
+if [[ ! -d ${prep_dir} ]]; then
+    prep_dir=$(full_dir ${prep_dir} ${PREP_DIR})
+    if [[ ! -d ${prep_dir} ]]; then 
+      echo -e "${label} ERROR: directory not found:\n ${prep_dir}"
+      exit 1
+    fi
+fi
+
+# Check if  prep_dir is a subject directory
+subject=$(basename ${prep_dir})
+if ! $(isSUB ${subject}); then
+  echo "${label} ${prep_dir} is not a subject directory"
+  exit 1
+fi
+
+################################# MAIN SCRIPT #################################
+# Break prep_dir name into its components
+prep_name=$(basename ${prep_dir%${subject}})
+TSK=$(basename ${prep_dir%${prep_name}*})
+
+# topup working directory
+topup_dir="${PREP_DIR}/${TSK}/topup/${subject}"
+logfile="${topup_dir}/LOG_topup.txt"
+# If topup directory already exists, we don't have to run this again
+if [ -d ${topup_dir} ] && [[ ${overwrite} != 1 ]]; then
+  echo "${label} Topup output already exists. Skipping topup."
+  exit
+elif [ -d ${topup_dir} ] && [[ ${overwrite} == 1 ]]; then
+  echo "${label} Topup output already exists. Overwriting..."
+  rm -r ${topup_dir}
+fi
+
+mkdir -p ${topup_dir}
+echo "${label} Preparing topup for ${prep_dir} at $(date)" | tee -a ${logfile}
+
+function error() {
+  echo "${label} ERROR: in subject ${subject}, job ${SLURM_JOB_ID}" | tee -a "${logfile}"
+}
+trap 'error' EXIT
+
+# Check if the spin echoes are for multiple tasks
+SE_AP="${prep_dir}/${TSK}_SE_AP.nii*"
+if [ ! -f $SE_AP ]; then
+  SE_AP="$(dirname $SE_AP)/ALL_SE_AP.nii*"
+  # if the 'ALL' spin echo also does not exist, we have a problem
+  if [ ! -f ${SE_AP} ]; then 
+    echo "${label} ERROR: no spin echo found in ${prep_dir}" | tee -a "${logfile}"
+    exit 1
+  # if there is an  'ALL' spin echo and there are multiple tasks, set up for that
+  elif [[ ${#TASKS} != 1 ]]; then
+    # use a general non-task specific topup directory
+    all_topup_dir="${PREP_DIR}/topup/${subject}"
+    all_logfile="${all_topup_dir}/LOG.txt"
+    # If a general topup dir already exists, wait for it to finish (if necessary)
+    if [ -d $all_topup_dir ]; then
+      wait_for_it ${label} ${all_logfile}
+      # When it's done, copy the contents over to this task's topup
+      echo "${label} Topup output from these spin echos already exists. Copying.." \
+            | tee -a ${logfile}
+      mkdir -p ${topup_dir}
+      cp -r ${all_topup_dir} ${topup_dir}
+      echo "${label} DONE. $(date) Copied ${all_topup_dir} to ${topup_dir}." \
+            | tee -a "${logfile}" "${all_logfile}"
+      exit 0 
+    else
+      # make the 'all' directory now, to make sure subsequent topups just wait for this one
+      mkdir -p ${all_topup_dir}
+      echo "${label} Found spin echo for multiple tasks ${SE_AP}" \
+          | tee -a "${logfile}" "${all_logfile}"
+      function all_error() {
+        echo "${label} ERROR. Removing ${all_topup_dir} to avoid future conflict" \
+          | tee -a "${logfile}" "${all_logfile}"
+        rm -rf ${all_topup_dir}
+        echo "${label} ERROR: in subject ${subject}, job ${SLURM_JOB_ID}" \
+          | tee -a "${logfile}" 
+      }    
+    fi
+  fi
+fi
+SE_PA="${SE_AP%AP.nii*}PA.nii*"
+
+all_SE="${topup_dir}/all_SE"
+echo "${label} concatenating spin echo images..." | tee -a "${logfile}" ${all_logfile}
+fslmerge -t ${all_SE} ${SE_AP} ${SE_PA}
+
+echo "${label} generating ${topup_dir}/acqparams.txt" | tee -a "${logfile}" ${all_logfile}
+#Read the readout time from the first epi json file
+epi_json="${prep_dir}/epi_r01.json"
+readout_time=$(read_json_value TotalReadoutTime "${epi_json}")
+#Create the acqparams file by adding one line per volume in the spin echoes
+for ((i=1;i<=$(fslnvols ${SE_AP});i++)); do
+  echo "0 -1 0 ${readout_time}" >> "${topup_dir}/acqparams.txt"
+done
+for ((i=1;i<=$(fslnvols ${SE_PA});i++)); do
+  echo "0 1 0 ${readout_time}" >> "${topup_dir}/acqparams.txt"
+done
+
+echo "${label} running topup..." | tee -a "${logfile}" ${all_logfile}
+topup --imain="${all_SE}" --datain="${topup_dir}/acqparams.txt" \
+      --config=b02b0.cnf --out="${topup_dir}/topup_output" \
+      --iout="${topup_dir}/topup_iout" --fout="${topup_dir}/topup_fout" \
+      --logout="${topup_dir}/topup_logout"
+echo "${label} creating magnitude image..." | tee -a "${logfile}" ${all_logfile}
+# Create magnitude image
+fslmaths "${topup_dir}/topup_iout" -Tmean "${topup_dir}/magnitude"
+bet "${topup_dir}/magnitude" "${topup_dir}/magnitude_brain"
+
+# Demean field map (code taken from fsl_prepare_fieldmap)
+echo "${label} demeaning, brain masking, and cleaning up fieldmap..." \
+  | tee -a "${logfile}" ${all_logfile}
+# Functions:
+clean_up_edge() {
+    # does some despiking filtering to clean up the edge of the fieldmap
+    # args are: <fmap> <mask> <tmpnam>
+    outfile=$1
+    maskim=$2
+    tmpnm=$3
+    fugue --loadfmap=${outfile} --savefmap=${tmpnm}_tmp_fmapfilt --mask=${maskim} --despike --despikethreshold=2.1
+    fslmaths ${maskim} -kernel 2D -ero ${tmpnm}_tmp_eromask
+    fslmaths ${maskim} -sub ${tmpnm}_tmp_eromask -thr 0.5 -bin ${tmpnm}_tmp_edgemask
+    fslmaths ${tmpnm}_tmp_fmapfilt -mas ${tmpnm}_tmp_edgemask ${tmpnm}_tmp_fmapfiltedge
+    fslmaths ${outfile} -mas ${tmpnm}_tmp_eromask -add ${tmpnm}_tmp_fmapfiltedge ${outfile}
+}
+
+demean_image() {
+  # demeans image
+  # args are: <image> <mask> <tmpnm>
+  outim=$1
+  maskim=$2
+  tmpnm=$3
+  $FSLDIR/bin/fslmaths ${outim} -mas ${maskim} ${tmpnm}_tmp_fmapmasked
+  $FSLDIR/bin/fslmaths ${outim} -sub `$FSLDIR/bin/fslstats ${tmpnm}_tmp_fmapmasked -k ${maskim} -P 50` -mas ${maskim} ${outim} -odt float
+}
+# make brain mask
+tmpnm="${topup_dir}/$(basename $(tmpnam))"
+maskim="${tmpnm}_tmp_mask"
+outfile="${topup_dir}/topup_fout_processed"
+cp "${topup_dir}/topup_fout.nii.gz" "${topup_dir}/topup_fout_processed.nii.gz"
+fslmaths "${topup_dir}/magnitude_brain" -thr 0.00000001 -bin $maskim
+
+# Demean to avoid gross shifting
+demean_image ${outfile} ${maskim} ${tmpnm}
+
+# Clean up edge voxels
+clean_up_edge ${outfile} ${maskim} ${tmpnm}
+rm -f ${tmpnm}_tmp_*
+
+#If these spin echoes are used by other tasks, copy the topup directory up
+if [[ ${SE_AP} == *ALL_SE* ]]; then
+  echo "${label} copying ${topup_dir} to ${all_topup_dir}..." \
+    | tee -a "${logfile}" ${all_logfile}
+  mkdir -p ${all_topup_dir}
+  rsync -av --exclude=$(basename ${logfile}) ${topup_dir}/* ${all_topup_dir}/
+fi
+
+echo "${label} DONE. Finished topup for ${subject} at $(date)." \
+  | tee -a "${logfile}" ${all_logfile}
+# Cancel the error trap
+trap - EXIT
