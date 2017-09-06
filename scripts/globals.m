@@ -2,9 +2,10 @@ clear globals_file
 clear globals
 %get path to where this file lives
 globals_m = mfilename('fullpath');
-% path to here up to 'scripts' (where globals is)
-globals_dir = regexp(pfile_dir, '.*/scripts', 'match');
-globals_file = fullfile(globals_dir, 'globals.par');
+% path to here up to 'scripts' (where globals is). [globals_m, '.par']
+% could work too, as long as this filename is globals.m
+globals_dir = regexp(globals_m, '.*/scripts', 'match');
+globals_file = char(fullfile(globals_dir, 'globals.par'));
 setenv('globals', globals_file)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROJECT SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
