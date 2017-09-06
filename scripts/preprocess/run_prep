@@ -110,15 +110,19 @@ while getopts "ct:p:d:a:" opt; do
       ;;
     a)
       keep_prep=true
-      prev_wd_dir=$OPTARG
-      if [[ ! -d $(full_dir ${prev_wd_dir} ${PREP_DIR}) ]]; then
-        dname=${PREP_DIR}/*/${prev_wd_dir}
-        if ! $(isDIR ${dname}); then
-          echo "${label} ERROR: ${dname} is not a valid directory. Use -h for help."
+      keep_dir=$OPTARG
+      full_keep_dir=$(full_dir "${keep_dir}" "${PREP_DIR}")
+      if [[ ! -d ${full_keep_dir} ]]; then
+        matching_dirs=$(find "${PREP_DIR}" -maxdepth 2 -path *"${keep_dir}")
+        if [[ ! $(echo ${matching_dirs} | wc -w) == 1 ]]; then
+          echo "${label} ERROR: ${keep_dir} is not a valid and/or unique (sub)directory."
+          echo "${label} Use -h for help."
           exit 1
+        else
+          prev_wd_dir="${matching_dirs}"
         fi
       else
-        prev_wd_dir=$(full_dir ${prev_wd_dir})
+        prev_wd_dir=${full_keep_dir}
       fi
       echo "$label Using ${prev_wd_dir} as prep directory. WARNING: Using preprocessed data, not raw."
       ;;
