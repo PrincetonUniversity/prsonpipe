@@ -708,10 +708,11 @@ parfor s = 1:length(subs_index)
        if cp_status == 1
         fprintf('%s %s: Successfully updated %s\n', label, datestr(now), clean_epi)
        else
-        warning('%s Updating %s with %s failed with message: \n %s (code: %s)',...
-            label, clean_epi, processed_epi, cp_msg, cp_msg_id)
+        warning('%s %s: Updating %s with %s failed with message: \n %s (code: %s)',...
+            label, datestr(now), clean_epi, processed_epi, cp_msg, cp_msg_id)
        end
    end
+   pause(0.01)
    fprintf('%s %s: Starting gzip for subject %s...\n', label, datestr(now), subnames{s})
    [epi_dir, ~, ~] = fileparts(allepis{s}{1});
    feval(gzip_nii,epi_dir, label)
