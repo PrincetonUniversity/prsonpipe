@@ -274,7 +274,7 @@ for task in "${tasks[@]}"; do
     # check if $program is a real option (i.e. listed in globals.par's PREP_SOFTS)
     if [[ $(element_in_array "${program}" "${PREP_SOFTS[@]}") == 'false' ]]; then
         echo -e "${label} ERROR: ${step_name}=${program} is not a valid software choice. \n\
-          Each step must be set to one of the following: none ${PREP_SOFTS[@]}"
+	Each step must be set to one of the following: none ${PREP_SOFTS[@]}"
         exit
     fi
     # check if choices are correct (e.g. unwarp and realign in the same software)
@@ -283,17 +283,17 @@ for task in "${tasks[@]}"; do
       ${DARTEL})
       if [[ ${NORM} != ${DARTEL} ]]; then
         echo "${label} ERROR: ${step_name}=${program} but NORM=${NORM}. \
-          In ${DARTEL}, NORM must always be used.";
+	In ${DARTEL}, NORM must always be used.";
         exit
       fi
       if [[ ${UNWARP} == ${DARTEL} ]] && [[ ${FIELDMAP} == 'none' ]];
       then echo "${label} ERROR: UNWARP=${DARTEL} but FIELDMAP is off. \
-        In ${DARTEL}, if UNWARP is used, then topup must be used for a fieldmap."
+	In ${DARTEL}, if UNWARP is used, then topup must be used for a fieldmap."
       exit
       fi
       if [[ ${UNWARP} == ${DARTEL} ]] && [[ ${REALIGN} != ${DARTEL} ]]; then
         echo "${label} ERROR: UNWARP=${UNWARP} but REALIGN=${REALIGN}. \
-        If UNWARP is done in ${DARTEL}, then REALIGN must be as well."
+	If UNWARP is done in ${DARTEL}, then REALIGN must be as well."
         exit
       fi
       ;;
@@ -301,7 +301,7 @@ for task in "${tasks[@]}"; do
       ${FSL})
       if [[ ${UNWARP} == ${FSL} ]] && [[ ${REALIGN} != ${FSL} ]]; then
         echo "${label} ERROR: UNWARP=${UNWARP} but REALIGN=${REALIGN}. In ${FSL}, \
-          if UNWARP is used, then REALIGN must be as well. Aborting..."
+	if UNWARP is used, then REALIGN must be as well. Aborting..."
         exit
       fi
       ;;
@@ -309,7 +309,7 @@ for task in "${tasks[@]}"; do
       ${SPMW})
       if [[ ${NORM} == ${SPMW} ]] && [[ ${REALIGN} != ${SPMW} ]]; then
         echo "${label} ERROR: NORM=${NORM} but REALIGN=${REALIGN}. In ${SPMW}, if \
-          NORM is used, then REALIGN must be as well. Aborting..."
+	NORM is used, then REALIGN must be as well. Aborting..."
         exit
       fi
       ;;
