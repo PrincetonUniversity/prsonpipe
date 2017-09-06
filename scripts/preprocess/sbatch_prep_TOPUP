@@ -137,7 +137,7 @@ if [ ! -f $SE_AP ]; then
       echo "${label} Topup output from these spin echos already exists. Copying.." \
             | tee -a ${logfile}
       mkdir -p ${topup_dir}
-      cp -r ${all_topup_dir} ${topup_dir}
+      cp -r ${all_topup_dir}/* ${topup_dir}
       echo "${label} DONE. $(date) Copied ${all_topup_dir} to ${topup_dir}." \
             | tee -a "${logfile}" "${all_logfile}"
       exit 0 
