@@ -233,7 +233,7 @@ function write_pfile {
         fi
       ;;
       SMOOTH_SOFT)
-        smooth="${SMOOTH} "#set to smoothing kernel
+        smooth="${SMOOTH}" #set to smoothing kernel
       ;;
       FILTER)
         filter=1
@@ -433,7 +433,7 @@ EOM
     if [[ "${current_program}" == "${DARTEL}" ]]; then
       # do DARTEL stuff
       echo "${label} $(date) -- Running group preprocessing --"
-      while [[ ! -z "${step_softs[@]}" ]] && [[ "${current_program}" == "${DARTEL} "]]; do
+      while [[ ! -z "${step_softs[@]}" ]] && [[ "${current_program}" == "${DARTEL}" ]]; do
         for step_index in "${!step_softs[@]}"; do
           current_program="${step_softs[${step_index}]}"
           # if prev step is empty, pretend it's the same as current
@@ -451,7 +451,7 @@ EOM
             elif [[ "$(hostname | grep -o 'della')" ]]; then
               maxcores=20
             fi
-            [[ "${#SUBS[@]}" > "${maxcores}" ]] && ncores="${maxcores}" || ncores="${#SUBS[@]}"
+	    (( "${#SUBS[@]}" > "${maxcores}" )) && ncores="${maxcores}" || ncores="${#SUBS[@]}"
             # get the number of times each step runs sequentially (subs/cores)
             # ensure proper rounding by adding denominator-1 to numerator
             n_iterations="$(( (${#SUBS[@]} + ( ${ncores} - 1 ) ) / ${ncores} ))"
@@ -477,7 +477,7 @@ EOM
             fi
             flags="${tflag} ${oflag} ${jflag} ${mflag} ${dflag} ${memflag} ${coreflag}"
             # run it
-            group_jobid=$(sbatch "$flags" "${run_script}" -p "$pfile" "${SUBS[@]}" \
+            group_jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" "${SUBS[@]}" \
               | grep -o '[0-9]*')
             # save/print jobid number
             jobinfo_str1="${label} $(date) job ${group_jobid} submitted to run"
@@ -537,7 +537,7 @@ EOM
               dflag="--dependency=afterok${dependencies}"
               flags="${tflag} ${oflag} ${jflag} ${mflag} ${dflag}"
               # run it
-              jobid=$(sbatch $flags "${run_script}" -p "$pfile" "$subject" \
+              jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" "$subject" \
                 | grep -o '[0-9]*')
               sub_jobid[${sub_index}]="${sub_jobid[${sub_index}]}:${jobid}"
               # save/print jobid number
