@@ -182,6 +182,9 @@ for sub_i = 1:length(subs_index)
   fprintf('%s anat is: %s\n',label, anat)
 
   % for fieldmap undistortion
+  fieldmap='';
+  magnitude='';
+  vdm='';
   if undistort == 1
     % if this subject does not appear in the list of no fieldmap subjects
     if ~any(strcmp(current_subname, nofieldmap_subs))
