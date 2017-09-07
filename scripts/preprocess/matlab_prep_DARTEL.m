@@ -92,10 +92,11 @@ parpool(pc, pc.NumWorkers);
 %% Find subjects %%
 % find subject directories
 subdirs=dir(fullfile(prep_dir,subID));
+assert(~isempty(subdirs), '%s No subjects found in %s', label, prep_dir)
 fprintf('%s %s: Starting preprocessing \n', label, datestr(now))
 %preallocate subname cell array
-subnames=cell(length(subdirs),1);
-subnums=zeros(length(subdirs),1);
+subnames=cell(1,length(subdirs));
+subnums=zeros(1,length(subdirs));
 % make list of all subjects found in directory
 for i=1:length(subdirs)
   subnames{i}=subdirs(i).name;
@@ -700,6 +701,8 @@ end
 %% Move the processed epis to epi_r01.nii (without the prefixes) and re-zip
 gzip_nii = @system_gzip_nii;
 parfor s = 1:length(subs_index)
+  processed_epi='';
+  clean_epi='';
    for epi = 1:length(allepis{s})
        processed_epi = allepis{s}{epi};
        clean_epi_name = regexp(processed_epi, 'epi_r\d{2}.nii', 'match');
@@ -707,7 +710,7 @@ parfor s = 1:length(subs_index)
        clean_epi = char(fullfile(clean_epi_path, clean_epi_name));
        fprintf('%s %s: Updating %s with %s...\n', label, datestr(now), ...
            clean_epi, processed_epi)
-       [cp_status, cp_msg, cp_msg_id] = copyfile(processed_epi, clean_epi, 'f')
+       [cp_status, cp_msg, cp_msg_id] = copyfile(processed_epi, clean_epi, 'f');
        if cp_status == 1
         fprintf('%s %s: Successfully updated %s\n', label, datestr(now), clean_epi)
        else
@@ -715,19 +718,18 @@ parfor s = 1:length(subs_index)
             label, datestr(now), clean_epi, processed_epi, cp_msg, cp_msg_id)
        end
    end
-   pause(0.01)
    fprintf('%s %s: Starting gzip for subject %s...\n', label, datestr(now), subnames{s})
    [epi_dir, ~, ~] = fileparts(allepis{s}{1});
    feval(gzip_nii,epi_dir, label)
    % zip .niis in the fieldmap_dir
    [fieldmap_dir, ~, ~] = fileparts(allfieldmap{s});
    feval(gzip_nii,fieldmap_dir, label)
-   % also zip templates, if they are not standard ones from a package
-   if ~startsWith(template_dir, pkg_dir)
-    feval(gzip_nii, template_dir, label)
-   end
 end
-fprintf('%s $s: Finished DARTEL preprocessing for subjects %s ', label, ...
+% also zip templates, if they are not standard ones from a package
+if ~startsWith(template_dir, pkg_dir)
+  feval(gzip_nii, template_dir, label)
+end
+fprintf('%s %s: Finished DARTEL preprocessing for subjects %s \n', label, ...
     datestr(now), strjoin(subnames))
 %% Clean up Matlab's output
 % Stop the parallel pool
@@ -787,3 +789,4 @@ function system_gunzip_nii(nii_dir, fileID, label, imageType)
  assert(status == 0, '%s gunzip for %s failed with error:\n %s',...
      label, fullfile(nii_dir,gz_fileID), cmdout)
 return
+
