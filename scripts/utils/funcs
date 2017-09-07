@@ -21,6 +21,7 @@
 # 12) full_file <file> [<search_path>]: like full_dir, but for files. Outputs full path to file
 # 13) read_json_value <key> <file>  : returns value of field <key> in json <file>
 # 14) element_in_array <element> <array> : returns true if element is in array, else false
+# 15) join_by <delimiter> <array[@]> : returns array concatenated with the delimiter
 ################################################################################----------
 
 # Get the name of the directory this script is in, to create full path to globals.par
@@ -90,8 +91,6 @@ function isDIR { if [[ $(whatisit $1) == $isDIR ]]; then echo true; else echo fa
 function isSUB { if [[ $(whatisit $1) == $isSUB ]]; then echo true; else echo false; fi }
 function isNUM { if [[ $(whatisit $1) == $isNUM ]]; then echo true; else echo false; fi }
 function isIDK { if [[ $(whatisit $1) == $isIDK ]]; then echo true; else echo false; fi }
-
-function join_by { local IFS="$1"; shift; echo "$*"; }
 
 ################################################################################----------
 # 2)
@@ -640,3 +639,17 @@ function element_in_array {
   for e in $@; do [[ "$e" == "$match" ]] && found=1 && echo 'true'; done
   if [[ -z ${found} ]]; then  echo 'false'; fi
 }
+
+################################################################################
+#15)
+# join_by
+# Miriam Weaverdyck
+# Join an array by specified delimiter
+################################################################################
+# Arguments:
+#  delimiter  : delimiter to output
+#  array      : array you want to join (in the form ${array[@]})
+# Output:
+#  true or false
+################################################################################
+function join_by { local IFS="$1"; shift; echo "$*"; }
