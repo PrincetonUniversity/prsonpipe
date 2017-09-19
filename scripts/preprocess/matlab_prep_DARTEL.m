@@ -103,8 +103,8 @@ for i=1:length(subdirs)
   snam=char(subnames{i});
   snum=str2double(snam(2:end));
   subnums(i)=snum;
-  fprintf('%s Adding %s to found subject list and %d to found subject numbers\n',...
-      label, subnames{i}, subnums(i))
+%  fprintf('%s Adding %s to found subject list and %d to found subject numbers\n',...
+%      label, subnames{i}, subnums(i))
 end
 
 % number of subjects found
@@ -315,8 +315,10 @@ for sub_i = 1:length(subs_index)
     % realign & unwarp
     fprintf('%s %s: Setting up motion correction with fieldmap undistortion (%s)...\n',...
         label, datestr(now), current_subname)
-    matlabbatch{2}.spm.spatial.realignunwarp.data.scans = allepis{sub_i};% images to align & unwarp
-    matlabbatch{2}.spm.spatial.realignunwarp.data.pmscan = allvdm(sub_i);% phase map
+    for i = 1:length(allepis{sub_i})
+      matlabbatch{2}.spm.spatial.realignunwarp.data(i).scans = allepis{sub_i}(i);% images to align & unwarp
+      matlabbatch{2}.spm.spatial.realignunwarp.data(i).pmscan = allvdm(sub_i);% phase map
+    end
     matlabbatch{2}.spm.spatial.realignunwarp.eoptions.quality = 0.9;     % quality
     matlabbatch{2}.spm.spatial.realignunwarp.eoptions.sep = 4;           % separation
     matlabbatch{2}.spm.spatial.realignunwarp.eoptions.fwhm = 5;          % smoothing (FWHM)
@@ -359,7 +361,9 @@ for sub_i = 1:length(subs_index)
     % run motion correction without unwarp
     fprintf('%s %s: Setting up motion correction without fieldmap undistortion (%s)...\n',...
         label, datestr(now), current_subname)
-    matlabbatch{1}.spm.spatial.realign.estwrite.data = allepis(sub_i);
+    for i = 1:length(allepis{sub_i})
+      matlabbatch{1}.spm.spatial.realign.estwrite.data(i) = {allepis{sub_i}(i)};
+    end
     matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.quality = 0.9;   % higher quality
     matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.sep = 4;         % default is 4
     matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.fwhm = 5;        % default
@@ -389,7 +393,7 @@ for sub_i = 1:length(subs_index)
   % -------------------------------------------------
 
   current_time = datestr(now, 'yyMMdd_hhmm');
-  filename = fullfile(parallel_outdir, ['PREDARTEL_' subnames{sub_i} '_' current_time]);
+  filename = fullfile(parallel_outdir, ['PREDARTEL_' current_subname '_' current_time]);
   save(filename,'matlabbatch');
 
   spmbatch{sub_i} = matlabbatch;
@@ -411,7 +415,7 @@ if realign == 0
   end
   parfor s = 1:length(subs_index)
     fprintf('%s %s: Skipping motion correction. Creating mean image for subject %s...\n',...
-        label, datestr(now), subnames{s})
+        label, datestr(now), subnames{subs_index(s)})
     fname='';
     curfunc='';
     mfuncs=[];
@@ -436,7 +440,7 @@ if realign == 0
 
     spm_jobman('run',spmbatch{s});
     fprintf('%s %s: Finished running mean functional and anat coregistration for %s',...
-        label, datestr(now), subnames{s})
+        label, datestr(now), subnames{subs_index(s)})
   end
 
 else
@@ -446,10 +450,10 @@ else
   end
   parfor s = 1:length(subs_index)
     fprintf('%s %s: Running motion correction for subject %s...\n',...
-        label, datestr(now), subnames{s})
+        label, datestr(now), subnames{subs_index(s)})
     spm_jobman('run',spmbatch{s});
     fprintf('%s %s: Finished running motion correction for %s\n',...
-        label, datestr(now), subnames{s})
+        label, datestr(now), subnames{subs_index(s)})
   end
 end
 clear spmbatch
@@ -497,7 +501,7 @@ for sub_i = 1:length(subs_index)
 
 
   current_time = datestr(now, 'yyMMdd_hhmm');
-  filename = fullfile(parallel_outdir, ['SEGDARTEL_' subnames{sub_i} '_' current_time]);
+  filename = fullfile(parallel_outdir, ['SEGDARTEL_' subnames{subs_index(sub_i)} '_' current_time]);
   save(filename,'matlabbatch'); % save jobs variable
   spmbatch{sub_i} = matlabbatch;
   clear matlabbatch
@@ -509,9 +513,9 @@ if isempty(gcp('nocreate')) == 1
   parpool(pc, pc.NumWorkers)
 end
 parfor s = 1:length(subs_index)
-  fprintf('%s %s: Running segmentation for subject %s\n', label, datestr(now), subnames{s})
+  fprintf('%s %s: Running segmentation for subject %s\n', label, datestr(now), subnames{subs_index(s)})
   spm_jobman('run',spmbatch{s});
-  fprintf('%s %s: Finished segmentation for subject %s\n', label, datestr(now), subnames{s})
+  fprintf('%s %s: Finished segmentation for subject %s\n', label, datestr(now), subnames{subs_index(s)})
 end
 
 clear spmbatch
@@ -571,10 +575,10 @@ if create_temp == 0 %If create new template is set to 0 (no), use existing templ
   end
   parfor s = 1:length(subs_index)
     fprintf('%s %s: Running DARTEL (existing template) for subject %s\n',...
-        label, datestr(now), subnames{s})
+        label, datestr(now), subnames{subs_index(s)})
     spm_jobman('run',spmbatch{s});
     fprintf('%s %s: Finished DARTEL (existing template) for subject %s\n',...
-        label, datestr(now), subnames{s})
+        label, datestr(now), subnames{subs_index(s)})
   end
 
   clear spmbatch
@@ -690,10 +694,10 @@ if normalize == 1
   end
   parfor s = 1:length(subs_index)
     fprintf('%s %s: Running normalize to MNI for subject %s\n',...
-        label, datestr(now), subnames{s})
+        label, datestr(now), subnames{subs_index(s)})
     spm_jobman('run',spmbatch{s});
     fprintf('%s %s: Finished normalize to MNI for subject %s\n',...
-        label, datestr(now), subnames{s})
+        label, datestr(now), subnames{subs_index(s)})
   end
   % update allepis to darteled version
   allepis = darteled_epis;
@@ -718,7 +722,7 @@ parfor s = 1:length(subs_index)
             label, datestr(now), clean_epi, processed_epi, cp_msg, cp_msg_id)
        end
    end
-   fprintf('%s %s: Starting gzip for subject %s...\n', label, datestr(now), subnames{s})
+   fprintf('%s %s: Starting gzip for subject %s...\n', label, datestr(now), subnames{subs_index(s)})
    [epi_dir, ~, ~] = fileparts(allepis{s}{1});
    feval(gzip_nii,epi_dir, label)
    % zip .niis in the fieldmap_dir
@@ -730,7 +734,7 @@ if ~startsWith(template_dir, pkg_dir)
   feval(gzip_nii, template_dir, label)
 end
 fprintf('%s %s: Finished DARTEL preprocessing for subjects %s \n', label, ...
-    datestr(now), strjoin(subnames))
+    datestr(now), strjoin(subnames(subs_index)))
 %% Clean up Matlab's output
 % Stop the parallel pool
 delete(gcp('nocreate'))
