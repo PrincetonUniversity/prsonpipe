@@ -18,7 +18,7 @@
 #
 # Flags:
 #  [-h]         : help
-#  -p           : pfile to be sourced
+#  -p           : pfile (full path, relative path, or relative from sub_level/glm)
 #  [-l]         : logfile (full path, overrides default)
 #  [-i]         : where to look for full list of subjects (e.g. raw/TSK/)
 #  [-o]         : where to look for already-run subjects (e.g. prep/TSK/aNrNuNwNsN)
@@ -53,7 +53,7 @@ cat << END
 	[-h | --help | -help]
 	  Display this help
 	-p <filename>
-	  filename of pfile
+	  filename of pfile (full path, relative path, or relative from sub_level/glm)
 	[-i <input_directory>]
 	  directory to look in for valid subjects 
 	  Default is raw directory
