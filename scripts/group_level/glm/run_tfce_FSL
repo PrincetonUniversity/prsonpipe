@@ -25,10 +25,10 @@ cat << END
     Run TFCE corrected second level (group) glm. Either one sample or two sample test.
   Usage:
   ------
-    -p <pfile>  : parameter file
-    [-c <file>] : list of contrast filenames and contrast names to process 
+    -p <pfile> : .par file (full path or rel. from here, group_level/glm, or sub_level/glm)
+    [-c <file>]: list of contrast filenames and contrast names to process 
                    (space delimited, w header; req'd if not provided in pfile)
-    [-g <file>] : space delimited file with subject groups (req'd if test is twosample)
+    [-g <file>]: space delimited file with subject groups (req'd if test is twosample)
 END
 }
 # First, check for help flag (multi-character flags not supported by getopts)
