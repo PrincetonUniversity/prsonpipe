@@ -1,5 +1,5 @@
 #!/bin/env bash
-#
+# 
 # jmildner@princeton.edu, 20 Sep 2017
 #
 # Run second level glm using SPM12W (they call it rfx). You can use the same pfile as
@@ -55,7 +55,7 @@ cat << END
 	-p <filename>
 	  filename of pfile
 	[-i <input_directory>]
-	  directory to look in for valid subjects
+	  directory to look in for valid subjects 
 	  Default is raw directory
 	[-o <output_directory>]
 	  directory to look in for already-run subjects
@@ -146,13 +146,13 @@ while getopts "p:i:o:l:d:" opt; do
     esac
 done
 [[ -z $pfile ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
-if [[ -z ${input_dir} ]]; then
+if [[ -z ${input_dir} ]]; then 
   glm_task=$(get_matlab_var 'tsk' "${pfile}")
   glm_wd=$(get_matlab_var 'wd' "${pfile}")
   input_dir="${PREP_DIR}/${glm_task}/${glm_wd}"
   [[ ! -d ${input_dir} ]] && echo "${label} ERROR: ${input_dir} not found" && exit 1
 fi
-if [[ -z ${output_dir} ]]; then
+if [[ -z ${output_dir} ]]; then 
   glm_output=$(get_matlab_var 'glm.glm_name' "${pfile}")
   output_dir="${ANALYSIS_DIR}/${USER}/glm/glm_${glm_task}"
 fi
@@ -182,7 +182,7 @@ jobname=glm_lvl2
 flags="-o ${OUT_DIR}/${jobname}-%j.out --mail-user=$USER_EMAIL -J ${jobname} ${dependency_flag}"
 prev_jobid=$(sbatch $flags sbatch_rfx_SPM12W -p $pfile ${run_subs[@]} | grep -o '[0-9]*')
 all_jobs+=":${prev_jobid}"
-
+    
 echo "${label} ${jobname} job ${prev_jobid} submitted for level 2 GLM  with pfile $pfile" \
    | tee -a ${logfile_sub} $logfile
 echo ${label}

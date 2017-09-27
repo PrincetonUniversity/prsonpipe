@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+#
+# jmildner@princeton.edu, September 21 2017
+#
+# Run TFCE corrected second level (group) glm. Either one sample or two sample test.
+################################################################################
+# Files sourced:
+#   globals.par
+#   utils/funcs
+# Arguments:
+#  -p <file>   : parameter file
+#  [-c <file>] : list of contrast filenames and contrast names to process 
+#                  (space delimited, w header; req'd if not in pfile)
+#  [-g <file>] : space delimited file with subject groups (req'd if test is 'twosample';)
+################################################################################
+module load fsl/5.0.9
+label='[TFCE]'
+
+function help_func () {
+cat << END
+  sbatch_tfce_FSL -p <pfile> [-c <contrast list>] [-g <group_file>]
+
+  Description:
+  ------------
+    Run TFCE corrected second level (group) glm. Either one sample or two sample test.
+  Usage:
+  ------
+    -p <pfile>  : parameter file
+    [-c <file>] : list of contrast filenames and contrast names to process 
+                   (space delimited, w header; req'd if not provided in pfile)
+    [-g <file>] : space delimited file with subject groups (req'd if test is twosample)
+END
+}
+# First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ --help|-help|-h ]]; then help_func; exit; fi
+
+######################### SOURCE FILES ########################################
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
+source "${SCRIPT_DIR_UTIL}/funcs"
+
+# Parse arguments
+while getopts ":hc:p:g:" opt; do
+    case "$opt" in
+    h|\?)
+        help_func
+        exit 0
+      ;;
+    c)
+      contrast_list_in="${OPTARG}"
+      ;;
+    p)
+      pfile="$(full_file "${OPTARG}" "${SCRIPT_DIR_GRPLVL}")"
+      if [ ! -f ${pfile} ]; then
+        echo "${label} ERROR: parameter file does not exist. Use -h for help."
+        echo -e "${pfile}"
+        exit 1
+      fi
+      echo "${label} Using pfile: ${pfile}"
+      source "${pfile}"
+      ;;
+    g)
+      group_list_in=$("${OPTARG}")
+      ;;
+    : ) #Catch options without arguments
+      echo "$label ERROR: -$OPTARG requires an argument. Use -h for help."
+      exit 1
+    esac
+done
+shift $((OPTIND-1))
+# override constrast list from pfile if -c was used, group list if -g was used
+[[ -n "${contrast_list_in}" ]] && contrast_list="${contrast_list_in}"
+[[ -n "${group_list_in}" ]] && group_list="${group_list_in}"
+# Do the files we need exist?
+contrast_list="$(full_file "${contrast_list}" "${SCRIPT_DIR_GRPLVL}")"
+if [ ! -f ${contrast_list} ]; then
+  echo "${label} ERROR: contrast file does not exist. Use -h for help."
+  echo -e "${contrast_list}"
+  exit 1
+fi
+echo "${label} Reading contrasts from: ${contrast_list}"
+
+# Make sure we have the required arguments
+if [[ -z "${pfile}" ]]; then
+  echo "${label} ERROR: Parameter file (-p) required. Use -h for help."
+  exit 1
+fi
+
+if [[ ${test_type} == 'twosample' ]]; then
+  if [[ -z ${group_list} ]]; then
+    echo "${label} ERROR: for a two sample test, a group file is required (-g)."
+    echo "         Use -h for help."
+    exit 1
+  fi
+  group_list=$(full_file "${group_list}" "${SCRIPT_DIR_GRPLVL}")
+  if [ ! -f ${group_list} ]; then
+    echo "${label} ERROR: group file does not exist. Use -h for help."
+    echo -e "${group_list}"
+    exit 1
+  fi
+  echo "${label} Reading group assignments from: ${group_list}"
+fi
+################################################################################
+echo "${label} starting processing"
+
+tfce_dir="${ANALYSIS_DIR}/${USER}/tfce/${tfce_name}"
+mkdir -p "${tfce_dir}"
+echo "${label} created output directory: ${tfce_dir}"
+# Register FSL brain mask to one of the con files to make mask file w correct dimensions
+random_confile="$(find ${glm_dir} -name con_* -print -quit)"
+mask_file="${tfce_dir}/MNI_brain"
+flirt -in "${FSLDIR}/data/standard/MNI152_T1_2mm_brain_mask" -ref "${random_confile}" \
+  -applyxfm -usesqform -out "${mask_file}"
+#make a matching standard brain too, for visualisation
+flirt -in "${FSLDIR}/data/standard/MNI152_T1_2mm" -ref "${random_confile}" -applyxfm \
+  -usesqform -out "${tfce_dir}/standard_brain"
+
+# Contrast list: remove first line (1d) and read lines starting with con_ (/^con_/p)
+while read filename contrast_name; do
+  # remove double and single quotes and add to array
+  contrast_filenames=( ${contrast_filenames[@]} "$(sed "s/[\"']//g" <<< "${filename}")" )
+  contrast_names=( "${contrast_names[@]}" "$(sed "s/[\"']//g" <<< "${contrast_name}")" )
+done < <(sed -n '1d;/^con_/p' "${contrast_list}")
+
+for con_index in ${!contrast_filenames[@]}; do
+  con_file="${contrast_filenames[${con_index}]}"
+  con_name=$(echo "${contrast_names[${con_index}]}")
+
+  out_dir="${tfce_dir}/${con_name}"
+  mkdir -p "${out_dir}"
+  echo "${label} Analyzing ${con_file} in ${out_dir}"
+  
+  if [[ "${test_type}" == 'onesample' ]]; then
+    unset contrast_files
+    echo "${label} Concatenating contrast files"
+    for file in ${glm_dir}/*/${con_file}; do
+      contrast_files=( ${contrast_files[@]} ${file} )
+    done
+    all_con_file="${out_dir}/all_cons"
+    all_con_file_neg="${out_dir}/all_cons_neg"
+    fslmerge -t "${all_con_file}" ${contrast_files[@]}
+    fslmaths "${all_con_file}" -nan "${all_con_file}"
+  
+    echo "${label} Running TFCE for positive activation"
+    randomise_parallel -i "${all_con_file}" -o "${out_dir}/onesample/positive" \
+      -m "${mask_file}" -1 -T -n "${n_permutations}"
+    echo "${label} Running TFCE for negative activation"
+    fslmaths  "${all_con_file}" -mul -1 "${all_con_file_neg}"
+    randomise_parallel -i "${all_con_file_neg}" -o "${out_dir}/onesample/negative" \
+      -m "${mask_file}" -1 -T -n "${n_permutations}"
+
+  elif [[ "${test_type}" == 'twosample' ]]; then
+    all_con_file="${out_dir}/all_cons_twosamp"
+    groups=( $(cut -f2 -d' ' "${group_list}" | sort -u) )
+    if (( ${#groups[@]} > 2 )); then
+      echo "${label} ERROR: more than two group names found in ${group_list}"
+      exit 1
+    fi
+    group1_subs=( $(grep "${groups[0]}" sub_condition_list.txt | cut -f1 -d' ') )
+    group2_subs=( $(grep "${groups[1]}" sub_condition_list.txt | cut -f1 -d' ') )
+    echo "${label} group 1 is ${groups[0]}, with subjects ${group1_subs[@]}"
+    echo "${label} group 2 is ${groups[1]}, with subjects ${group2_subs[@]}"
+
+    unset contrast_files
+    rm -f "${out_dir}/design.txt"
+    for file in ${glm_dir}/*/${con_file}; do
+      subject=$(basename "$(dirname "${file}")")
+      contrast_files=( ${contrast_files[@]} ${file} )
+      unset design_mat_line
+      [[ "${group1_subs[@]}" =~ "${subject}" ]] && design_mat_line='1 0 1' 
+      [[ "${group2_subs[@]}" =~ "${subject}" ]] && design_mat_line='0 1 1'
+      echo "${design_mat_line}" >> "${out_dir}/design.txt" 
+    done
+
+    rm -f "${out_dir}/contrast.txt"
+    echo -e "1 -1 0\n -1 1 0" >> "${out_dir}/contrast.txt"
+    Text2Vest "${out_dir}/design.txt" "${out_dir}/design.mat"
+    Text2Vest "${out_dir}/contrast.txt" "${out_dir}/contrast.con"
+
+    echo "${label} Concatenating contrast files"
+    fslmerge -t "${all_con_file}" ${contrast_files[@]}
+    fslmaths "${all_con_file}" -nan "${all_con_file}"
+
+    randomise_parallel -i "${all_con_file}" -o "${out_dir}/twosample/twosample" \
+      -m "${mask_file}" -d "${out_dir}/design.mat" -t "${out_dir}/contrast.con" \
+      -T -n "${n_permutations}"
+  fi
+done

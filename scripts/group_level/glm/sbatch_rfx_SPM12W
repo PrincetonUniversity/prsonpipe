@@ -1,0 +1,118 @@
+#!/bin/env bash
+#
+# May 8, 2017: Miriam Weaverdyck updated script to work with new filestructure and standards
+#
+# Runs level 1 GLM in matlab using SPM12w based on specified parameters in pfile
+#
+#################################################################################----------
+# Packages used:
+#  spm12
+#  spm12w
+#
+# Files sourced:
+#  globals.par
+#  funcs
+#  pfile
+#
+# Flags:
+#  [-h]         : help
+#  -p           : pfile to be sourced
+#  [-l]         : logfile (full path, overrides default)
+#
+# Arguments (1):
+#  sub ID       : subject to run
+################################################################################----------
+
+#SBATCH -J SPMw_glm			# Job name
+#SBATCH --workdir=./			# Working directory
+#SBATCH -o SPMw_glm-%j.out		# Output file
+#SBATCH --mem-per-cpu=10240		# Amount of memory in MB (1GB = 1024 MB)
+#SBATCH --mail-type=FAIL		# Type of emails to send
+#SBATCH -t 1440				# Run time : Default = 24 hours (2880 min)
+#SBATCH -p all				# DON'T CHANGE
+
+set -e
+echo "on host: `hostname`"
+label='[GLM]'
+
+######################### SOURCE FILES ########################################
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
+source ${SCRIPT_DIR_UTIL}/funcs
+
+######################### SET UP & PARSE ARGUMENTS #############################
+function help_func () {
+cat << END
+  sbatch_SPM12w_prep [-lh] -p <pfile> [-i <input_dir>] [-o <output_dir>] [-l <logfile>]
+  Description:
+  ------------
+    Launches preprocessing in matlab using SPM12w based on specified parameters in pfile
+  Usage:
+  ------
+    [-h | --help | -help]
+      Display this help
+    -p <filename>
+      filename of pfile
+    [-l <filename>]
+      Overrides the default log file location with a different file.
+      Default is LOG_spmw.txt in prep directory specified in pfile
+END
+}
+#First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
+
+#Parse flags other than help
+while getopts "p:l:" opt; do
+  case $opt in
+    p)
+      pfile=$(full_file "${OPTARG}")
+      if [ ! -f $pfile ]; then
+        echo "$label ERROR: pfile $pfile does not exist."
+        exit 1
+      fi
+      echo "$label Using pfile: $pfile"
+      ;;
+    l)
+      flogfile=$OPTARG
+      logdir=$(dirname $flogfile)
+      if ! $(isDIR $logdir); then
+        echo "$label ERROR: $logdir is not a directory."
+        exit 1
+      fi
+      logdir=$(full_dir $logdir)
+      flogfile=${logdir}/$(basename $flogfile)
+      touch $flogfile
+      echo "$label Using logfile: $flogfile instead of default" | tee -a $flogfile
+      ;;
+    \?)
+      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+      ;;
+    : ) #Catch options without arguments
+      echo "$label ERROR: -$OPTARG requires an argument. Use -h for help."
+      exit 1
+    esac
+done
+[[ -z $pfile ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
+#remove used input args
+shift $((OPTIND -1))
+
+############################## MAIN BODY OF SCRIPT #############################
+
+logfile=$flogfile
+subjects=( "$@" )
+
+if [[ "${subjects}" == 'all' ]] || [[ -z "${subjects}" ]] || \
+                                [[ "${subjects}" == 'allsids' ]]; then
+  sub='allsids'
+else
+  sub=$(make_smatlab_array ${subjects[@]})
+fi
+echo ${sub}
+module load matlab/R2016b
+matlab -nosplash -nodisplay -nodesktop -r \
+   "try; run('${pfile}'); spm12w_glm_rfx('sids', ${sub}, 'glm_file', '${pfile}'); catch me; fprintf('%s / %s\n', \
+   me.identifier, me.message); end; exit" | tee -a "${logfile}"
