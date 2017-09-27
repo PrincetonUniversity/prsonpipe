@@ -21,21 +21,22 @@ TOPUP='TOPUP'
 PREP_SOFTS=("${FSL}" "${DARTEL}" "${SPMW}")
 
 # directories
-RAW_DIR=${PROJECT_DIR}/raw
-PREP_DIR=${PROJECT_DIR}/prep
-QA_DIR=${PROJECT_DIR}/qa
-OUT_DIR=${PROJECT_DIR}/output
-SCRIPT_DIR=${PROJECT_DIR}/scripts
+RAW_DIR="${PROJECT_DIR}/raw"
+PREP_DIR="${PROJECT_DIR}/prep"
+ANALYSIS_DIR="${PROJECT_DIR}/analysis"
+QA_DIR="${PROJECT_DIR}/qa"
+OUT_DIR="${PROJECT_DIR}/output"
+SCRIPT_DIR="${PROJECT_DIR}/scripts"
 
 # subdirectories in scripts
 SCRIPT_DIR_SHORT=scripts
 SCRIPT_DIR_QA="${SCRIPT_DIR}/qa"
 SCRIPT_DIR_PREP="${SCRIPT_DIR}/preprocess"
 SCRIPT_DIR_SUBLVL="${SCRIPT_DIR}/sub_level"
+SCRIPT_DIR_GRPLVL="${SCRIPT_DIR}/group_level"
 SCRIPT_DIR_UTIL="${SCRIPT_DIR}/utils"
 SCRIPT_DIR_ROI="${SCRIPT_DIR_SUBLVL}/roi"
 
-DICOM_ARCHIVE=${PROJECT_DIR}/auxil/archive/nifti/raw.tar.gz # IS THIS NEEDED?
 
 # Variable types
 isNUM=NUM   # whatisit(x) -> x is a number (#)

@@ -1,0 +1,190 @@
+#!/bin/env bash
+#
+# jmildner@princeton.edu, 20 Sep 2017
+#
+# Run second level glm using SPM12W (they call it rfx). You can use the same pfile as
+# in your first level glm. Currently, SPM12W only supports one sample t test. One-way
+# ANOVA might work too?
+#
+################################################################################----------
+# Packages used:
+#  spm12
+#  spm12w
+#
+# Files sourced:
+#  globals.par
+#  funcs
+#  pfile
+#
+# Flags:
+#  [-h]         : help
+#  -p           : pfile to be sourced
+#  [-l]         : logfile (full path, overrides default)
+#  [-i]         : where to look for full list of subjects (e.g. raw/TSK/)
+#  [-o]         : where to look for already-run subjects (e.g. prep/TSK/aNrNuNwNsN)
+#  [-d] 	: dependency jobIDs (e.g. 1111111:2222222:3333333)
+#
+# Arguments (0+):
+#  subs         : subjects to run
+###############################################################################----------
+
+set -e
+label='[GLM]'
+
+######################### SOURCE FILES ########################################
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
+source ${SCRIPT_DIR_UTIL}/funcs
+
+######################### SET UP & PARSE ARGUMENTS #############################
+function help_func () {
+cat << END
+  run_rfx_SPM12w [-lh] -p <pfile> [-i <input_dir>] [-o <output_dir>] [-l <logfile>] [-d <jobIDs>]
+  Description:
+  ------------
+	 Run second level glm using SPM12W (they call it rfx). You can use the same pfile as
+	 in your first level glm. Currently, SPM12W only supports one sample t test. One-way
+	 ANOVA might work too?
+  Usage:
+  ------
+	[-h | --help | -help]
+	  Display this help
+	-p <filename>
+	  filename of pfile
+	[-i <input_directory>]
+	  directory to look in for valid subjects
+	  Default is raw directory
+	[-o <output_directory>]
+	  directory to look in for already-run subjects
+	  Default is prep directory specified in pfile
+	[-l <filename>]
+	  Overrides the default log file location with a different file.
+	  Default is LOG_spmw.txt in prep directory specified in pfile
+	[-d <jobIDs>]
+	  jobIDs that these jobs will be dependent on. Valid forms are:
+	a) dependency_flag=--dependency=afterok:1111111:2222222:3333333
+	b) --dependency=afterok:1111111:2222222:3333333
+	c) afterok:1111111:2222222:3333333
+	d) 1111111:2222222:3333333
+END
+}
+#First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
+
+#Parse flags other than help
+while getopts "p:i:o:l:d:" opt; do
+  case $opt in
+    p)
+      pfile=$(full_file "${OPTARG}" "${SCRIPT_DIR_GRPLVL}")
+      if [ ! -f $pfile ]; then
+        sub_pfile=$(full_file "${OPTARG}" "${SCRIPT_DIR_SUBLVL}")
+        if [ ! -f ${sub_pfile} ]; then
+          echo "$label ERROR: pfile $pfile does not exist."
+          exit 1
+        else
+          pfile="${sub_pfile}"
+        fi
+      fi
+      echo "$label Using pfile: $pfile"
+      ;;
+    i)
+          input_dir=${PREP_DIR}/$OPTARG
+      if ! $(isDIR ${input_dir}); then
+        echo "$label ERROR: input directory $input_dir is not a directory."
+        exit 1
+      fi
+      input_dir=$(full_dir $input_dir)
+      echo "$label input_dir: $input_dir"
+      ;;
+    o)
+          output_dir=${PROJECT_DIR}/analysis/${USER}/glm/$OPTARG
+          mkdir -p $output_dir
+      # if ! $(isDIR ${output_dir}); then
+      #   echo "$label ERROR: output directory $output_dir is not a directory."
+      #   exit 1
+      # fi
+      # output_dir=$(full_dir $output_dir)
+      echo "$label output_dir: $output_dir"
+      ;;
+    l)
+      flogfile=$OPTARG
+      logdir=$(dirname $flogfile)
+      if ! $(isDIR $logdir); then
+        echo "$label ERROR: $logdir is not a directory."
+        exit 1
+      fi
+      logdir=$(full_dir $logdir)
+      flogfile=${logdir}/$(basename $flogfile)
+      touch $flogfile
+      echo "$label Using logfile: $flogfile instead of default" | tee -a $flogfile
+      ;;
+    d)
+      jobIDs=$OPTARG
+      if [[ ${jobIDs:0:1} == d ]]; then
+        dependency_flag=${jobIDs:16}
+      elif [[ ${jobIDs:0:2} == '--' ]]; then
+        dependency_flag=$jobIDs
+      elif [[ ${jobIDs:0:5} == after ]]; then
+        dependency_flag='--dependency='$jobIDs
+      elif $(isNUM ${jobIDs:0}); then
+        dependency_flag='--dependency=afterok:'$jobIDs
+      else
+        echo "${label} ERROR: $jobIDs is not a valid dependency arg. Use -h for help."
+        exit 1
+      fi
+      ;;
+    \?)
+      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+      ;;
+    : ) #Catch options without arguments
+      echo "$label ERROR: -$OPTARG requires an argument. Use -h for help."
+      exit 1
+    esac
+done
+[[ -z $pfile ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
+if [[ -z ${input_dir} ]]; then
+  glm_task=$(get_matlab_var 'tsk' "${pfile}")
+  glm_wd=$(get_matlab_var 'wd' "${pfile}")
+  input_dir="${PREP_DIR}/${glm_task}/${glm_wd}"
+  [[ ! -d ${input_dir} ]] && echo "${label} ERROR: ${input_dir} not found" && exit 1
+fi
+if [[ -z ${output_dir} ]]; then
+  glm_output=$(get_matlab_var 'glm.glm_name' "${pfile}")
+  output_dir="${ANALYSIS_DIR}/${USER}/glm/glm_${glm_task}"
+fi
+#remove used input args
+shift $((OPTIND -1))
+
+############################## MAIN BODY OF SCRIPT #############################
+logfile_name=LOG_rfx.txt
+[[ -z $flogfile ]] && logfile=${output_dir}/${logfile_name}
+
+pfile_name=$(basename $pfile)
+DATE=`date +%Y%m%d`
+cp ${pfile} ${output_dir}/${DATE}_${pfile_name}
+
+#check if there are remaining arguments, that have not yet been processed
+# if so, get subject IDs by calling get_subs
+if [[ -n "${@}" ]]; then
+  get_subs $input_dir $output_dir "$@"
+  run_subs=( "${SUBS[@]}" )
+fi
+
+unset all_jobs
+
+echo "${label} Beginning level 2 GLM analysis of ${run_subs[@]} for $TSK with pfile $pfile" | tee -a $logfile
+
+jobname=glm_lvl2
+flags="-o ${OUT_DIR}/${jobname}-%j.out --mail-user=$USER_EMAIL -J ${jobname} ${dependency_flag}"
+prev_jobid=$(sbatch $flags sbatch_rfx_SPM12W -p $pfile ${run_subs[@]} | grep -o '[0-9]*')
+all_jobs+=":${prev_jobid}"
+
+echo "${label} ${jobname} job ${prev_jobid} submitted for level 2 GLM  with pfile $pfile" \
+   | tee -a ${logfile_sub} $logfile
+echo ${label}
+
+echo "${label} dependency_flag=--dependency=afterok${all_jobs}"
