@@ -452,6 +452,14 @@ else
     fprintf('%s %s: Running motion correction for subject %s...\n',...
         label, datestr(now), subnames{subs_index(s)})
     spm_jobman('run',spmbatch{s});
+    moco_mats=dir(fullfile(prep_dir, subnames{subs_index(s)},[epiID, '.mat']))
+    for m = 1:length(moco_mats)
+      [mv_stat, mv_msg, mv_msid] = movefile(fullfile(moco_mats(m).folder, moco_mats(m).name),...
+        fullfile(moco_mats(m).folder,['realign_', moco_mats(m).name]), 'f');
+      if mv_stat == 0
+        fprintf('%s (%s) \n', mv_msg, mv_msid)
+      end
+    end
     fprintf('%s %s: Finished running motion correction for %s\n',...
         label, datestr(now), subnames{subs_index(s)})
   end
@@ -667,23 +675,19 @@ if normalize == 1
     matlabbatch{2}.spm.tools.dartel.mni_norm.preserve = 0;
     matlabbatch{2}.spm.tools.dartel.mni_norm.fwhm = [0 0 0];
 
+    % save batch
+    current_time = datestr(now, 'yyMMdd_hhmm');
+    filename = fullfile(parallel_outdir, ['NORMDARTEL_' current_subname '_' current_time]);
+    save(filename,'matlabbatch');  % save jobs variable in file batch_preproc_MMDDYY_HHMM.mat in subject's base directory
+    spmbatch{sub_i}=matlabbatch;
+    clear matlabbatch
 
-
-  % SAVE/RUN
-  % -------------------------------------------------
-  current_time = datestr(now, 'yyMMdd_hhmm');
-  filename = fullfile(parallel_outdir, ['NORMDARTEL_' current_subname '_' current_time]);
-  save(filename,'matlabbatch');  % save jobs variable in file batch_preproc_MMDDYY_HHMM.mat in subject's base directory
-
-  spmbatch{sub_i}=matlabbatch;
-  clear matlabbatch
-
-  % Get Dartel output filenames
-  darteled_epis{sub_i} = cell(length(allepis{sub_i}),1);
-  for n = 1:length(allepis{sub_i})
-    [epi_path, epi_name, epi_ext] = fileparts(allepis{sub_i}{n});
-    darteled_epis{sub_i}{n} = fullfile(epi_path, [dartel_prefix, epi_name, epi_ext]);
-  end
+    % Get Dartel output filenames
+    darteled_epis{sub_i} = cell(length(allepis{sub_i}),1);
+    for n = 1:length(allepis{sub_i})
+      [epi_path, epi_name, epi_ext] = fileparts(allepis{sub_i}{n});
+      darteled_epis{sub_i}{n} = fullfile(epi_path, [dartel_prefix, epi_name, epi_ext]);
+    end
   end
 
   fprintf('%s %s: Starting parallel processing for normalization to MNI space\n',...
@@ -696,6 +700,14 @@ if normalize == 1
     fprintf('%s %s: Running normalize to MNI for subject %s\n',...
         label, datestr(now), subnames{subs_index(s)})
     spm_jobman('run',spmbatch{s});
+    norm_mats=dir(fullfile(prep_dir, subnames{subs_index(s)},[epiID, '.mat']))
+    for m = 1:length(norm_mats)
+      [mv_stat, mv_msg, mv_msid] = movefile(fullfile(norm_mats(m).folder, norm_mats(m).name),...
+        fullfile(norm_mats(m).folder,['norm_', norm_mats(m).name]), 'f');
+      if mv_stat == 0
+        fprintf('%s (%s) \n', mv_msg, mv_msid)
+      end
+    end
     fprintf('%s %s: Finished normalize to MNI for subject %s\n',...
         label, datestr(now), subnames{subs_index(s)})
   end

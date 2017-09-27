@@ -164,7 +164,7 @@ echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} w
 # Run the matlab script and pipe only the lines with the matlab label to the log file
 matlab -nosplash -nodisplay -nodesktop -r "try; matlab_prep_DARTEL(${matlab_array},'${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" \
 | tee >(grep --line-buffered ${matlab_label} >> "${logfile}")
-TZ="${oldtz}"
+[[ -z ${oldtz} ]] && unset TZ || TZ="${oldtz}"
 echo "${label} DONE. $(date)" | tee -a "${logfile_wd}"
 
 # move current output file to output directory
