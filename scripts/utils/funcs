@@ -22,6 +22,7 @@
 # 13) read_json_value <key> <file>  : returns value of field <key> in json <file>
 # 14) element_in_array <element> <array> : returns true if element is in array, else false
 # 15) join_by <delimiter> <array[@]> : returns array concatenated with the delimiter
+# 16) get_matlab_var <variable> <file> : returns value of <variable> in matlab <file>
 ################################################################################----------
 
 # Get the name of the directory this script is in, to create full path to globals.par
@@ -653,3 +654,28 @@ function element_in_array {
 #  true or false
 ################################################################################
 function join_by { local IFS="$1"; shift; echo "$*"; }
+################################################################################
+# 16)
+# get_matlab_var
+# jmildner@princeton.edu, 20 Sep 2017
+# Get value of matlab variable from matlab style pfile
+################################################################################
+# Arguments:
+#  variable name  : name in matlab file you want to read
+#  file           : file in from which to read the variable
+################################################################################
+function get_matlab_var {
+  label_func='[MAT_VAR]'
+  if [[ $# != 2 ]]; then
+    echo "${label_func} provide both a variable and filename."
+    exit 1
+  fi
+  varname="${1}"
+  filename="${2}"
+  # get line starting with varname, some amount of whitespace, and = from filename
+  # (-n suppresses printing, /p prints after substitution), then trim ; to end ($)
+  value=$(sed -n "s/^${varname}[[:space:]]*=//p" "${filename}" | sed 's/;.*$//')
+  #strip any whitespace or ' left in there
+  value=$(echo "${value}" | tr -d "[[:space:]]'")
+  echo "${value}"
+}
