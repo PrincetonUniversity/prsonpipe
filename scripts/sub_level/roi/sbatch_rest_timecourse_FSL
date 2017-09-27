@@ -130,15 +130,18 @@ trap 'error' EXIT
 echo "${label} $(date)" | tee ${logfile}
 echo "${label} Extracting time courses from ${glm_dir#"${PROJECT_DIR}/"} \
 for all ROIs in ${roi_dir#"${PROJECT_DIR}/"}" | tee -a ${logfile}
+
 tmp_time_dir="${tmp_out_dir}/${roi_dirname}"
 mkdir ${tmp_time_dir}
+
 for mask in "${roi_dir}"/roi_*.nii*; do
   mask_name=$(basename $mask)
   echo "${label} processing ROI ${mask_name}"
   fslmeants -i "${output_dir}/res4d.nii.gz" \
             -o "${tmp_time_dir}/time_${mask_name%.nii.gz}.txt" \
             -m "${mask}"
-
+  # Add name of mask to top of timecourse file
+  sed -i "1s/^/${mask_name%.nii.gz}\n/" "${tmp_time_dir}/time_${mask_name%.nii.gz}.txt"
 done
 paste "${tmp_time_dir}"/time_* > "${tmp_time_dir}"/time_all.txt
 

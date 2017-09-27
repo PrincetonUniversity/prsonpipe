@@ -21,15 +21,22 @@ label='[RST_ROI]'
 
 function help_func () {
 cat << END
-  run_roiRest []
+  run_roiRest [-h] -p <pfile> <subs>
+
   Description:
   ------------
+   ROI resting state analysis using FSL. Can handle bandpass filter, creation of
+   nuisance regressors, first level glm with those regressors, and ROI time course
+   extraction. Use generate_roimasks to create ROIs, if you haven't already.
 
   Usage:
   ------
     [-h | --help | -help]
       Display this help
-
+    -p <pfile>
+      pfile to use
+    <subs>
+      subjects to run (or keyword 'all')
 END
 }
 
@@ -39,31 +46,19 @@ END
 if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
 
 # Source globals
-## Check if PROJECT_DIR is already known
-if [[ ! -z $PROJECT_DIR ]]; then
-	source ${PROJECT_DIR}/scripts/globals.par
-## check if globals is in the current directory
-elif [[ -f ./globals.par ]]; then
-	source globals.par
-## Check if we're not inside a slurm job
-elif [[ -z $SLURM_JOB_ID ]]; then
-	#Get the name of the directory this script is in, to create full path to globals.par
-	script_dir="$( cd $(dirname ${BASH_SOURCE[0]}) ; pwd -P )"
-	#Assuming the scripts dir is somewhere in the full path, this finds globals.par
-	source "${script_dir%scripts/*}/scripts/globals.par"
-##error out if we can't find globals with any of these strategies
-else
-	echo "$label ERROR: can't find globals.par. Please source globals.par before starting."
-	exit
-fi
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
 source "${SCRIPT_DIR_UTIL}/funcs"
 
 while getopts ":p:h" opt; do
-	case "${opt}" in
-		h)
-		  help_func
-			exit
-		;;
+  case "${opt}" in
+    h)
+      help_func
+      exit
+    ;;
     p)
       pfile=${OPTARG}
       if [[ -f ${SCRIPT_DIR_ROI}/${pfile} ]]; then
@@ -82,7 +77,7 @@ while getopts ":p:h" opt; do
     : ) #Catch options without arguments
       echo "$label ERROR: $OPTARG requires an argument. Use --help for help."
       exit 1
-    esac
+  esac
 done
 #remove used input args
 shift $((OPTIND -1))

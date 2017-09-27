@@ -12,12 +12,13 @@ trim=6      # number of TRs to trim from start of scan before glm
 intens=0    # perform intensity normalization?
 # nuisance regressors (1=on, 0=off)
 motion=1         # re-format motion parameters to use in glm?
+motion_type='SPM' # format of motion parameters (FSL or SPM)
 wm=1             # create white matter nuisance regressor?
-WM_vol=mwc2anat  # name of white matter volume
+WM_vol=wrc2anat  # name of white matter volume
 csf=1            # create ventricle CSF regressor?
-CSF_vol=mwc3anat # name of CSF volume
+CSF_vol=wrc3anat # name of CSF volume
 global=1         # create global mean regressor?
-GM_vol=mwc1anat  # name of grey matter volume (whole brain mask = WM+CSF+GM)
+GM_vol=wrc1anat  # name of grey matter volume (whole brain mask = WM+CSF+GM)
 
 ### sbatch_rest_glm_fsl parameters ###
 glm_name='glm_RST'   # name of analysis (output dir is analysis/$USER/glm/<name>)

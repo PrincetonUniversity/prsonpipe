@@ -142,7 +142,7 @@ echo "${label} Analyzing ${epi} in ${prep_dir}" | tee -a "${logfile}"
 echo "${label} Using template ${template} with output dir ${glm_dir}" \
   | tee -a "$logfile"
 
-TR=$( fslval "${prep_dir}/${epi}" "pixdim4" )
+TR=$( read_json_value "RepetitionTime" "$(dirname ${prep_dir})/${epi%.nii*}.json" )
 NVOLS=$( fslnvols "${prep_dir}/${epi}" )
 moco_dir="${prep_dir}/mc_${epi%.nii.gz}"
 

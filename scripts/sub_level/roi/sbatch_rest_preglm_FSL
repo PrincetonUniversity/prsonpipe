@@ -187,8 +187,13 @@ for epi in $prep_dir/epi_r*.nii.gz; do
   if [ "${motion}" == 1 ]; then
     echo "${label} creating motion regressors for ${epi}" | tee -a "${logfile}"
     mkdir -p "${moco_dir}"
-    cat "${prep_dir}/r${epi}.par" \
-    	| tr -s " " > "${moco_dir}/func_mcf.par"
+    if [[ ${motion_type} == 'fsl' ]] || [[ ${motion_type} == 'FSL' ]]; then
+      cat "${prep_dir}/r${epi}.par" \
+          | tr -s " " | sed 's/^[[:blank:]]*//g' > "${moco_dir}/func_mcf.par"
+    elif [[ ${motion_type} == 'spm' ]] || [[ ${motion_type} == 'SPM' ]];then
+      cat "${prep_dir}/rp_${epi%.nii*}.txt" \
+          | tr -s " " | sed 's/^[[:blank:]]*//g' > "${moco_dir}/func_mcf.par"
+    fi
     #create one file per column of motion pars
     cut -d ' ' -f 1  "${moco_dir}/func_mcf.par" > "${moco_dir}/motion1.par"
     cut -d ' ' -f 2  "${moco_dir}/func_mcf.par" > "${moco_dir}/motion2.par"
@@ -235,7 +240,7 @@ for epi in $prep_dir/epi_r*.nii.gz; do
     echo "${label} bandpass filtering $epi" | tee -a "${logfile}"
     hp=-1
     lp=-1
-    TR=$( fslval "${tmp_rst_dir}/${epi}" "pixdim4" )
+    TR=$( read_json_value "RepetitionTime" "${prep_dir}/${epi%.nii*}.json" )
     if [[ $hFilter != -1 ]]; then
       hp=$(echo "${hFilter}/(${TR}*2)" | bc -l )
       echo "${label} high pass filter is ${hFilter} seconds, sigma ${hp}" \
@@ -281,8 +286,8 @@ for epi in $prep_dir/epi_r*.nii.gz; do
   fi
   if [[ "${global}" == 1 ]]; then
     echo "${label} creating whole brain mask" | tee -a "${logfile}"
-    fslmaths "${prep_dir}/mwc1anat.nii.gz" -add "${prep_dir}/mwc2anat.nii.gz" \
-      -add "${prep_dir}/mwc3anat.nii.gz" -thr 0.2 -bin "${prep_dir}/mwc_all"
+    fslmaths "${prep_dir}/${GM_vol}" -add "${prep_dir}/${WM_vol}" \
+      -add "${prep_dir}/${CSF_vol}.nii.gz" -thr 0.2 -bin "${prep_dir}/mwc_all"
     echo "${label} extracting whole brain timecourse"
     fslmeants -i "${tmp_rst_dir}/${epi}" -o "${tmp_rst_dir}/global_meants.txt" \
     	-m "${prep_dir}/mwc_all"
