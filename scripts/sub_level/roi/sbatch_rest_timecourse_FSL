@@ -14,7 +14,7 @@
 #SBATCH -J 'time'                      # Job name
 #SBATCH --workdir=./                      # Set working directory
 #SBATCH -o '../../../output/time-%j.out'     # Output file
-#SBATCH --mem-per-cpu=2000
+#SBATCH --mem-per-cpu=8000
 #SBATCH --mail-type=FAIL
 #SBATCH -t 65                            # Run time
 #SBATCH -p all
