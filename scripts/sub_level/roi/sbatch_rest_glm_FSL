@@ -15,7 +15,7 @@
 #SBATCH -J 'rest_glm'                    # Job name
 #SBATCH --workdir=./                    # Set working directory
 #SBATCH -o '../output/gen_reg-%j.out'   # Output file
-#SBATCH --mem-per-cpu=24288
+#SBATCH --mem-per-cpu=10000
 #SBATCH --mail-type=FAIL
 #SBATCH -t 240                          # Run time : Default time is 24 hours
 #SBATCH -p all

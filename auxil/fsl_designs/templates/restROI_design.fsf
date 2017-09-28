@@ -1,0 +1,534 @@
+# Shortened design.fsf file to generate design matrix for
+#  glm with nuisance regressors in resting state data
+# JM, May 30 2017
+
+# Analysis level
+# 1 : First-level analysis
+# 2 : Higher-level analysis
+set fmri(level) 1
+## TR(s)
+set fmri(tr) <<TR>>
+
+# Total volumes
+set fmri(npts) <<NVOLS>>
+
+# Delete volumes --JM: keep at 0. Should be done when calculating regressors
+set fmri(ndelete) 0
+
+# Critical z for design efficiency calculation
+# --JM: I don't think we care about design efficiency in this case
+set fmri(critical_z) 5.3
+
+## Noise level --JM: only used in design efficiency, leave at default
+set fmri(noise) 0.66
+
+## Noise AR(1) --JM: we won't use this, leave at default 
+set fmri(noisear) 0.34
+## Highpass temporal filtering --JM: already done
+set fmri(temphp_yn) 0
+
+## Lowpass temporal filtering --JM: already done
+set fmri(templp_yn) 0
+
+## Number of EVs --JM: 6 motion pars, 1 white matter, 1 CSF
+set fmri(evs_orig) 8
+# --JM: everything times 2, to include time derivatives
+set fmri(evs_real) 16
+set fmri(evs_vox) 0
+
+## Number of contrasts
+set fmri(ncon_orig) 0
+set fmri(ncon_real) 0
+
+## Number of F-tests
+set fmri(nftests_orig) 0
+set fmri(nftests_real) 0
+
+# High pass filter cutoff --JM: can be used to filter regressors same as data
+set fmri(paradigm_hp) <<hFilter>>
+
+# EV 1 title
+set fmri(evtitle1) "moco1"
+
+# Basic waveform shape (EV 1)
+# 0 : Square
+# 1 : Sinusoid
+# 2 : Custom (1 entry per volume)
+# 3 : Custom (3 column format)
+# 4 : Interaction
+# 10 : Empty (all zeros)
+set fmri(shape1) 2
+
+# Convolution (EV 1)
+# 0 : None
+# 1 : Gaussian
+# 2 : Gamma
+# 3 : Double-Gamma HRF
+# 4 : Gamma basis functions
+# 5 : Sine basis functions
+# 6 : FIR basis functions
+set fmri(convolve1) 0
+
+# Convolve phase (EV 1)
+set fmri(convolve_phase1) 0
+
+# Apply temporal filtering (EV 1)
+set fmri(tempfilt_yn1) <<tempFilt>>
+
+# Add temporal derivative (EV 1)
+set fmri(deriv_yn1) <<tempDeriv>>
+
+# Custom EV file (EV 1)
+set fmri(custom1) <<MOTION1>>
+# Orthogonalise EV 1 wrt EV 0
+set fmri(ortho1.0) 0
+
+# Orthogonalise EV 1 wrt EV 1
+set fmri(ortho1.1) 0
+
+# Orthogonalise EV 1 wrt EV 2
+set fmri(ortho1.2) 0
+
+# Orthogonalise EV 1 wrt EV 3
+set fmri(ortho1.3) 0
+
+# Orthogonalise EV 1 wrt EV 4
+set fmri(ortho1.4) 0
+
+# Orthogonalise EV 1 wrt EV 5
+set fmri(ortho1.5) 0
+
+# Orthogonalise EV 1 wrt EV 6
+set fmri(ortho1.6) 0
+
+# Orthogonalise EV 1 wrt EV 7
+set fmri(ortho1.7) 0
+
+# Orthogonalise EV 1 wrt EV 8
+set fmri(ortho1.8) 0
+# EV 2 title
+set fmri(evtitle2) "moco2"
+
+# Basic waveform shape (EV 2)
+# 0 : Square
+# 1 : Sinusoid
+# 2 : Custom (1 entry per volume)
+# 3 : Custom (3 column format)
+# 4 : Interaction
+# 10 : Empty (all zeros)
+set fmri(shape2) 2
+
+# Convolution (EV 2)
+# 0 : None
+# 1 : Gaussian
+# 2 : Gamma
+# 3 : Double-Gamma HRF
+# 4 : Gamma basis functions
+# 5 : Sine basis functions
+# 6 : FIR basis functions
+set fmri(convolve2) 0
+
+# Convolve phase (EV 2)
+set fmri(convolve_phase2) 0
+
+# Apply temporal filtering (EV 2)
+set fmri(tempfilt_yn2) <<tempFilt>>
+
+# Add temporal derivative (EV 2)
+set fmri(deriv_yn2) <<tempDeriv>>
+
+# Custom EV file (EV 2)
+set fmri(custom2) <<MOTION2>>
+
+# Orthogonalise EV 2 wrt EV 0
+set fmri(ortho2.0) 0
+
+# Orthogonalise EV 2 wrt EV 1
+set fmri(ortho2.1) 0
+
+# Orthogonalise EV 2 wrt EV 2
+set fmri(ortho2.2) 0
+
+# Orthogonalise EV 2 wrt EV 3
+set fmri(ortho2.3) 0
+
+# Orthogonalise EV 2 wrt EV 4
+set fmri(ortho2.4) 0
+
+# Orthogonalise EV 2 wrt EV 5
+set fmri(ortho2.5) 0
+
+# Orthogonalise EV 2 wrt EV 6
+set fmri(ortho2.6) 0
+
+# Orthogonalise EV 2 wrt EV 7
+set fmri(ortho2.7) 0
+
+# Orthogonalise EV 2 wrt EV 8
+set fmri(ortho2.8) 0
+
+# EV 3 title
+set fmri(evtitle3) "moco3"
+
+# Basic waveform shape (EV 3)
+# 0 : Square
+# 1 : Sinusoid
+# 2 : Custom (1 entry per volume)
+# 3 : Custom (3 column format)
+# 4 : Interaction
+# 10 : Empty (all zeros)
+set fmri(shape3) 2
+
+# Convolution (EV 3)
+# 0 : None
+# 1 : Gaussian
+# 2 : Gamma
+# 3 : Double-Gamma HRF
+# 4 : Gamma basis functions
+# 5 : Sine basis functions
+# 6 : FIR basis functions
+set fmri(convolve3) 0
+
+# Convolve phase (EV 3)
+set fmri(convolve_phase3) 0
+
+# Apply temporal filtering (EV 3)
+set fmri(tempfilt_yn3) <<tempFilt>>
+
+# Add temporal derivative (EV 3)
+set fmri(deriv_yn3) <<tempDeriv>> 
+
+# Custom EV file (EV 3)
+set fmri(custom3) <<MOTION3>>
+
+# Orthogonalise EV 3 wrt EV 0
+set fmri(ortho3.0) 0
+
+# Orthogonalise EV 3 wrt EV 1
+set fmri(ortho3.1) 0
+
+# Orthogonalise EV 3 wrt EV 2
+set fmri(ortho3.2) 0
+
+# Orthogonalise EV 3 wrt EV 3
+set fmri(ortho3.3) 0
+
+# Orthogonalise EV 3 wrt EV 4
+set fmri(ortho3.4) 0
+
+# Orthogonalise EV 3 wrt EV 5
+set fmri(ortho3.5) 0
+
+# Orthogonalise EV 3 wrt EV 6
+set fmri(ortho3.6) 0
+
+# Orthogonalise EV 3 wrt EV 7
+set fmri(ortho3.7) 0
+
+# Orthogonalise EV 3 wrt EV 8
+set fmri(ortho3.8) 0
+
+# EV 4 title
+set fmri(evtitle4) "moco4"
+
+# Basic waveform shape (EV 4)
+# 0 : Square
+# 1 : Sinusoid
+# 2 : Custom (1 entry per volume)
+# 3 : Custom (3 column format)
+# 4 : Interaction
+# 10 : Empty (all zeros)
+set fmri(shape4) 2
+
+# Convolution (EV 4)
+# 0 : None
+# 1 : Gaussian
+# 2 : Gamma
+# 3 : Double-Gamma HRF
+# 4 : Gamma basis functions
+# 5 : Sine basis functions
+# 6 : FIR basis functions
+set fmri(convolve4) 0
+
+# Convolve phase (EV 4)
+set fmri(convolve_phase4) 0
+
+# Apply temporal filtering (EV 4)
+set fmri(tempfilt_yn4) <<tempFilt>>
+
+# Add temporal derivative (EV 4)
+set fmri(deriv_yn4) <<tempDeriv>>
+
+# Custom EV file (EV 4)
+set fmri(custom4) <<MOTION4>>
+
+# Orthogonalise EV 4 wrt EV 0
+set fmri(ortho4.0) 0
+
+# Orthogonalise EV 4 wrt EV 1
+set fmri(ortho4.1) 0
+
+# Orthogonalise EV 4 wrt EV 2
+set fmri(ortho4.2) 0
+
+# Orthogonalise EV 4 wrt EV 3
+set fmri(ortho4.3) 0
+
+# Orthogonalise EV 4 wrt EV 4
+set fmri(ortho4.4) 0
+
+# Orthogonalise EV 4 wrt EV 5
+set fmri(ortho4.5) 0
+
+# Orthogonalise EV 4 wrt EV 6
+set fmri(ortho4.6) 0
+
+# Orthogonalise EV 4 wrt EV 7
+set fmri(ortho4.7) 0
+
+# Orthogonalise EV 4 wrt EV 8
+set fmri(ortho4.8) 0
+
+# EV 5 title
+set fmri(evtitle5) "moco5"
+
+# Basic waveform shape (EV 5)
+# 0 : Square
+# 1 : Sinusoid
+# 2 : Custom (1 entry per volume)
+# 3 : Custom (3 column format)
+# 4 : Interaction
+# 10 : Empty (all zeros)
+set fmri(shape5) 2
+
+# Convolution (EV 5)
+# 0 : None
+# 1 : Gaussian
+# 2 : Gamma
+# 3 : Double-Gamma HRF
+# 4 : Gamma basis functions
+# 5 : Sine basis functions
+# 6 : FIR basis functions
+set fmri(convolve5) 0
+
+# Convolve phase (EV 5)
+set fmri(convolve_phase5) 0
+
+# Apply temporal filtering (EV 5)
+set fmri(tempfilt_yn5) <<tempFilt>>
+
+# Add temporal derivative (EV 5)
+set fmri(deriv_yn5) <<tempDeriv>>
+
+# Custom EV file (EV 5)
+set fmri(custom5) <<MOTION5>>
+
+# Orthogonalise EV 5 wrt EV 0
+set fmri(ortho5.0) 0
+
+# Orthogonalise EV 5 wrt EV 1
+set fmri(ortho5.1) 0
+
+# Orthogonalise EV 5 wrt EV 2
+set fmri(ortho5.2) 0
+
+# Orthogonalise EV 5 wrt EV 3
+set fmri(ortho5.3) 0
+
+# Orthogonalise EV 5 wrt EV 4
+set fmri(ortho5.4) 0
+
+# Orthogonalise EV 5 wrt EV 5
+set fmri(ortho5.5) 0
+
+# Orthogonalise EV 5 wrt EV 6
+set fmri(ortho5.6) 0
+
+# Orthogonalise EV 5 wrt EV 7
+set fmri(ortho5.7) 0
+
+# Orthogonalise EV 5 wrt EV 8
+set fmri(ortho5.8) 0
+
+# EV 6 title
+set fmri(evtitle6) "moco6"
+
+# Basic waveform shape (EV 6)
+# 0 : Square
+# 1 : Sinusoid
+# 2 : Custom (1 entry per volume)
+# 3 : Custom (3 column format)
+# 4 : Interaction
+# 10 : Empty (all zeros)
+set fmri(shape6) 2
+
+# Convolution (EV 6)
+# 0 : None
+# 1 : Gaussian
+# 2 : Gamma
+# 3 : Double-Gamma HRF
+# 4 : Gamma basis functions
+# 5 : Sine basis functions
+# 6 : FIR basis functions
+set fmri(convolve6) 0
+
+# Convolve phase (EV 6)
+set fmri(convolve_phase6) 0
+
+# Apply temporal filtering (EV 6)
+set fmri(tempfilt_yn6) <<tempFilt>>
+
+# Add temporal derivative (EV 6)
+set fmri(deriv_yn6) <<tempDeriv>>
+
+# Custom EV file (EV 6)
+set fmri(custom6) <<MOTION6>>
+
+# Orthogonalise EV 6 wrt EV 0
+set fmri(ortho6.0) 0
+
+# Orthogonalise EV 6 wrt EV 1
+set fmri(ortho6.1) 0
+
+# Orthogonalise EV 6 wrt EV 2
+set fmri(ortho6.2) 0
+
+# Orthogonalise EV 6 wrt EV 3
+set fmri(ortho6.3) 0
+
+# Orthogonalise EV 6 wrt EV 4
+set fmri(ortho6.4) 0
+
+# Orthogonalise EV 6 wrt EV 5
+set fmri(ortho6.5) 0
+
+# Orthogonalise EV 6 wrt EV 6
+set fmri(ortho6.6) 0
+
+# Orthogonalise EV 6 wrt EV 7
+set fmri(ortho6.7) 0
+
+# Orthogonalise EV 5 wrt EV 8
+set fmri(ortho6.8) 0
+
+# EV 7 title
+set fmri(evtitle7) "WM"
+
+# Basic waveform shape (EV 7)
+# 0 : Square
+# 1 : Sinusoid
+# 2 : Custom (1 entry per volume)
+# 3 : Custom (3 column format)
+# 4 : Interaction
+# 10 : Empty (all zeros)
+set fmri(shape7) 2
+
+# Convolution (EV 7)
+# 0 : None
+# 1 : Gaussian
+# 2 : Gamma
+# 3 : Double-Gamma HRF
+# 4 : Gamma basis functions
+# 5 : Sine basis functions
+# 6 : FIR basis functions
+set fmri(convolve7) 0
+
+# Convolve phase (EV 7)
+set fmri(convolve_phase7) 0
+
+# Apply temporal filtering (EV 7)
+set fmri(tempfilt_yn7) 0
+
+# Add temporal derivative (EV 7)
+set fmri(deriv_yn7) <<tempDeriv>>
+
+# Custom EV file (EV 7)
+set fmri(custom7) <<WM>>
+
+# Orthogonalise EV 7 wrt EV 0
+set fmri(ortho7.0) 0
+
+# Orthogonalise EV 7 wrt EV 1
+set fmri(ortho7.1) 0
+
+# Orthogonalise EV 7 wrt EV 2
+set fmri(ortho7.2) 0
+
+# Orthogonalise EV 7 wrt EV 3
+set fmri(ortho7.3) 0
+
+# Orthogonalise EV 7 wrt EV 4
+set fmri(ortho7.4) 0
+
+# Orthogonalise EV 7 wrt EV 5
+set fmri(ortho7.5) 0
+
+# Orthogonalise EV 7 wrt EV 6
+set fmri(ortho7.6) 0
+
+# Orthogonalise EV 7 wrt EV 7
+set fmri(ortho7.7) 0
+
+# Orthogonalise EV 7 wrt EV 8
+set fmri(ortho7.8) 0
+
+# EV 8 title
+set fmri(evtitle8) "CSF"
+
+# Basic waveform shape (EV 8)
+# 0 : Square
+# 1 : Sinusoid
+# 2 : Custom (1 entry per volume)
+# 3 : Custom (3 column format)
+# 4 : Interaction
+# 10 : Empty (all zeros)
+set fmri(shape8) 2
+
+# Convolution (EV 8)
+# 0 : None
+# 1 : Gaussian
+# 2 : Gamma
+# 3 : Double-Gamma HRF
+# 4 : Gamma basis functions
+# 5 : Sine basis functions
+# 6 : FIR basis functions
+set fmri(convolve8) 0
+
+# Convolve phase (EV 8)
+set fmri(convolve_phase8) 0
+
+# Apply temporal filtering (EV 8)
+set fmri(tempfilt_yn8) 0
+
+# Add temporal derivative (EV 8)
+set fmri(deriv_yn8) <<tempDeriv>>
+
+# Custom EV file (EV 8)
+set fmri(custom8) <<CSF>>
+
+# Orthogonalise EV 8 wrt EV 0
+set fmri(ortho8.0) 0
+
+# Orthogonalise EV 8 wrt EV 1
+set fmri(ortho8.1) 0
+
+# Orthogonalise EV 8 wrt EV 2
+set fmri(ortho8.2) 0
+
+# Orthogonalise EV 8 wrt EV 3
+set fmri(ortho8.3) 0
+
+# Orthogonalise EV 8 wrt EV 4
+set fmri(ortho8.4) 0
+
+# Orthogonalise EV 8 wrt EV 5
+set fmri(ortho8.5) 0
+
+# Orthogonalise EV 8 wrt EV 6
+set fmri(ortho8.6) 0
+
+# Orthogonalise EV 8 wrt EV 7
+set fmri(ortho8.7) 0
+
+# Orthogonalise EV 8 wrt EV 8
+set fmri(ortho8.8) 0

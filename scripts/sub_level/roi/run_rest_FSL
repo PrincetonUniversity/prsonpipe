@@ -102,18 +102,18 @@ for subject in ${SUBS[@]};do
   #TODO: check for excluded subjects
   echo "${label} Processing ${subdir}"
   echo "${label} Creating nuisance regressors"
-  nr_job=$(sbatch ${sflags} ${SCRIPT_DIR_ROI}/sbatch_rest_preglm_fsl \
+  nr_job=$(sbatch ${sflags} ${SCRIPT_DIR_ROI}/sbatch_rest_preglm_FSL\
     -p ${pfile}  ${subject} | grep -o '[0-9]*')
   echo "${label} nuissance regressor job ${nr_job}"
 
   d="--dependency=afterok:${nr_job}"
-  glm_job=$(sbatch ${sflags} ${d} ${SCRIPT_DIR_ROI}/sbatch_rest_glm_fsl \
+  glm_job=$(sbatch ${sflags} ${d} ${SCRIPT_DIR_ROI}/sbatch_rest_glm_FSL \
     -p ${pfile} ${subject} | grep -o '[0-9]*')
   echo "${label} glm job ${glm_job}"
 
   d="--dependency=afterok:${glm_job}"
   echo "${label} timecourse extraction"
   subject=$(basename "${subdir}")
-  sbatch ${sflags} ${d} ${SCRIPT_DIR_ROI}/sbatch_rest_timecourse_fsl \
+  sbatch ${sflags} ${d} ${SCRIPT_DIR_ROI}/sbatch_rest_timecourse_FSL \
     -p ${pfile} ${subject}
 done
