@@ -200,9 +200,14 @@ function write_pfile {
         "${wd_dir_sub}/epi_r01.json")
        # spm definition of readout time
        epi_readout_time=$( echo "(1/${bppe})*1000" | bc -l)
+    echo 'bppe done'
     fi
-    # make this a matlab cell array
-    no_fieldmap_subs=$(make_smatlab_array "${no_fieldmap_subs[@]}")
+    if [[ $(element_in_array 'all' ${no_fieldmap_subs[@]}) == true ]]; then
+      no_fieldmap_subs="{'all'}"
+    else 
+      # make this a matlab cell array
+      no_fieldmap_subs=$(make_smatlab_array "${no_fieldmap_subs[@]}")
+    fi
     # directory in matlab format
     [[ -z "${fieldmap_dir}" ]] && fieldmap_dir="fullfile(PREP_DIR, p.task, 'topup')"
   else
@@ -318,11 +323,6 @@ for task in "${tasks[@]}"; do
         echo "${label} ERROR: ${step_name}=${program} but NORM=${NORM}. \
 	In ${DARTEL}, NORM must always be used.";
         exit
-      fi
-      if [[ "${UNWARP}" == "${DARTEL}" ]] && [[ "${FIELDMAP}" == 'none' ]];
-      then echo "${label} ERROR: UNWARP=${DARTEL} but FIELDMAP is off. \
-	In ${DARTEL}, if UNWARP is used, then topup must be used for a fieldmap."
-      exit
       fi
       if [[ "${UNWARP}" == "${DARTEL}" ]] && [[ "${REALIGN}" != "${DARTEL}" ]]; then
         echo "${label} ERROR: UNWARP=${UNWARP} but REALIGN=${REALIGN}. \

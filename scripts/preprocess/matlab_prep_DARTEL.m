@@ -187,8 +187,14 @@ for sub_i = 1:length(subs_index)
   magnitude='';
   vdm='';
   if undistort == 1
+    % check if we should use fieldmaps
+    if ismember('all', nofieldmap_subs)
+      fieldmap = 0;
+    else
+      fieldmap = 1;
+    end 
     % if this subject does not appear in the list of no fieldmap subjects
-    if ~any(strcmp(current_subname, nofieldmap_subs))
+    if ~any(strcmp(current_subname, nofieldmap_subs)) && fieldmap == 1
       fieldmap = fullfile(fieldmap_dir, current_subname, fieldmap_name);
       magnitude = fullfile(fieldmap_dir, current_subname, magnitude_name);
       %make sure we have a fieldmap, try unzipping if not
@@ -212,6 +218,9 @@ for sub_i = 1:length(subs_index)
         label, magnitude_name, fullfile(fieldmap_dir, current_subname))
       fprintf('%s fieldmap is: %s\n \t with magnitude image %s\n',...
           label, fieldmap, magnitude)
+    else
+    % If we are not using fieldmaps, or this subject doesn't have one, set it to empty
+      fieldmap='';
     end
   end
 
@@ -285,78 +294,91 @@ for sub_i = 1:length(subs_index)
     matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
     % no prefix to add
     prefix{sub_i} = '';
-  elseif realign == 1 && undistort == 1 && ~any(strcmp(current_subname, nofieldmap_subs))
-    fprintf('%s %s: Setting up fieldmap to VDM conversion...\n', label, datestr(now))
-    % convert fieldmap to voxel displacement image (vdm)
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.data.precalcfieldmap.precalcfieldmap = allfieldmap(sub_i); %precalulated fieldmap (Hz)
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.data.precalcfieldmap.magfieldmap = allmagnitude(sub_i); %fieldmap magnitude image
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.et = [66 66]; %echo times ([short long])
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.maskbrain = 0; %mask brain?
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.blipdir = blipdir; % direction of blips along y (1 = PA, -1 = AP)
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.tert = epi_readout_time; % total epi readout time
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.epifm = 0; %epi-based fieldmap?
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.ajm = 0; % jacobian modulation?
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.uflags.method = 'Mark3D'; %unwrapping method (Mark2D, Mark3D, or Huttonish)
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.uflags.fwhm = 10; % FWHM for weighted smoothing of unwrapped maps
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.uflags.pad = 0; % size of padding kernel
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.uflags.ws = 1; % weighted smoothing?
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.template = {[p.spm12_dir,'/toolbox/FieldMap/T1.nii']}; %template for brain mask
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.fwhm = 5; % FWHM for mask smoothing
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.nerode = 2; %number of erosions for brain mask
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.ndilate = 4; % number of dilations for brian mask
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.thresh = 0.5; % threshold to create brain mask
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.reg = 0.02; % regularization
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.session.epi = allepis{sub_i}(end); % epi to unwarp
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.matchvdm = 1; % align vdm to epi?
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.sessname = 'r'; % suffix for vdm (will be followed by run number)
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.writeunwarped = 0; % write unwarped epi?
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.anat = allanat(sub_i); %anatomical image to display for comparison
-    matlabbatch{1}.spm.tools.fieldmap.calculatevdm.subj.matchanat = 0; %match anatomical to epi?
+  elseif realign == 1 && undistort == 1
+    batch_n=1;
+    % if there is a fieldmap, create the vdm
+    if ~isempty(allfieldmap{sub_i})
+      fprintf('%s %s: Setting up fieldmap to VDM conversion...\n', label, datestr(now))
+      % convert fieldmap to voxel displacement image (vdm)
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.data.precalcfieldmap.precalcfieldmap = allfieldmap(sub_i); %precalulated fieldmap (Hz)
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.data.precalcfieldmap.magfieldmap = allmagnitude(sub_i); %fieldmap magnitude image
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.et = [66 66]; %echo times ([short long])
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.maskbrain = 0; %mask brain?
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.blipdir = blipdir; % direction of blips along y (1 = PA, -1 = AP)
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.tert = epi_readout_time; % total epi readout time
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.epifm = 0; %epi-based fieldmap?
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.ajm = 0; % jacobian modulation?
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.uflags.method = 'Mark3D'; %unwrapping method (Mark2D, Mark3D, or Huttonish)
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.uflags.fwhm = 10; % FWHM for weighted smoothing of unwrapped maps
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.uflags.pad = 0; % size of padding kernel
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.uflags.ws = 1; % weighted smoothing?
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.template = {[p.spm12_dir,'/toolbox/FieldMap/T1.nii']}; %template for brain mask
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.fwhm = 5; % FWHM for mask smoothing
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.nerode = 2; %number of erosions for brain mask
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.ndilate = 4; % number of dilations for brian mask
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.thresh = 0.5; % threshold to create brain mask
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.defaults.defaultsval.mflags.reg = 0.02; % regularization
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.session.epi = allepis{sub_i}(end); % epi to unwarp
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.matchvdm = 1; % align vdm to epi?
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.sessname = 'r'; % suffix for vdm (will be followed by run number)
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.writeunwarped = 0; % write unwarped epi?
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.anat = allanat(sub_i); %anatomical image to display for comparison
+      matlabbatch{batch_n}.spm.tools.fieldmap.calculatevdm.subj.matchanat = 0; %match anatomical to epi?
+      batch_n = batch_n+1;
+    end
     % realign & unwarp
     fprintf('%s %s: Setting up motion correction with fieldmap undistortion (%s)...\n',...
         label, datestr(now), current_subname)
-    for i = 1:length(allepis{sub_i})
-      matlabbatch{2}.spm.spatial.realignunwarp.data(i).scans = allepis{sub_i}(i);% images to align & unwarp
-      matlabbatch{2}.spm.spatial.realignunwarp.data(i).pmscan = allvdm(sub_i);% phase map
-    end
-    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.quality = 0.9;     % quality
-    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.sep = 4;           % separation
-    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.fwhm = 5;          % smoothing (FWHM)
-    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.rtm = 0;           % register to mean? (or first image)
-    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.einterp = 4;       % interpolation (nth degree B-spline)
-    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.ewrap = [0 0 0];   % wrapping ([x y z])
-    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.weight = '';       % weighting image
-    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.basfcn = [12 12];% basis functions
-    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.regorder = 1;    % regularisation
-    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.lambda = 100000; % regularisation factor
-    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.jm = 0;          % jacobian deformations
-    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.fot = [4 5];     % first-order effects ([4 5] is pitch and roll)
-    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.sot = [];        % second order effects
-    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.uwfwhm = 4;      % smoothing for unwarp
-    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.rem = 1;         % re-estimate motion parameters at each unwarping iteration?
-    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.noi = 5;         % number of iterations
-    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.expround = 'Average'; % Taylor expansion point
-    matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.uwwhich = [2 1]; % resliced images + mean?
-    matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.rinterp = 4;     % unwarp reslicing interpolation
-    matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.wrap = [0 0 0];  % wrapping
-    matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.mask = 1;        % mask images?
-    matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.prefix = 'ur';   % prefix
-    % save the prefix to add to the epi names before the next step
-    prefix{sub_i} = matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.prefix;
+    if isempty(allfieldmap{sub_i})
+      for i = 1:length(allepis{sub_i})
+        matlabbatch{batch_n}.spm.spatial.realignunwarp.data(i).scans = allepis{sub_i}(i);% images to align & unwarp
+        matlabbatch{batch_n}.spm.spatial.realignunwarp.data(i).pmscan = '';% phase map
+      end
 
+    else
+      for i = 1:length(allepis{sub_i})
+        matlabbatch{batch_n}.spm.spatial.realignunwarp.data(i).scans = allepis{sub_i}(i);% images to align & unwarp
+        matlabbatch{batch_n}.spm.spatial.realignunwarp.data(i).pmscan = allvdm(sub_i);% phase map
+      end
+    end
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.eoptions.quality = 0.9;     % quality
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.eoptions.sep = 4;           % separation
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.eoptions.fwhm = 5;          % smoothing (FWHM)
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.eoptions.rtm = 0;           % register to mean? (or first image)
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.eoptions.einterp = 4;       % interpolation (nth degree B-spline)
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.eoptions.ewrap = [0 0 0];   % wrapping ([x y z])
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.eoptions.weight = '';       % weighting image
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uweoptions.basfcn = [12 12];% basis functions
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uweoptions.regorder = 1;    % regularisation
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uweoptions.lambda = 100000; % regularisation factor
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uweoptions.jm = 0;          % jacobian deformations
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uweoptions.fot = [4 5];     % first-order effects ([4 5] is pitch and roll)
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uweoptions.sot = [];        % second order effects
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uweoptions.uwfwhm = 4;      % smoothing for unwarp
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uweoptions.rem = 1;         % re-estimate motion parameters at each unwarping iteration?
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uweoptions.noi = 5;         % number of iterations
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uweoptions.expround = 'Average'; % Taylor expansion point
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uwroptions.uwwhich = [2 1]; % resliced images + mean?
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uwroptions.rinterp = 4;     % unwarp reslicing interpolation
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uwroptions.wrap = [0 0 0];  % wrapping
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uwroptions.mask = 1;        % mask images?
+    matlabbatch{batch_n}.spm.spatial.realignunwarp.uwroptions.prefix = 'ur';   % prefix
+    % save the prefix to add to the epi names before the next step
+    prefix{sub_i} = matlabbatch{batch_n}.spm.spatial.realignunwarp.uwroptions.prefix;
+    batch_n = batch_n + 1;
     %Co-register mprage to MEAN FUNCTIONAL
     %-------------------------------------------------
     % Mean functional after realign & unwarp contains the prefix, so we
     % need to add that into the mean_func filenames first
     [epi_path, epi_name, epi_ext] = fileparts(allepis{sub_i}{1});
     mean_funcs{sub_i} = fullfile(epi_path, ['mean', prefix{sub_i}, epi_name, epi_ext]);
-    matlabbatch{3}.spm.spatial.coreg.estimate.ref = mean_funcs(sub_i);
-    matlabbatch{3}.spm.spatial.coreg.estimate.source = allanat(sub_i);
-    matlabbatch{3}.spm.spatial.coreg.estimate.other{1} = '';
-    matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
-    matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
-    matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
-    matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
+    matlabbatch{batch_n}.spm.spatial.coreg.estimate.ref = mean_funcs(sub_i);
+    matlabbatch{batch_n}.spm.spatial.coreg.estimate.source = allanat(sub_i);
+    matlabbatch{batch_n}.spm.spatial.coreg.estimate.other{1} = '';
+    matlabbatch{batch_n}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
+    matlabbatch{batch_n}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
+    matlabbatch{batch_n}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
+    matlabbatch{batch_n}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
   else
     % run motion correction without unwarp
     fprintf('%s %s: Setting up motion correction without fieldmap undistortion (%s)...\n',...

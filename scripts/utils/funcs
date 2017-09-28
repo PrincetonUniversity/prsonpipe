@@ -50,8 +50,8 @@ source "${script_dir%scripts*}/scripts/globals.par"
 ###########################################
 
 function whatisit {
-	label_fun='[WHAT]'
-	var=$1
+  label_fun='[WHAT]'
+  var=$1
 
   isNUM=NUM   # whatisit x -> x is a number (#)
   isSUB=SUB   # whatisit x -> x is a subject ID (s###)
@@ -59,33 +59,33 @@ function whatisit {
   isTSK=TSK   # whatisit x -> x is a task according to TASKS[@] (TSK)
   isIDK=IDK   # whatisit x -> does not know what x is
 
-	if [[ -z $var ]]; then echo ${return_opts[0]}; return 0; fi
+  if [[ -z $var ]]; then echo ${return_opts[0]}; return 0; fi
 
-	# test if var is a task
-	for t in "${TASKS[@]}"; do
-		if [[ $var == $t ]]; then echo $isTSK; return 0; fi # TASK
-	done
+  # test if var is a task
+  for t in "${TASKS[@]}"; do
+    if [[ $var == $t ]]; then echo $isTSK; return 0; fi # TASK
+  done
 
-	# test if var is a directory
-	if [[ -d "${var}" ]] || [[ -d "${PROJECT_DIR}/${var}" ]]; then
-		echo $isDIR # DIRECTORY
-		return 0
-	fi
+  # test if var is a directory
+  if [[ -d "${var}" ]] || [[ -d "${PROJECT_DIR}/${var}" ]]; then
+    echo $isDIR # DIRECTORY
+    return 0
+  fi
 
-	# test if var is a sub ID
-	re_sub='^s[0-9]{3}$'
-	re_num='^[0-9]+$'
-	if [[ "$var" =~ ${re_sub} ]]; then
-		echo $isSUB # SUBJECT ID
-		return 0
-	# test if var is a number
-	elif [[ $var =~ $re_num ]]; then
-		echo $isNUM # NUMBER
-		return 0
-	fi
+  # test if var is a sub ID
+  re_sub='^s[0-9]{3}$'
+  re_num='^[0-9]+$'
+  if [[ "$var" =~ ${re_sub} ]]; then
+    echo $isSUB # SUBJECT ID
+    return 0
+    # test if var is a number
+  elif [[ $var =~ $re_num ]]; then
+    echo $isNUM # NUMBER
+    return 0
+  fi
 
-	echo $isIDK
-	return 0
+  echo $isIDK
+  return 0
 }
 function isTSK { if [[ $(whatisit $1) == $isTSK ]]; then echo true; else echo false; fi }
 function isDIR { if [[ $(whatisit $1) == $isDIR ]]; then echo true; else echo false; fi }
@@ -104,37 +104,37 @@ function isIDK { if [[ $(whatisit $1) == $isIDK ]]; then echo true; else echo fa
 ###########################################
 
 function num2subID {
-	label_func='[NUMSUB]'
-	unset SUBIDS
-	#re_num='^[0-9]+$'
+  label_func='[NUMSUB]'
+  unset SUBIDS
+  #re_num='^[0-9]+$'
 
-	snums=( "$@" )
-	i=0
-	for snum in "${snums[@]}"; do
-		# check current format
-		form=$(whatisit "$snum")
-		if [[ $form == ${isSUB} ]]; then
-			#correct format (s000)
-			SUBIDS[$i]="${snums[$i]}"
-		elif [[ $form == ${isNUM} ]]; then
-			# is number
-			# convert to form s000
-			if [[ "${#snum}" -eq 3 ]]; then
-				# 3-digit number
-				SUBIDS[$i]=s"${snums[$i]}"
-			elif [[ "${#snum}" -eq 2 ]]; then
-				# 2-digit number
-				SUBIDS[$i]=s0"${snums[$i]}"
-			elif [[ "${#snum}" -eq 1 ]]; then
-				# 1-digit number
-				SUBIDS[$i]=s00"${snums[$i]}"
-			fi
-		else
-			echo "${label_func} Unrecognized subject ID format: '${snum}'"
-			exit 1
-		fi
-		i=$(($i + 1))
-	done
+  snums=( "$@" )
+  i=0
+  for snum in "${snums[@]}"; do
+    # check current format
+    form=$(whatisit "$snum")
+    if [[ $form == ${isSUB} ]]; then
+      #correct format (s000)
+      SUBIDS[$i]="${snums[$i]}"
+    elif [[ $form == ${isNUM} ]]; then
+      # is number
+      # convert to form s000
+      if [[ "${#snum}" -eq 3 ]]; then
+        # 3-digit number
+        SUBIDS[$i]=s"${snums[$i]}"
+      elif [[ "${#snum}" -eq 2 ]]; then
+        # 2-digit number
+        SUBIDS[$i]=s0"${snums[$i]}"
+      elif [[ "${#snum}" -eq 1 ]]; then
+        # 1-digit number
+        SUBIDS[$i]=s00"${snums[$i]}"
+      fi
+    else
+      echo "${label_func} Unrecognized subject ID format: '${snum}'"
+      exit 1
+    fi
+    i=$(($i + 1))
+  done
 }
 
 ################################################################################----------
@@ -154,83 +154,83 @@ function num2subID {
 ###########################################
 
 function get_subs {
-	label_func='[GETSUB]'
-	set -e # stop immediately when an error occurs
-	unset SUBS
+  label_func='[GETSUB]'
+  set -e # stop immediately when an error occurs
+  unset SUBS
 
-	# DETERMINE TASK
-	# task was inputted
-	$(isTSK $1) && tsk=$1 && shift
-	# if only one task in study
-	[[ ${NUM_TASKS} -eq 1 ]] && tsk=$TASKS
-	if [[ $PREP_SEP -eq 0 ]]; then parsfile=${PARS_DIR}/prep.par; else parsfile=${PARS_DIR}/prep_${t}.par; fi
+  # DETERMINE TASK
+  # task was inputted
+  $(isTSK $1) && tsk=$1 && shift
+  # if only one task in study
+  [[ ${NUM_TASKS} -eq 1 ]] && tsk=$TASKS
+  if [[ $PREP_SEP -eq 0 ]]; then parsfile=${PARS_DIR}/prep.par; else parsfile=${PARS_DIR}/prep_${t}.par; fi
 
-	# INPUT DIRECTORY
-	if $(isDIR $1); then
-		if [[ ${1:0:1} == '/' ]]; then inputdir=$1;
-		else inputdir=${PROJECT_DIR}/$1; fi
-		shift
-	else
-		# default is raw directory
-		inputdir=${PROJECT_DIR}/raw/$tsk
-	fi
+  # INPUT DIRECTORY
+  if $(isDIR $1); then
+    if [[ ${1:0:1} == '/' ]]; then inputdir=$1;
+  else inputdir=${PROJECT_DIR}/$1; fi
+    shift
+  else
+    # default is raw directory
+    inputdir=${PROJECT_DIR}/raw/$tsk
+  fi
 
-	# OUTPUT DIRECTORY
-	if $(isDIR $1); then
-		if [[ ${1:0:1} == '/' ]]; then outputdir=$1;
-		else outputdir=${PROJECT_DIR}/$1; fi
-		shift
-	else
-		# default is prep directory
-		outputdir=${PROJECT_DIR}/prep/$tsk/${wd_dir}
-	fi
+  # OUTPUT DIRECTORY
+  if $(isDIR $1); then
+    if [[ ${1:0:1} == '/' ]]; then outputdir=$1;
+  else outputdir=${PROJECT_DIR}/$1; fi
+    shift
+  else
+    # default is prep directory
+    outputdir=${PROJECT_DIR}/prep/$tsk/${wd_dir}
+  fi
 
-	input_subs=( "$@" )
+  input_subs=( "$@" )
 
-	# find all possible subjects
-	i=0; for s in $(ls -d ${inputdir}/s*/ | xargs -n 1 basename); do
-		subs_all[$i]=$s
-		i=$(($i + 1))
-	done
+  # find all possible subjects
+  i=0; for s in $(ls -d ${inputdir}/s*/ | xargs -n 1 basename); do
+    subs_all[$i]=$s
+    i=$(($i + 1))
+  done
 
-	# NEW SUBJECTS
-	if [[ -z ${input_subs} ]] || [[ ${input_subs} == 'new' ]]; then # zero input arguments
-		# delete old subjects
-		i=0; for s in "${subs_all[@]}"; do
-			$(isDIR ${outputdir}/${s}) && unset subs_all[$i]
-			i=$(($i + 1))
-		done
-		# Make list of all new subjects, ignoring the empty elements
-		i=0; for s in "${subs_all[@]}"; do
-			[[ ! -z $s ]] && SUBS[$i]=$s && i=$(($i + 1))
-		done
-		# SUBS now contains an array of new subjects that have not been preprocessed
-		echo "${label_func} No subjects given. Selecting all NEW subjects for task ${tsk}"
+  # NEW SUBJECTS
+  if [[ -z ${input_subs} ]] || [[ ${input_subs} == 'new' ]]; then # zero input arguments
+    # delete old subjects
+    i=0; for s in "${subs_all[@]}"; do
+      $(isDIR ${outputdir}/${s}) && unset subs_all[$i]
+      i=$(($i + 1))
+    done
+    # Make list of all new subjects, ignoring the empty elements
+    i=0; for s in "${subs_all[@]}"; do
+      [[ ! -z $s ]] && SUBS[$i]=$s && i=$(($i + 1))
+    done
+    # SUBS now contains an array of new subjects that have not been preprocessed
+    echo "${label_func} No subjects given. Selecting all NEW subjects for task ${tsk}"
 
-	# ALL SUBJECTS: run all subjects in task
-	elif [[ ${input_subs} == 'all' ]]; then
-		SUBS=( "${subs_all[@]}" )
-		echo "${label_func} Selecting ALL subjects for task ${tsk}"
+    # ALL SUBJECTS: run all subjects in task
+  elif [[ ${input_subs} == 'all' ]]; then
+    SUBS=( "${subs_all[@]}" )
+    echo "${label_func} Selecting ALL subjects for task ${tsk}"
 
-	# RUN SELECT SUBJECTS: run only the subjects inputted
-	else
-		# convert subject numbers to form (s000)
-		num2subID ${input_subs[@]}
-		SUBS=( "${SUBIDS[@]}" )
-		echo "${label_func} Selecting valid INPUTTED subjects for task $tsk"
-		for s in "${SUBS[@]}"; do
-			if [[ ! "${subs_all[@]}" =~ "$s" ]]; then
-				SUBS=(${SUBS[@]//*$s*});
-				echo "$label_func $s is not a valid subject. Excluding..."
-			fi
-		done
-	fi
+    # RUN SELECT SUBJECTS: run only the subjects inputted
+  else
+    # convert subject numbers to form (s000)
+    num2subID ${input_subs[@]}
+    SUBS=( "${SUBIDS[@]}" )
+    echo "${label_func} Selecting valid INPUTTED subjects for task $tsk"
+    for s in "${SUBS[@]}"; do
+      if [[ ! "${subs_all[@]}" =~ "$s" ]]; then
+        SUBS=(${SUBS[@]//*$s*});
+        echo "$label_func $s is not a valid subject. Excluding..."
+      fi
+    done
+  fi
 
-	# Remove subjects in $EXCLUDE_SUBS from subject array
-	for s in "${EXCLUDE_SUBS[@]}"; do SUBS=(${SUBS[@]//*$s*});
-		[[ ${SUBS[@]} =~ $s ]] && echo "$label_func Removing excluded subject $s"
-	done
-	echo "${label_func} SUBS=( ${SUBS[@]} )"
+  # Remove subjects in $EXCLUDE_SUBS from subject array
+  for s in "${EXCLUDE_SUBS[@]}"; do SUBS=(${SUBS[@]//*$s*});
+    [[ ${SUBS[@]} =~ $s ]] && echo "$label_func Removing excluded subject $s"
+  done
+  echo "${label_func} SUBS=( ${SUBS[@]} )"
 }
 
 ################################################################################
@@ -296,7 +296,7 @@ function wait_for_it {
     sleep ${load_interval}
   done
 
-echo "${label_func} ${step_label_func} finished (based on logfile $logfile). Moving on..."
+  echo "${label_func} ${step_label_func} finished (based on logfile $logfile). Moving on..."
 }
 
 ################################################################################
@@ -312,60 +312,63 @@ echo "${label_func} ${step_label_func} finished (based on logfile $logfile). Mov
 ###########################################
 
 function update_nii {
-	label_f='[UPDATE_NII]'
-	unset prefix;
-	if [[ ! $# -ge 3 ]]; then
-		echo "${label_func} Please specify a prep working directory (that contains subdirs), the steps to update to, and an array of subs to update. Aborting..."; exit;
-	fi
-	wd=$1; shift # directory of sdirs
-	steps=$1; shift # list of prefixes
-	subs=( "$@" ) # array of subjects
+  label_f='[UPDATE_NII]'
+  unset prefix;
+  if [[ ! $# -ge 3 ]]; then
+    echo "${label_func} Please specify a prep working directory (that contains subdirs), the steps to update to, and an array of subs to update. Aborting..."; exit;
+  fi
+  wd=$1; shift # directory of sdirs
+  steps=$1; shift # list of prefixes
+  subs=( "$@" ) # array of subjects
 
-	num2subID "${subs[@]}" # change subs into proper s-format
-	log_wd="${wd}/LOG.txt"
-	label_func=${label_f}
+  num2subID "${subs[@]}" # change subs into proper s-format
+  log_wd="${wd}/LOG.txt"
+  label_func=${label_f}
 
-	# for each character in the list of step prefixes,
-	for (( i=0; i<${#steps}; i++ )); do
-		step="${steps:$i:1}";
-		# reverse steps to create the prefix of the nii files to update
-		prefix=${step}${prefix};
-	done
+  # for each character in the list of step prefixes,
+  for (( i=0; i<${#steps}; i++ )); do
+    step="${steps:$i:1}";
+    # reverse steps to create the prefix of the nii files to update
+    prefix=${step}${prefix};
+  done
 
-	#echo "${label_func} $(date) updating sub(s) ${SUBIDS[@]} epi runs with prefix '${prefix}'" | tee -a "${log}"
+  #echo "${label_func} $(date) updating sub(s) ${SUBIDS[@]} epi runs with prefix '${prefix}'" | tee -a "${log}"
 
-	# for every subject
-	for s in "${SUBIDS[@]}"; do
-		pushd ${wd}/${s} > /dev/null # move into subject folder, quietly
-		# select their logfile
-		log=LOG.txt
-		echo "${label_func} $(date) updating $s epi runs with prefix '${prefix}'" | tee -a "${log}" "${log_wd}"
+  # for every subject
+  for s in "${SUBIDS[@]}"; do
+    pushd ${wd}/${s} > /dev/null # move into subject folder, quietly
+    # select their logfile
+    log=LOG.txt
+    echo "${label_func} $(date) updating $s epi runs with prefix '${prefix}'" | tee -a "${log}" "${log_wd}"
 
-		for n in $(ls *.nii); do
-			if [[ -f ${n}.gz ]]; then
-				echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
-			else
-				pigz ${n} 	# zip all niftis in folder
-				echo "${label_func} $(date) ${s}/${n} nifti zipped using pigz." | tee -a "${log}"
-			fi
-		done
-		# count number of original epi_r##.nii.gz files there are
-		num_runs="$(find ./ -type f -name 'epi_r*.nii.gz' | wc -l)";
-		# go through and store each of those filenames in array runs[@]
-		for ((i=1; i<=${num_runs}; i++)); do
-			runs[$i]="$(find ./ -type f -name 'epi_r*.nii.gz' | head -$i | tail -1 | xargs -n 1 basename)";
-		done
-		# go through runs[@] and find the corresponding epis with prefixes, then update original file
-		for r in "${runs[@]}"; do
-			new_nii=${prefix}${r}
-			cp "${new_nii}" "${r}";
-			mod_date="$(stat -c %y ${new_nii} | cut -d ' ' -f1)";
-			echo "${label_func} $(date) ${r} updated to version: ${new_nii} from ${mod_date}" | tee -a "${log}";
-		done
-		if [[ -z ${new_nii} ]]; then echo "${label_func} $(date) no niftis with prefix ${prefix} found." | tee -a "${log}"; fi
-		echo "${label_func} Done. $(date)" | tee -a "${log}"
-		popd > /dev/null # move out of subject folder, quietly
-	done
+    for n in $(ls *.nii); do
+      if [[ -f ${n}.gz ]]; then
+        echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
+      else
+        pigz ${n} 	# zip all niftis in folder
+        echo "${label_func} $(date) ${s}/${n} nifti zipped using pigz." | tee -a "${log}"
+      fi
+    done
+    # count number of original epi_r##.nii.gz files there are
+    num_runs="$(find ./ -type f -name 'epi_r*.nii.gz' | wc -l)";
+    # go through and store each of those filenames in array runs[@]
+    for ((i=1; i<=${num_runs}; i++)); do
+      runs[$i]="$(find ./ -type f -name 'epi_r*.nii.gz' | head -$i | tail -1 | xargs -n 1 basename)";
+    done
+    # go through runs[@] and find the corresponding epis with prefixes, then update original file
+    for r in "${runs[@]}"; do
+      new_nii=${prefix}${r}
+      cp "${new_nii}" "${r}";
+      mod_date="$(stat -c %y ${new_nii} | cut -d ' ' -f1)";
+      echo "${label_func} $(date) ${r} updated to version: ${new_nii} from ${mod_date}" \
+      | tee -a "${log}";
+    done
+    if [[ -z ${new_nii} ]]; then
+      echo "${label_func} $(date) no niftis with prefix ${prefix} found." | tee -a "${log}"
+    fi
+    echo "${label_func} Done. $(date)" | tee -a "${log}"
+    popd > /dev/null # move out of subject folder, quietly
+  done
 }
 
 ################################################################################
@@ -379,27 +382,27 @@ function update_nii {
 ###########################################
 
 function make_matlab_array {
-	bash_array=( "$@" )
-	# check if subjects in matlab array or bash array
-	if [[ ${bash_array:0:1} == '[' ]]; then
-		# input was matlab array
-		matlab_array=''
-		for s in "${bash_array[@]}"; do
-			matlab_array="${matlab_array} $s"
-		done
-	else
-		# input was bash array
-		matlab_array='['
-		for s in "${bash_array[@]}"; do
-			if [[ ${s:0:1} == s ]]; then
-				matlab_array="${matlab_array}${s:1:3} "
-			else
-				matlab_array="${matlab_array}${s} "
-			fi
-		done
-		matlab_array="${matlab_array}]"
-	fi
-	echo "${matlab_array}"
+  bash_array=( "$@" )
+  # check if subjects in matlab array or bash array
+  if [[ ${bash_array:0:1} == '[' ]]; then
+    # input was matlab array
+    matlab_array=''
+    for s in "${bash_array[@]}"; do
+      matlab_array="${matlab_array} $s"
+    done
+  else
+    # input was bash array
+    matlab_array='['
+    for s in "${bash_array[@]}"; do
+      if [[ ${s:0:1} == s ]]; then
+        matlab_array="${matlab_array}${s:1:3} "
+      else
+        matlab_array="${matlab_array}${s} "
+      fi
+    done
+    matlab_array="${matlab_array}]"
+  fi
+  echo "${matlab_array}"
 }
 
 ################################################################################
@@ -413,37 +416,37 @@ function make_matlab_array {
 ###########################################
 
 function make_smatlab_array {
-	re_num='[0-9]'
-	bash_array=( "$@" )
-	unset num; unset c
-	# check if subjects in matlab array or bash array
-	if [[ ${bash_array:0:1} == '[' ]] || [[ ${bash_array:0:1} == '{' ]]; then
-		# input was matlab array
-		matlab_array=''
-		# for every element of the inputted array
-		for s in "${bash_array[@]}"; do
-			len=${#s};
-			# go through each character, determine if number
-			for ((j=0; j<$len; j++)); do
-				c=${s:${j}:1}
-				if [[ $c =~ ${re_num} ]] || [[ $c == 's' ]]; then
-					num=${num}${c}
-				else
-					# reached non-number character, convert num to subID format and add to matlab_array
-					if [[ ! -z $num ]]; then
-						num2subID ${num[@]}; matlab_array="${matlab_array}'${SUBIDS}'${c}"
-					else matlab_array="${matlab_array}${c}"; fi
-					unset num
-				fi
-			done
-		done
-	else
-		num2subID ${bash_array[@]}
-		# input was bash array
-		matlab_array='{'
-		for s in "${SUBIDS[@]}"; do matlab_array="${matlab_array}'${s}' "; done
-		matlab_array="${matlab_array}}"
-	fi
+  re_num='[0-9]'
+  bash_array=( "$@" )
+  unset num; unset c
+  # check if subjects in matlab array or bash array
+  if [[ ${bash_array:0:1} == '[' ]] || [[ ${bash_array:0:1} == '{' ]]; then
+    # input was matlab array
+    matlab_array=''
+    # for every element of the inputted array
+    for s in "${bash_array[@]}"; do
+      len=${#s};
+      # go through each character, determine if number
+      for ((j=0; j<$len; j++)); do
+        c=${s:${j}:1}
+        if [[ $c =~ ${re_num} ]] || [[ $c == 's' ]]; then
+          num=${num}${c}
+        else
+          # reached non-number character, convert num to subID format and add to matlab_array
+          if [[ ! -z $num ]]; then
+            num2subID ${num[@]}; matlab_array="${matlab_array}'${SUBIDS}'${c}"
+        else matlab_array="${matlab_array}${c}"; fi
+          unset num
+        fi
+      done
+    done
+  else
+    num2subID ${bash_array[@]}
+    # input was bash array
+    matlab_array='{'
+    for s in "${SUBIDS[@]}"; do matlab_array="${matlab_array}'${s}' "; done
+    matlab_array="${matlab_array}}"
+  fi
   echo "${matlab_array}"
 }
 
@@ -459,31 +462,31 @@ function make_smatlab_array {
 ###########################################
 
 function unzip_epi_anat {
-	d=$1; shift
-	subs=( "$@" )
-	num2subID ${subs[@]}
-	echo "unzipping subjects: ${SUBIDS[@]}"
-	for s in "${SUBIDS[@]}"; do
-		pushd ${d}/${s} > /dev/null # move into subject folder, quietly
-		for n in $(ls anat*.nii.gz); do
-			if [[ -f ${n%.gz} ]]; then
-				echo "${n%.gz} already exists, not unzipping ${n}" #| tee -a "${log}";
-			else
-				unpigz ${d}/${s}/${n} 	# zip all niftis in folder
-				echo "${n} nifti unzipped using unpigz." #| tee -a "${log}"
-			fi
-		done
-		for n in $(ls epi*.nii.gz); do
-			if [[ -f ${n%.gz} ]]; then
-				echo "${n%.gz} already exists, not unzipping ${n}" #| tee -a "${log}";
-			else
-				unpigz ${d}/${s}/${n} 	# zip all niftis in folder
-				echo "${n} nifti unzipped using unpigz." #| tee -a "${log}"
-			fi
-		done
-		echo "unzipped $s zipped niftis"
-		popd > /dev/null
-	done
+  d=$1; shift
+  subs=( "$@" )
+  num2subID ${subs[@]}
+  echo "unzipping subjects: ${SUBIDS[@]}"
+  for s in "${SUBIDS[@]}"; do
+    pushd ${d}/${s} > /dev/null # move into subject folder, quietly
+    for n in $(ls anat*.nii.gz); do
+      if [[ -f ${n%.gz} ]]; then
+        echo "${n%.gz} already exists, not unzipping ${n}" #| tee -a "${log}";
+      else
+        unpigz ${d}/${s}/${n} 	# zip all niftis in folder
+        echo "${n} nifti unzipped using unpigz." #| tee -a "${log}"
+      fi
+    done
+    for n in $(ls epi*.nii.gz); do
+      if [[ -f ${n%.gz} ]]; then
+        echo "${n%.gz} already exists, not unzipping ${n}" #| tee -a "${log}";
+      else
+        unpigz ${d}/${s}/${n} 	# zip all niftis in folder
+        echo "${n} nifti unzipped using unpigz." #| tee -a "${log}"
+      fi
+    done
+    echo "unzipped $s zipped niftis"
+    popd > /dev/null
+  done
 }
 
 ################################################################################
@@ -498,21 +501,21 @@ function unzip_epi_anat {
 ###########################################
 
 function zip_all {
-	d=$1
-	subs=( "$@" )
-	num2subID ${subs[@]}
-	for s in "${SUBIDS[@]}"; do
-		pushd ${wd}/${s} > /dev/null # move into subject folder, quietly
-		for n in $(ls *.nii); do
-			if [[ -f ${n}.gz ]]; then
-				echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
-			else
-				pigz ${n} 	# zip all niftis in folder
-				echo "${label_func} $(date) ${s}/${n} nifti zipped using pigz." | tee -a "${log}"
-			fi
-		done
-		popd > /dev/null
-	done
+  d=$1
+  subs=( "$@" )
+  num2subID ${subs[@]}
+  for s in "${SUBIDS[@]}"; do
+    pushd ${wd}/${s} > /dev/null # move into subject folder, quietly
+    for n in $(ls *.nii); do
+      if [[ -f ${n}.gz ]]; then
+        echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
+      else
+        pigz ${n} 	# zip all niftis in folder
+        echo "${label_func} $(date) ${s}/${n} nifti zipped using pigz." | tee -a "${log}"
+      fi
+    done
+    popd > /dev/null
+  done
 }
 
 ################################################################################
@@ -532,22 +535,22 @@ function full_dir {
   search_path=$2
   if [[ -z ${input} ]]; then
     echo "${label_func} You must provide a directory as input," \
-          " (optionally) followed by a path to search"
+    " (optionally) followed by a path to search"
     exit 1
   elif [[ -d $input ]]; then
-		# absolute path
-		if [[ ${input:0:1} == '/' ]]; then echo "$input"
-		# relative path from current directory
-		else echo "$(pwd)/${input}"; fi
-	elif [[ -d "${PROJECT_DIR}/${input}" ]]; then
-		# relative path from project directory
-		echo "${PROJECT_DIR}/${input}"
+    # absolute path
+    if [[ ${input:0:1} == '/' ]]; then echo "$input"
+      # relative path from current directory
+  else echo "$(pwd)/${input}"; fi
+  elif [[ -d "${PROJECT_DIR}/${input}" ]]; then
+    # relative path from project directory
+    echo "${PROJECT_DIR}/${input}"
   elif [[ ! -z ${search_path} ]] && [[ -d ${search_path}/${input} ]]; then
     echo ${search_path}/${input}
   else
     echo "$label_func ERROR: ${input} could not be found in: \n" \
-        "$(pwd), \n ${PROJECT_DIR}, or \n ${search_path}."
-	fi
+    "$(pwd), \n ${PROJECT_DIR}, or \n ${search_path}."
+  fi
 }
 
 ################################################################################
@@ -567,14 +570,14 @@ function full_file {
   search_path=$2
   if [[ -z ${input} ]]; then
     echo "${label_func} You must provide a directory as input," \
-          " (optionally) followed by a path to search"
+    " (optionally) followed by a path to search"
     exit 1
   elif [[ ! -z ${search_path} ]] && [[ -f ${search_path}/${input} ]]; then
     echo ${search_path}/${input}
   elif [[ -f $input ]]; then
     # absolute path
     if [[ ${input:0:1} == '/' ]]; then echo "$input"
-    # relative path from current directory
+      # relative path from current directory
     else echo "$(pwd)/${input}"
     fi
   elif [[ -f "${PROJECT_DIR}/${input}" ]]; then
@@ -582,7 +585,7 @@ function full_file {
     echo "${PROJECT_DIR}/${input}"
   else
     echo "$label_func ERROR: ${input} could not be found in: \n" \
-        "$(pwd), \n ${PROJECT_DIR}, or \n ${search_path}."
+    "$(pwd), \n ${PROJECT_DIR}, or \n ${search_path}."
   fi
 }
 
@@ -614,10 +617,10 @@ function read_json_value {
       echo "${func_label} Can't find json file ${jsonfile}."
       exit 1
     fi
-   fi
+  fi
 
   cat ${jsonfile} | \
-    python2 -c "import sys, json; print json.load(sys.stdin)[sys.argv[1]]" $key
+  python2 -c "import sys, json; print json.load(sys.stdin)[sys.argv[1]]" $key
 
 }
 
