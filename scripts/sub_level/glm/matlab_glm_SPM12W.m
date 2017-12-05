@@ -17,7 +17,7 @@ realigns=realign;
 spm12w_glm_compute('sid', sub, 'glm_file', pfile)
 spm12w_glm_contrast('sid', sub, 'glm_file', pfile)
 cd([SCRIPT_DIR filesep 'sub_level' filesep 'glm'])
-matlab_glm_masking(sub,pfile);
+%matlab_glm_masking(sub,pfile);
 
 % create text file with contrast names and numbers
 glm_dir = fullfile(ANALYSIS_DIR, glm.username, 'glm', glm.glm_name, sub);
