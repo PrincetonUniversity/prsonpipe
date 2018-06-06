@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # June 21, 2017: Miriam Weaverdyck added flags and style standards.
+# September 7, 2017: Judith Mildner overhauled structure to more flexible version
 # run_prep reads in prep_TSK.par or prep.par pfiles and launches each of the
 # steps as efficiently as possible. Sequential steps that use the same software
 # will be run together. Every subject is run separately, unless group normalization
@@ -31,7 +32,7 @@ label='[PREP]'
 
 function help_func () {
 cat << END
-sbatch_SPM12w_prep [-t <TSK>] [-p <parfile>] [-a <prepdir>] [-d <jobID(s)>] [-ch] [<subs>]
+sbatch_SPM12w_prep [-t <TSK>] [-p <parfile>] [-a <prepdir>] [-d <job(s)>] [-ch] [<subs>]
 
   Description:
   ------------
@@ -54,7 +55,7 @@ sbatch_SPM12w_prep [-t <TSK>] [-p <parfile>] [-a <prepdir>] [-d <jobID(s)>] [-ch
     filename of pfile (default is 'prep.par' or 'prep_TSK.par')
   [-d <jobIDs>]
     jobIDs that these jobs will be dependent on.
-    Valid form: 1111111:2222222:3333333
+    Valid form: one dependency '1111111' or multiple '2222222:3333333'
   [<subs>]
     Subjects to run
     Keywords: 'all', 'new'
@@ -154,6 +155,7 @@ if "${convert}"; then
   bash "${SCRIPT_DIR_UTIL}/run_convert" -l "${convert_log}"
   wait_for_it '[CONVERT]' "$convert_log"
 fi
+########################### DEFINE LOCAL FUNCTIONS ############################
 #***** add_run_steps function definition *****#
 function add_run_steps {
   # WARNING: this function uses only global variables, make sure it matches run section
@@ -184,7 +186,7 @@ function reset_run_parameters {
 #***** write_pfile function *****#
 function write_pfile {
   # WARNING: this function uses only global variables, make sure it matches run section
-  # set wroking directory
+  # set working directory
   work_dir="${wd_dir_full}"
   # initialize step variables as 0
   local qa=0;slice_time=0;realign=0;unwarp=0;smooth=0;norm=0;filter=0
@@ -254,6 +256,7 @@ function write_pfile {
 EOF"
   unset qa slice_time realign unwarp norm smooth filter
 }
+############################ START PREPROCESSING ##############################
 #***** PROCESS EACH TASK *****#
 # Select all tasks if none is given
 [[ -z "$tasks" ]] && tasks=( "${TASKS[@]}" )
@@ -563,6 +566,6 @@ EOM
 
   # Write Done. to task logfile
   echo "${label}" | tee -a "${logfile_wd}"
-  echo "${label} Done. $(date)" | tee -a "${logfile_wd}"
+  echo "${label} DONE. $(date)" | tee -a "${logfile_wd}"
   echo "${label}" >> "${logfile_wd}"
 done

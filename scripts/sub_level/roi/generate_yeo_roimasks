@@ -46,10 +46,10 @@ for mask in ${DMN_masks[@]}; do
 	  -o ${index_file} > ${mask}_clusters.txt
 
 	num_rois=$(fslstats ${index_file} -R | awk '{print int( $2 )}')
-	echo "[GEN_ROI] Found $num_rois ROIs"
+	echo "[GEN_ROI] Found ${num_rois} ROIs"
 	for ((i=1;i<=$num_rois; i++)); do
-		echo "[GEN_ROI] Creating mask for ROI $i"
-		fslmaths -dt int ${index_file} -thr $i -uthr $i \
+		echo "[GEN_ROI] Creating mask for ROI ${i}"
+		fslmaths -dt int ${index_file} -thr ${i} -uthr ${i} \
 			-bin roi_${index_file%_index.nii.gz}.${i}
 	done
 done
@@ -63,10 +63,10 @@ for mask in ${control_masks[@]}; do
 	  -o ${mask%_mask}_index > ${mask}_clusters.txt
   #create separate ROIs from each value of index
 	num_rois=$(fslstats ${index_file} -R | awk '{print int( $2 )}')
-	echo "[GEN_ROI] Found $num_rois ROIs"
-	for ((i=1;i<=$num_rois; i++)); do
-		echo "[GEN_ROI] Creating mask for ROI $i"
-		fslmaths -dt int ${index_file} -thr $i -uthr $i \
+	echo "[GEN_ROI] Found ${num_rois} ROIs"
+	for ((i=1;i<=${num_rois}; i++)); do
+		echo "[GEN_ROI] Creating mask for ROI ${i}"
+		fslmaths -dt int ${index_file} -thr ${i} -uthr ${i} \
 			-bin roi_${index_file%_index.nii.gz}.${i}
 	done
 done

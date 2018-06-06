@@ -71,11 +71,11 @@ while getopts ":p:h" opt; do
       fi
     ;;
     \?)
-      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
     ;;
     : ) #Catch options without arguments
-      echo "$label ERROR: $OPTARG requires an argument. Use --help for help."
+      echo "${label} ERROR: $OPTARG requires an argument. Use --help for help."
       exit 1
   esac
 done
@@ -83,7 +83,7 @@ done
 shift $((OPTIND -1))
 
 if [[ -z $@ ]]; then
-  echo "$label ERROR: missing subject argument. Use -h for help"
+  echo "${label} ERROR: missing subject argument. Use -h for help"
   exit 1
 fi
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# jmildner@princeton.edu, August 12 2017
+# August 12, 2017: Judith Mildner
 #
 # Create fieldmap and magnitude image from opposing direction spin echos using
 # FSL's topup.

@@ -43,7 +43,7 @@ d="$(dirname -- "$(pwd)")"
 # source globals.par
 source "${d%scripts*}/scripts/globals.par"
 # source functions
-source ${SCRIPT_DIR_UTIL}/funcs
+source "${SCRIPT_DIR_UTIL}/funcs"
 
 ######################### SET UP & PARSE ARGUMENTS #############################
 function help_func () {
@@ -74,56 +74,56 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 
 #Parse flags other than help
 while getopts "p:i:o:l:" opt; do
-  case $opt in
+  case ${opt} in
     p)
-      pfile=$OPTARG
-      if [ ! -f $(full_file "${pfile}" "${SCRIPTS_DIR_PREP}") ]; then
-        echo "$label ERROR: pfile $pfile does not exist."
+      pfile=${OPTARG}
+      if [ ! -f $(full_file "${pfile}" "${SCRIPT_DIR_PREP}") ]; then
+        echo "${label} ERROR: pfile ${pfile} does not exist."
         exit 1
       else
-        pfile=$(full_file "${pfile}" "${SCRIPTS_DIR_PREP}")
+        pfile=$(full_file "${pfile}" "${SCRIPT_DIR_PREP}")
       fi
-      echo "$label Using pfile: $pfile"
+      echo "${label} Using pfile: ${pfile}"
       ;;
     i)
-    input_dir=$OPTARG
+    input_dir=${OPTARG}
       if ! $(isDIR ${input_dir}); then
-        echo "$label ERROR: input directory $input_dir is not a directory."
+        echo "${label} ERROR: input directory ${input_dir} is not a directory."
         exit 1
       fi
-      input_dir=$(full_dir $input_dir)
-      echo "$label input_dir: $input_dir"
+      input_dir=$(full_dir ${input_dir})
+      echo "${label} input_dir: ${input_dir}"
       ;;
     o)
-    output_dir=$OPTARG
+    output_dir=${OPTARG}
       if ! $(isDIR ${output_dir}); then
-        echo "$label ERROR: output directory $output_dir is not a directory."
+        echo "${label} ERROR: output directory ${output_dir} is not a directory."
         exit 1
       fi
-      output_dir=$(full_dir $output_dir)
-      echo "$label output_dir: $output_dir"
+      output_dir=$(full_dir ${output_dir})
+      echo "${label} output_dir: ${output_dir}"
       ;;
     l)
-      flogfile=$OPTARG
+      flogfile=${OPTARG}
       if [[ ! -d $(full_dir $(dirname ${flogfile})) ]]; then
         echo "${label} ERROR: log directory $(dirname ${flogfile}) does not exist."
         exit 1
       else 
         logfile="$(full_dir $(dirname ${flogfile}))/$(basename ${flogfile})" 
       fi
-      touch $logfile
-      echo "$label Using logfile: $logfile instead of default" | tee -a $logfile
+      touch "${logfile}"
+      echo "${label} Using logfile: ${logfile} instead of default" | tee -a "${logfile}"
       ;;
     \?)
-      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
       ;;
     : ) #Catch options without arguments
-      echo "$label ERROR: -$OPTARG requires an argument. Use -h for help."
+      echo "${label} ERROR: -${OPTARG} requires an argument. Use -h for help."
       exit 1
     esac
 done
-[[ -z $pfile ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
+[[ -z ${pfile} ]] && echo "${label} ERROR: -p flag required. Use -h for help." && exit 1
 #remove used input args
 shift $((OPTIND -1))
 
@@ -131,62 +131,62 @@ shift $((OPTIND -1))
 module load fsl/5.0.9
 
 # source the pfile
-source ${pfile}
-tsk=$TASK
+source "${pfile}"
+tsk="${TASK}"
 
 # if input_dir doesn't exist, use default from pfile
-[[ -z ${input_dir} ]] && input_dir=${RAW_DIR}/${tsk}/
+[[ -z ${input_dir} ]] && input_dir="${RAW_DIR}/${tsk}/"
 # if output_dir doesn't exist, use default from pfile
-[[ -z ${output_dir} ]] && output_dir=$PREP
+[[ -z ${output_dir} ]] && output_dir="${PREP}"
 # if logfile doesn't exist, use default from pfile
-[[ -z $flogfile ]] && logdir=${output_dir}
+[[ -z ${flogfile} ]] && logdir="${output_dir}"
 
 #check if there are remaining arguments, that have not yet been processed
 # if so, get subject IDs by calling get_subs
-get_subs $input_dir $output_dir "$@"
+get_subs "${input_dir}" "${output_dir}" "$@"
 run_subs=( "${SUBS[@]}" )
 
 # cycle through subjects 
 for subid in "${run_subs[@]}"; do 
 
-  fsl_prep=${PREP}/${subid}
-  anat=${fsl_prep}/anat.nii.gz
-  anat_base=${fsl_prep}/anat
-  anat_brain=${fsl_prep}/anat_brain.nii.gz
-  std_anat=${fsl_prep}/std_anat
+  fsl_prep="${PREP}/${subid}"
+  anat="${fsl_prep}/anat.nii.gz"
+  anat_base="${fsl_prep}/anat"
+  anat_brain="${fsl_prep}/anat_brain.nii.gz"
+  std_anat="${fsl_prep}/std_anat"
   
-  if [[ -z $logfile ]]; then 
+  if [[ -z ${logfile} ]]; then
     logfile="${fsl_prep}/fsl_log.txt"
-    if [ ! -f ${logfile} ]; then touch ${logfile}; fi
-  else logfile=$logfile 
+    if [ ! -f ${logfile} ]; then touch "${logfile}"; fi
+  else logfile="${logfile}"
   fi
 
   echo "${label} $(date) Beginning FSL preprocessing analysis of subject ${subid} \
 with pfile ${pfile}" | tee -a "${logfile}"
 
   # Prepare anatomical for normalization, if necessary
-  if [[ $NORM == 1 ]]; then
-    if [[ ! -f $anat ]]; then 
-      echo "$label $(date) Anatomical $anat not found in $fsl_prep" | tee -a "$logfile" 
+  if [[ ${NORM} == 1 ]]; then
+    if [[ ! -f ${anat} ]]; then
+      echo "${label} $(date) Anatomical $anat not found in $fsl_prep" | tee -a "${logfile}"
       exit 1
     fi
-    echo "$label $(date) Preparing anatomical for normalization." | tee -a "$logfile"
+    echo "${label} $(date) Preparing anatomical for normalization." | tee -a "${logfile}"
     #Skull strip (remove excess neck tissue first)
-    standard_space_roi $anat "$std_anat"
-    bet "$std_anat" $anat_brain $anat_bet_flag
+    standard_space_roi ${anat} "$std_anat"
+    bet "$std_anat" ${anat_brain} ${anat_bet_flag}
     #Linear registration of anat_brain to MNI template
-    echo "$label $(date) Registering anatomical to MNI space." | tee -a "$logfile"
+    echo "${label} $(date) Registering anatomical to MNI space." | tee -a "${logfile}"
     flirt -ref "$fsl_template" -in "$anat_brain" -omat anat_affine_transf.mat \
        -o "${anat_base}2MNI"
     #Non-linear registration of anat_brain to template
-    fnirt --in=$anat_brain --aff=anat_affine_transf.mat --cout=anat_nonlinear_transf \
+    fnirt --in=${anat_brain} --aff=anat_affine_transf.mat --cout=anat_nonlinear_transf \
            --config=T1_2_MNI152_2mm --iout=nonlinear_anat2MNI
-    echo "$label $(date) Prepared anatomical for normalization." | tee -a "$logfile"
+    echo "${label} $(date) Prepared anatomical for normalization." | tee -a "${logfile}"
   fi
 
   for epi in ${fsl_prep}/epi_r*.nii*; do
     #set local variables for this subject and task.
-    epi_name="$(basename $epi)"
+    epi_name="$(basename ${epi})"
     time_file="${fsl_prep}/a${epi_name}"
     motion_file="${fsl_prep}/r${epi_name}"
     unwarp_file="${fsl_prep}/u${epi_name}"
@@ -198,84 +198,86 @@ with pfile ${pfile}" | tee -a "${logfile}"
         TR=$( fslval "${epi}" "pixdim4" )
 
     
-    if [[ $SLICETIME == 1 ]]; then
-      echo "$label $(date) Running slice timing $epi" | tee -a "$logfile"
+    if [[ ${SLICETIME} == 1 ]]; then
+      echo "${label} $(date) Running slice timing $epi" | tee -a "${logfile}"
       slicetimer -i "$epi" -o "$time_file" --odd -r ${TR}
-      cp $time_file $epi
-      echo "${label} $(date) Ran slicetimer on $epi" | tee -a "$logfile"
+      cp ${time_file} ${epi}
+      echo "${label} $(date) Ran slicetimer on $epi" | tee -a "${logfile}"
     fi
     
-    if [[ $MOTION == 1 ]]; then
-      echo "$label $(date) Running motion correction on $epi." | tee -a "$logfile"
-      mcflirt -in $epi -refvol $SE_AP -o $motion_file -mats -plots
-      cp $motion_file $epi
-      echo "${label} $(date) Ran motion correction on $epi" | tee -a "$logfile"
+    if [[ ${MOTION} == 1 ]]; then
+      echo "${label} $(date) Running motion correction on $epi." | tee -a "${logfile}"
+      mcflirt -in ${epi} -refvol ${SE_AP} -o ${motion_file} -mats -plots
+      cp ${motion_file} ${epi}
+      echo "${label} $(date) Ran motion correction on $epi" | tee -a "${logfile}"
     fi
 
-    if [[ $UNWARP == 1 ]]; then
+    if [[ ${UNWARP} == 1 ]]; then
       echo -e "${label} WARNING: this script needs an update. Use DARTEL instead."
-      echo "$label $(date) Applying topup" | tee -a "$logfile"
-      outfile=$unwarp_file
+      echo "${label} $(date) Applying topup" | tee -a "${logfile}"
+      outfile=${unwarp_file}
       applytopup --imain="$epi" --datain="${topup_dir}/acqparams_epi.txt" --inindex=1 \
         --topup="${topup_dir}/topup_output" --method=jac -o "${outfile%.nii.gz}"
-      cp $unwarp_file $epi
-      echo "${label} $(date) Ran topup to unwarp $unwarp_file" | tee -a "$logfile"
+      cp ${unwarp_file} ${epi}
+      echo "${label} $(date) Ran topup to unwarp ${unwarp_file}" | tee -a "${logfile}"
     fi
     
-    if [[ $NORM == 1 ]]; then
+    if [[ ${NORM} == 1 ]]; then
     # Normalize to MNI space
      #requires anatomical
-     echo "$label $(date) Normalizing ${epi}.." | tee -a $logfile
+     echo "${label} $(date) Normalizing ${epi}.." | tee -a ${logfile}
     # 1. skull strip
-      bet ${epi} "${epi%.nii*}_brain" $epi_bet_flag
-     echo "$label $(date) Registering ${epi} to structural.." | tee -a $logfile
+      bet ${epi} "${epi%.nii*}_brain" "${epi_bet_flag}"
+     echo "${label} $(date) Registering ${epi} to structural.." | tee -a ${logfile}
     # 2. register epi to structural
-      epi_reg --epi="${epi%.nii*}_brain" --t1=$anat --t1brain=$anat_brain \
+      epi_reg --epi="${epi%.nii*}_brain" --t1=${anat} --t1brain=${anat_brain} \
         --out="${epi%.nii*}_brain2struct"      
     # 3. apply struct2MNI nonlinear warp
-     echo "$label $(date) Registering ${epi} to MNI space.." | tee -a $logfile
-      applywarp --ref="$fsl_template" --in="${epi%.nii*}_brain" --warp=anat_nonlinear_transf --premat="${epi%.nii*}_brain2struct.mat" --out="$normalize_file"
+     echo "${label} $(date) Registering ${epi} to MNI space.." | tee -a ${logfile}
+      applywarp --ref="${fsl_template}" --in="${epi%.nii*}_brain" \
+        --warp=anat_nonlinear_transf --premat="${epi%.nii*}_brain2struct.mat" \
+        --out="${normalize_file}"
     
-      cp $normalize_file $epi
-     echo "$label $(date) Normalized ${epi} to MNI space.." | tee -a $logfile
+      cp ${normalize_file} ${epi}
+     echo "${label} $(date) Normalized ${epi} to MNI space.." | tee -a ${logfile}
     
     fi
   #smoothing 
-    if [[ $FWHM != 0 ]]; then
-      echo "$label $(date) smoothing $epi with kernel $FWHM" | tee -a "$logfile"
+    if [[ ${FWHM} != 0 ]]; then
+      echo "${label} $(date) smoothing $epi with kernel ${FWHM}" | tee -a "${logfile}"
       sigma=`echo "2.35482004503*$FWHM" | bc -l` #calculate sigma value needed for FSL smoothing based on FWHM
-      fslmaths $epi -s $sigma $smooth_file
-      cp $smooth_file $epi
-      echo "${label} $(date) Ran smoothing with $FWHM FWHM" | tee -a "$logfile"
+      fslmaths ${epi} -s ${sigma} ${smooth_file}
+      cp ${smooth_file} ${epi}
+      echo "${label} $(date) Ran smoothing with ${FWHM} FWHM" | tee -a "${logfile}"
     fi
 
-    if [[ $FILTER == 1 ]]; then
+    if [[ ${FILTER} == 1 ]]; then
       # apply band pass filter
-      echo "$label $(date) bandpass filtering $epi"
+      echo "${label} $(date) bandpass filtering ${epi}"
       # set default hp and lp
       hp=-1
       lp=-1
       # get length of TR in this run
       #TR=$( fslval "${epi}" "pixdim4" )
       # high pass filter
-      if [[ $hFilter -ne -1 ]]; then
+      if [[ ${hFilter} -ne -1 ]]; then
           hp=$(echo "${hFilter}/(${TR}*2)" | bc -l )
           echo "high pass filter is ${hFilter} seconds, sigma ${hp}"
       fi
       # low pass filter
-      if [[ $lFilter -ne -1 ]]; then lp=$(echo "$lFilter/($TR*2)" | bc -l ); fi
+      if [[ ${lFilter} -ne -1 ]]; then lp=$(echo "$lFilter/($TR*2)" | bc -l ); fi
       # filter epi
       echo "using high pass sigma $hp, low pass sigma $lp"
       tempMean_file="${fsl_prep}/tempMean"
       fslmaths "${epi}" -Tmean "${tempMean_file}"
       fslmaths "${epi}" -bptf "${hp}" "${lp}" -add "${tempMean_file}" "${filter_file}"
       rm "${tempMean_file}.nii.gz"
-      cp $filter_file $epi
-      echo "${label} $(date) Filtered ${epi} with high pass sigma $hp and low pass sigma $lp" \
-        | tee -a "$logfile"
+      cp "${filter_file}" "${epi}"
+      echo "${label} $(date) Filtered ${epi} with high pass sigma ${hp} and low pass sigma ${lp}" \
+        | tee -a "${logfile}"
     fi
   done
 done
 
 # move current output file to output directory
-bash $SCRIPT_DIR_UTIL/cleanup_output $SLURM_JOB_ID
+bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"

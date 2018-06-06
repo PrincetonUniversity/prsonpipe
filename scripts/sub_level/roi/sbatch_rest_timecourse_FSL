@@ -51,7 +51,7 @@ if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
 # Source globals
 ## Check if PROJECT_DIR is already known
 if [[ ! -z $PROJECT_DIR ]]; then
-	source ${PROJECT_DIR}/scripts/globals.par
+	source "${PROJECT_DIR}/scripts/globals.par"
 ## check if globals is in the current directory
 elif [[ -f ./globals.par ]]; then
 	source globals.par
@@ -88,11 +88,11 @@ while getopts ":p:h" opt; do
       fi
     ;;
     \?)
-      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
     ;;
     : ) #Catch options without arguments
-      echo "$label ERROR: $OPTARG requires an argument. Use --help for help."
+      echo "${label} ERROR: ${OPTARG} requires an argument. Use --help for help."
       exit 1
     esac
 done
@@ -120,16 +120,16 @@ function error() {
   ## Arguments: exit status
   ## Output: error message if necessary, clean up temp dir.
     echo "${label} ERROR: an error occurred in the analysis." \
-      | tee -a ${logfile}
+      | tee -a "${logfile}"
     echo "${label} cleaning up..." | tee -a ${logfile}
     rsync -a "${tmp_out_dir}/" "${output_dir}/"
     rm -rf "${tmp_out_dir}"
   }
 trap 'error' EXIT
 
-echo "${label} $(date)" | tee ${logfile}
+echo "${label} $(date)" | tee "${logfile}"
 echo "${label} Extracting time courses from ${glm_dir#"${PROJECT_DIR}/"} \
-for all ROIs in ${roi_dir#"${PROJECT_DIR}/"}" | tee -a ${logfile}
+for all ROIs in ${roi_dir#"${PROJECT_DIR}/"}" | tee -a "${logfile}"
 
 tmp_time_dir="${tmp_out_dir}/${roi_dirname}"
 mkdir ${tmp_time_dir}

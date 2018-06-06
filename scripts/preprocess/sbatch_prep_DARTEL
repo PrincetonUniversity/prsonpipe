@@ -25,7 +25,6 @@
 # Arguments (0+):
 #  subs		: subjects to run
 ################################################################################----------
-
 #SBATCH -J dartel_prep              # Job name
 #SBATCH --workdir=./                # Working directory
 #SBATCH -o DARTEL_prep-%j.out       # Output file
@@ -36,7 +35,7 @@
 
 set -e
 
-echo "on host: `hostname` "
+echo "on host: $(hostname) "
 label='[DARTEL]'
 matlab_label='DARTEL.M'
 
@@ -138,34 +137,36 @@ shift $((OPTIND -1))
 # of the line that starts with "p.subdir /whitespace/ = " and ends before ";"
 wd_dir=$(grep -oP 'p.prepdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
 # get task name based on wd_dir
-tsk_dir=$(dirname $wd_dir)
+tsk_dir=$(dirname ${wd_dir})
 tsk=${tsk_dir: -3}
 
 # if input_dir doesn't exist, use default from pfile
-[[ -z ${input_dir} ]] && input_dir=${RAW_DIR}/$tsk/
+[[ -z ${input_dir} ]] && input_dir="${RAW_DIR}/${tsk}/"
 # if output_dir doesn't exist, use default from pfile
-[[ -z ${output_dir} ]] && output_dir=${wd_dir}
+[[ -z ${output_dir} ]] && output_dir="${wd_dir}"
 # if logfile doesn't exist, use default from pfile
-[[ -z $logfile ]] && logfile=${wd_dir}/LOG_dartel.txt
+[[ -z $logfile ]] && logfile="${wd_dir}/LOG_dartel.txt"
 
 #check if there are remaining arguments, that have not yet been processed
 # if so, get subject IDs by calling get_subs
-get_subs $input_dir $output_dir "$@"
+get_subs "${input_dir}" "${output_dir}" "$@"
 run_subs=( "${SUBS[@]}" )
 
-logfile_wd=${wd_dir}/LOG.txt
+logfile_wd="${wd_dir}/LOG.txt"
 
 # turn SUBIDS into a matlab array of numbers (not subIDs)
 matlab_array=$(make_matlab_array ${run_subs[@]})
 
-echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" | tee -a "${logfile_wd}"
+echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" \
+  | tee -a "${logfile_wd}"
 # make sure matlab finds the timezone in the right format ('America/New_York' vs Linux's old 'US/Eastern')
 [[ $(echo 'EDT EST') =~ $(date +"%Z") ]] && oldtz="${TZ}" && export TZ='America/New_York'
 # Run the matlab script and pipe only the lines with the matlab label to the log file
-matlab -nosplash -nodisplay -nodesktop -r "try; matlab_prep_DARTEL(${matlab_array},'${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" \
+matlab -nosplash -nodisplay -nodesktop \
+  -r "try; matlab_prep_DARTEL(${matlab_array},'${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" \
 | tee >(grep --line-buffered ${matlab_label} >> "${logfile}")
 [[ -z ${oldtz} ]] && unset TZ || TZ="${oldtz}"
 echo "${label} DONE. $(date)" | tee -a "${logfile_wd}"
 
 # move current output file to output directory
-bash $SCRIPT_DIR_UTIL/cleanup_output $SLURM_JOB_ID
+bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"

@@ -1,6 +1,6 @@
-#!/bin/bash -e/
+#!/usr/bin/env bash
 # author: Miriam Weaverdyck 8/1/16
-# edit Judith Mildner 09/05/17
+# September 5, 2017: Judith Mildner edited
 # Enter the parameters for your analyses below
 #
 ##############################-------GENERAL------##############################

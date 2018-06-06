@@ -75,20 +75,20 @@ label='[GEN_REGR]'
 
 # Get globals
 #Check if PROJECT_DIR is already known
-if [[ ! -z $PROJECT_DIR ]]; then
-  source ${PROJECT_DIR}/scripts/globals.par
+if [[ ! -z ${PROJECT_DIR} ]]; then
+  source "${PROJECT_DIR}/scripts/globals.par"
 #check if globals is in the current directory
 elif [[ -f ./globals.par ]]; then
   source globals.par
 #Check if we're not inside a slurm job
-elif [[ -z $SLURM_JOB_ID ]]; then
+elif [[ -z ${SLURM_JOB_ID} ]]; then
   #Get the name of the directory this script is in, to create full path to globals.par
   script_dir="$( cd "${BASH_SOURCE%/*}" ; pwd -P )"
   #Assuming the scripts dir is somewhere in the full path, this finds globals.par
   source "${script_dir%scripts/*}/scripts/globals.par"
 #error out if we can't find globals with any of these strategies
 else
-  echo "$label ERROR: can't find globals.par. Please source globals.par before starting."
+  echo "${label} ERROR: can't find globals.par. Please source globals.par before starting."
   exit
 fi
 
@@ -96,7 +96,7 @@ source "${SCRIPT_DIR_UTIL}/funcs"
 
 # Parse input arguments
 while getopts ":p:dh" opt; do
-  case $opt in
+  case ${opt} in
     p)
       pfile=${OPTARG}
       if [[ -f ${SCRIPT_DIR_ROI}/${pfile} ]]; then
@@ -127,11 +127,11 @@ while getopts ":p:dh" opt; do
       exit
     ;;
     \?)
-    echo "$label ERROR: unknown flag specified: ${opt}. Use --help for help."
+    echo "${label} ERROR: unknown flag specified: ${opt}. Use --help for help."
     exit 1
     ;;
     : )
-    echo "$label ERROR: $OPTARG requires an argument. Use --help for help."
+    echo "${label} ERROR: ${OPTARG} requires an argument. Use --help for help."
     exit 1
     ;;
   esac
@@ -141,7 +141,7 @@ done
 shift $((OPTIND -1))
 #check if there are remaining arguments, that have not yet been processed
 if [[ -z $@ ]]; then
-  echo "$label ERROR: missing subject argument. Use -h for help"
+  echo "${label} ERROR: missing subject argument. Use -h for help"
   exit 1
 fi
 
@@ -175,13 +175,13 @@ cat <<- EOM | tee "${logfile}"
 EOM
 ################################################################################
 prep_dir="${prep_dir}/${subject}"
-for epi in $prep_dir/epi_r*.nii.gz; do
+for epi in ${prep_dir}/epi_r*.nii.gz; do
   #make sure it exists
-  [ -e $file ] || (echo "$label ERROR: $epi not found" | tee -a "${logfile}" && exit)
+  [ -e ${file} ] || (echo "${label} ERROR: ${epi} not found" | tee -a "${logfile}" && exit)
   #get just the epi name
-  epi=$(basename "$epi")
-  fslmaths "${prep_dir}/$epi" -nan "${tmp_rst_dir}/$epi"
-  nvols=$(fslnvols "${tmp_rst_dir}/$epi")
+  epi=$(basename "${epi}")
+  fslmaths "${prep_dir}/${epi}" -nan "${tmp_rst_dir}/${epi}"
+  nvols=$(fslnvols "${tmp_rst_dir}/${epi}")
   moco_dir="${tmp_rst_dir}/mc_${epi%.nii*}"
   #motion regressors: change from 1 file with 6 columns to 1 file per parameter
   if [ "${motion}" == 1 ]; then
@@ -205,7 +205,7 @@ for epi in $prep_dir/epi_r*.nii.gz; do
   #trim first n volumes from start of epi and motion parameters
   if [ "${trim}" != 0 ]; then
     echo "${label} trimming first ${trim} volumes from ${epi}" | tee -a "${logfile}"
-    new_nvols=$(( $nvols - $trim ))
+    new_nvols=$(( ${nvols} - ${trim} ))
     #trim volumes from beginning of epi
     fslroi "${tmp_rst_dir}/${epi}" "${tmp_rst_dir}/t${epi}" ${trim} ${new_nvols}
     #trim first volumes from motion parameter files as well
@@ -237,17 +237,17 @@ for epi in $prep_dir/epi_r*.nii.gz; do
 
   #bandpass filter
   if [[ "${bandpass}" == 1 ]]; then
-    echo "${label} bandpass filtering $epi" | tee -a "${logfile}"
+    echo "${label} bandpass filtering ${epi}" | tee -a "${logfile}"
     hp=-1
     lp=-1
     TR=$( read_json_value "RepetitionTime" "${prep_dir}/${epi%.nii*}.json" )
-    if [[ $hFilter != -1 ]]; then
+    if [[ ${hFilter} != -1 ]]; then
       hp=$(echo "${hFilter}/(${TR}*2)" | bc -l )
       echo "${label} high pass filter is ${hFilter} seconds, sigma ${hp}" \
         | tee -a "${logfile}"
     fi
-    if [[ $lFilter != -1 ]]; then
-      lp=$(echo "$lFilter/($TR*2)" | bc -l )
+    if [[ ${lFilter} != -1 ]]; then
+      lp=$(echo "${lFilter}/(${TR}*2)" | bc -l )
     fi
     #calculate the mean timecourse
     echo "${label} using high pass sigma ${hp}, low pass sigma ${lp}" \

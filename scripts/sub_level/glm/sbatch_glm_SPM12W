@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 #
 # May 8, 2017: Miriam Weaverdyck updated script to work with new filestructure and standards
 #
@@ -32,7 +32,7 @@
 #SBATCH -p all				# DON'T CHANGE
 
 set -e
-echo "on host: `hostname`"
+echo "on host: $(hostname)"
 label='[GLM]'
 
 ######################### SOURCE FILES ########################################
@@ -41,7 +41,7 @@ d="$(dirname -- "$(pwd)")"
 # source globals.par
 source "${d%scripts*}/scripts/globals.par"
 # source functions
-source ${SCRIPT_DIR_UTIL}/funcs
+source "${SCRIPT_DIR_UTIL}/funcs"
 
 ######################### SET UP & PARSE ARGUMENTS #############################
 function help_func () {
@@ -66,47 +66,47 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 
 #Parse flags other than help
 while getopts "p:l:" opt; do
-  case $opt in
+  case ${opt} in
     p)
-      pfile=${SCRIPT_DIR}/sub_level/glm/$(basename $OPTARG)
-      if [ ! -f $pfile ]; then
-        echo "$label ERROR: pfile $pfile does not exist."
+      pfile="${SCRIPT_DIR}/sub_level/glm/$(basename ${OPTARG})"
+      if [ ! -f ${pfile} ]; then
+        echo "${label} ERROR: pfile ${pfile} does not exist."
         exit 1
       fi
-      echo "$label Using pfile: $pfile"
+      echo "${label} Using pfile: ${pfile}"
       ;;
     l)
-      flogfile=$OPTARG
-      logdir=$(dirname $flogfile)
-      if ! $(isDIR $logdir); then
-        echo "$label ERROR: $logdir is not a directory."
+      flogfile=${OPTARG}
+      logdir=$(dirname ${flogfile})
+      if ! $(isDIR ${logdir}); then
+        echo "${label} ERROR: ${logdir }is not a directory."
         exit 1
       fi
-      logdir=$(full_dir $logdir)
-      flogfile=${logdir}/$(basename $flogfile)
-      touch $flogfile
-      echo "$label Using logfile: $flogfile instead of default" | tee -a $flogfile
+      logdir=$(full_dir ${logdir})
+      flogfile=${logdir}/$(basename ${flogfile})
+      touch ${flogfile}
+      echo "${label} Using logfile: ${flogfile} instead of default" | tee -a ${flogfile}
       ;;
     \?)
-      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
       ;;
     : ) #Catch options without arguments
-      echo "$label ERROR: -$OPTARG requires an argument. Use -h for help."
+      echo "${label} ERROR: -${OPTARG} requires an argument. Use -h for help."
       exit 1
     esac
 done
-[[ -z $pfile ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
+[[ -z ${pfile} ]] && echo "${label} ERROR: -p flag required. Use -h for help." && exit 1
 #remove used input args
 shift $((OPTIND -1))
 
 ############################## MAIN BODY OF SCRIPT #############################
 
-logfile=$flogfile
+logfile=${flogfile}
 subject=$1; shift
 
-num2subID $subject
-sub=$SUBIDS
+num2subID "${subject}"
+sub=${SUBIDS}
 
 module load matlab
 matlab -nosplash -nodisplay -nodesktop -r \

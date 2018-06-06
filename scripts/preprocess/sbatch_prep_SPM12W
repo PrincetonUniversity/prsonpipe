@@ -35,7 +35,7 @@
 #SBATCH -p all									# DON'T CHANGE
 
 set -e
-echo "on host: `hostname` "
+echo "on host: $(hostname)"
 label='[SPM12W]'
 
 module load matlab/R2016b
@@ -46,7 +46,7 @@ d="$(dirname -- "$(pwd)")"
 # source globals.par
 source "${d%scripts*}/scripts/globals.par"
 # source functions
-source ${SCRIPT_DIR_UTIL}/funcs
+source "${SCRIPT_DIR_UTIL}/funcs"
 
 ######################### SET UP & PARSE ARGUMENTS #############################
 function help_func () {
@@ -77,55 +77,55 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 
 #Parse flags other than help
 while getopts "p:i:o:l:" opt; do
-  case $opt in
+  case ${opt} in
     p)
-      pfile=${SCRIPT_DIR_PREP}/$(basename $OPTARG)
-      if [ ! -f $pfile ]; then
-        echo "$label ERROR: pfile $pfile does not exist."
+      pfile="${SCRIPT_DIR_PREP}/$(basename $OPTARG)"
+      if [ ! -f ${pfile} ]; then
+        echo "${label} ERROR: pfile ${pfile} does not exist."
         exit 1
       fi
-      echo "$label Using pfile: $pfile"
+      echo "${label} Using pfile: ${pfile}"
       ;;
     i)
 	  input_dir=$OPTARG
       if ! $(isDIR ${input_dir}); then
-        echo "$label ERROR: input directory $input_dir is not a directory."
+        echo "${label} ERROR: input directory ${input_dir} is not a directory."
         exit 1
       fi
-      input_dir=$(full_dir $input_dir)
-      echo "$label input_dir: $input_dir"
+      input_dir=$(full_dir ${input_dir})
+      echo "${label} input_dir: ${input_dir}"
       ;;
     o)
 	  output_dir=$OPTARG
       if ! $(isDIR ${output_dir}); then
-        echo "$label ERROR: output directory $output_dir is not a directory."
+        echo "${label} ERROR: output directory ${output_dir} is not a directory."
         exit 1
       fi
-      output_dir=$(full_dir $output_dir)
-      echo "$label output_dir: $output_dir"
+      output_dir=$(full_dir ${output_dir})
+      echo "${label} output_dir: ${output_dir}"
       ;;
     l)
       flogfile=$OPTARG
-      logdir=$(dirname $flogfile)
-      if ! $(isDIR $logdir); then
-        echo "$label ERROR: $logdir is not a directory."
+      logdir=$(dirname ${flogfile})
+      if ! $(isDIR ${logdir}); then
+        echo "${label} ERROR: ${logdir} is not a directory."
         exit 1
       fi
-      logdir=$(full_dir $logdir)
-      flogfile=${logdir}/$(basename $flogfile)
-      touch $flogfile
-      echo "$label Using logfile: $flogfile instead of default" | tee -a $flogfile
+      logdir=$(full_dir ${logdir})
+      flogfile="${logdir}/$(basename ${flogfile})"
+      touch ${flogfile}
+      echo "${label} Using logfile: ${flogfile} instead of default" | tee -a ${flogfile}
       ;;
     \?)
-      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
       ;;
     : ) #Catch options without arguments
-      echo "$label ERROR: -$OPTARG requires an argument. Use -h for help."
+      echo "${label} ERROR: -$OPTARG requires an argument. Use -h for help."
       exit 1
     esac
 done
-[[ -z $pfile ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
+[[ -z ${pfile} ]] && echo "${label} ERROR: -p flag required. Use -h for help." && exit 1
 #remove used input args
 shift $((OPTIND -1))
 
@@ -134,19 +134,19 @@ shift $((OPTIND -1))
 # of the line that starts with "p.prepdir /whitespace/ = " and ends before ";"
 wd_dir=$(grep -oP 'p.prepdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
 # get task name based on wd_dir
-tsk_dir=$(dirname $wd_dir)
-tsk=${tsk_dir: -3}
+tsk_dir=$(dirname ${wd_dir})
+tsk="${tsk_dir: -3}"
 
 # if input_dir doesn't exist, use default from pfile
-[[ -z ${input_dir} ]] && input_dir=${RAW_DIR}/$tsk/
+[[ -z ${input_dir} ]] && input_dir="${RAW_DIR}/${tsk}/"
 # if output_dir doesn't exist, use default from pfile
-[[ -z ${output_dir} ]] && output_dir=${wd_dir}
+[[ -z ${output_dir} ]] && output_dir="${wd_dir}"
 # if logfile doesn't exist, use default from pfile
-[[ -z $flogfile ]] && logdir=${wd_dir}
+[[ -z ${flogfile} ]] && logdir="${wd_dir}"
 
 #check if there are remaining arguments, that have not yet been processed
 # if so, get subject IDs by calling get_subs
-get_subs $input_dir $output_dir "$@"
+get_subs ${input_dir} ${output_dir} "$@"
 run_subs=( "${SUBS[@]}" )
 
 # extract prefix list from parameters file by finding the string between 3 uppercase letters and .m
@@ -154,8 +154,8 @@ steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K.*?(?=.m)')
 
 # cycle through subjects since SPM12w can't run more than one subject at a time
 for subid in "${run_subs[@]}"; do 
-	if [[ -z $flogfile ]]; then logfile=${logdir}/${subid}/LOG_spmw.txt; 
-	else logfile=$flogfile; fi
+	if [[ -z ${flogfile} ]]; then logfile="${logdir}/${subid}/LOG_spmw.txt";
+	else logfile="${flogfile}"; fi
 
 	echo "${label} $(date) Beginning SPM12w analysis of subject ${subid} with pfile \
 ${pfile}" | tee -a "${logfile}"
@@ -168,13 +168,13 @@ ${pfile}" | tee -a "${logfile}"
 	# if unwarp AND normalization are on, skip 'r' prefix (not written out if both of these steps are included)
   if [[ $(echo ${steps} | grep -o 'uw') ]]; then
           steps=$(echo ${steps} | sed 's/r//')
-          echo "${label} 'r' removed. steps=$steps"
+          echo "${label} 'r' removed. steps=${steps}"
         fi
 	# update epi_r##.nii* files to their most recent versions
-	update_nii ${wd_dir} ${steps} ${SUBIDS[@]}
+	update_nii "${wd_dir}" "${steps}" "${SUBIDS[@]}"
 
 	echo "${label} DONE. $(date)" | tee -a "${logfile}"
 done
 
 # move current output file to output directory
-bash $SCRIPT_DIR_UTIL/cleanup_output $SLURM_JOB_ID
+bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"

@@ -55,7 +55,7 @@ if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
 # Source globals
 ## Check if PROJECT_DIR is already known
 if [[ ! -z $PROJECT_DIR ]]; then
-	source ${PROJECT_DIR}/scripts/globals.par
+	source "${PROJECT_DIR}/scripts/globals.par"
 ## check if globals is in the current directory
 elif [[ -f ./globals.par ]]; then
 	source globals.par
@@ -67,7 +67,7 @@ elif [[ -z $SLURM_JOB_ID ]]; then
 	source "${script_dir%scripts/*}/scripts/globals.par"
 ##error out if we can't find globals with any of these strategies
 else
-	echo "$label ERROR: can't find globals.par. Please source globals.par before starting."
+	echo "${label} ERROR: can't find globals.par. Please source globals.par before starting."
 	exit
 fi
 
@@ -93,11 +93,11 @@ while getopts ":p:h" opt; do
       fi
 		;;
 		\?)
-      echo "$label ERROR: unknown flag specified: ${opt}. Use --help for help."
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use --help for help."
       exit 1
     ;;
     : ) #Catch options without arguments
-      echo "$label ERROR: $OPTARG requires an argument. Use --help for help."
+      echo "${label} ERROR: ${OPTARG} requires an argument. Use --help for help."
       exit 1
     esac
 done
@@ -105,7 +105,7 @@ done
 shift $((OPTIND -1))
 #check if there are remaining arguments, that have not yet been processed
 if [[ -z $@ ]]; then
-  echo "$label ERROR: missing subject argument. Use -h for help"
+  echo "${label} ERROR: missing subject argument. Use -h for help"
   exit 1
 fi
 
@@ -140,7 +140,7 @@ touch "${logfile}"
 echo "${label} Starting glm analysis on $(date)" | tee "${logfile}"
 echo "${label} Analyzing ${epi} in ${prep_dir}" | tee -a "${logfile}"
 echo "${label} Using template ${template} with output dir ${glm_dir}" \
-  | tee -a "$logfile"
+  | tee -a "${logfile}"
 
 TR=$( read_json_value "RepetitionTime" "$(dirname ${prep_dir})/${epi%.nii*}.json" )
 NVOLS=$( fslnvols "${prep_dir}/${epi}" )
@@ -152,7 +152,7 @@ template="${PROJECT_DIR}/auxil/fsl_designs/templates/${template}"
 sub_template_dir=$(dirname $(dirname ${template}))/${subject}
 mkdir -p $sub_template_dir
 cat ${template} \
-	| sed "s|<<TR>>|$TR|g" \
+	| sed "s|<<TR>>|${TR}|g" \
 	| sed "s|<<NVOLS>>|$NVOLS|g" \
 	| sed "s|<<hFilter>>|${hFilter}|g" \
 	| sed "s|<<tempFilt>>|${tempFilt}|g" \
@@ -169,7 +169,7 @@ cat ${template} \
 	> ${sub_template_dir}/glm_${subject}_${glm_name}.fsf
 
 #copy necessary files to the tmp dir
-cp ${sub_template_dir}/glm_${subject}_${glm_name}.fsf ${tmp_rst_dir}/design.fsf
+cp "${sub_template_dir}/glm_${subject}_${glm_name}.fsf" "${tmp_rst_dir}/design.fsf"
 cp "${prep_dir}/${epi}" "${tmp_rst_dir}"
 echo "${label} creating design matrix" | tee -a "${logfile}"
 

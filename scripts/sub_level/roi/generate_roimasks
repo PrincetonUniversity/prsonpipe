@@ -60,15 +60,15 @@ source "${PROJECT_DIR}/scripts/globals.par"
 
 #logfile variables
 label="[GEN_ROI]"
-logfile=${PROJECT_DIR}/auxil/LOG_genROI.txt
+logfile="${PROJECT_DIR}/auxil/LOG_genROI.txt"
 
 #Parse flags other than help
 while getopts ":s:r:h" opt; do
-  case $opt in
+  case ${opt} in
     s)
-      specfile=$OPTARG
+      specfile=${OPTARG}
       #check if the file exists
-      if [[ ! -f $specfile ]]; then
+      if [[ ! -f ${specfile} ]]; then
         if [[ -f ${PROJECT_DIR}/auxil/roi_masks/${specfile} ]]; then
           specfile="${PROJECT_DIR}/auxil/roi_masks/${specfile}"
         elif [[ -f ${PROJECT_DIR}/auxil/roi_masks/${specfile}/specs.txt ]]; then
@@ -76,7 +76,7 @@ while getopts ":s:r:h" opt; do
         elif [[ -f ${PROJECT_DIR}/${specfile} ]]; then
           specfile="${PROJECT_DIR}/${specfile}"
         else
-          echo "$label ERROR: ROI spec file $specfile not found."
+          echo "${label} ERROR: ROI spec file ${specfile} not found."
           exit 1
         fi
       fi
@@ -84,12 +84,12 @@ while getopts ":s:r:h" opt; do
     r)
       refvol=$OPTARG
       #check if the file exists
-      if [[ ! -f $refvol ]]; then
-        if [[ $refvol == 'DARTEL' ]]; then
+      if [[ ! -f ${refvol} ]]; then
+        if [[ ${refvol} == 'DARTEL' ]]; then
           #//todo: read this out from DARTEL pfile/script
-          refvol=${PKG_DIR}/SPM8/toolbox/Seg/TPM.nii
+          refvol="${PKG_DIR}/SPM8/toolbox/Seg/TPM.nii"
         else
-          echo "$label ERROR: reference volume $refvol not found."
+          echo "${label} ERROR: reference volume ${refvol} not found."
           exit 1
         fi
       fi
@@ -99,64 +99,64 @@ while getopts ":s:r:h" opt; do
       exit
       ;;
     \?)
-      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
       ;;
     : ) #Catch options without arguments
-      echo "$label ERROR: $OPTARG requires an argument. Use -h for help."
+      echo "${label} ERROR: ${OPTARG} requires an argument. Use -h for help."
       exit 1
     esac
 done
 #remove used input args
 shift $((OPTIND -1))
 
-if [[ -z $specfile ]]; then
-  echo "$label ERROR: no ROI spec file specified. Use -h for help."
+if [[ -z ${specfile} ]]; then
+  echo "${label} ERROR: no ROI spec file specified. Use -h for help."
   exit 1
 fi
-if [[ -z $refvol ]]; then
-  echo "$label ERROR: no reference volume specified. Use -h for help."
+if [[ -z ${refvol} ]]; then
+  echo "${label} ERROR: no reference volume specified. Use -h for help."
   exit 1
 fi
 
 #set up the log file (after arg processing, to avoid deleting on -h call)
-echo "$label running generate_roimasks on $(date)" | tee $logfile
-echo "$label using node: $(hostname)" | tee -a $logfile
-echo "$label" | tee -a $logfile
-echo -e "$label generating ROIs specified in $specfile \n \
-with dimensions from $refvol" | tee -a $logfile
+echo "${label} running generate_roimasks on $(date)" | tee ${logfile}
+echo "${label} using node: $(hostname)" | tee -a ${logfile}
+echo "${label}" | tee -a ${logfile}
+echo -e "${label} generating ROIs specified in ${specfile} \n \
+with dimensions from ${refvol}" | tee -a ${logfile}
 ################################################################################
 #make sure the module command works, even within slurm
 #source /etc/profile.d/modules.sh
 #load fsl
 module load fsl
 
-roidir=$(dirname $specfile)
+roidir=$(dirname ${specfile})
 
-pushd $roidir > /dev/null
+pushd ${roidir} > /dev/null
 while read p; do
-  name=$(echo $p | cut -d , -f 1)
-  loc=$(echo $p | cut -d , -f 2)
-  size=$(echo $p |  cut -d , -f 3)
+  name=$(echo ${p} | cut -d , -f 1)
+  loc=$(echo ${p} | cut -d , -f 2)
+  size=$(echo ${p} |  cut -d , -f 3)
 
-  echo "$label creating $name, at $loc, size $size" | tee -a $logfile
+  echo "${label} creating ${name}, at ${loc}, size ${size}" | tee -a ${logfile}
   #convert mm to voxel coordinates based on template
-  voxloc=$(echo $loc | std2imgcoord -img $refvol -std $refvol -vox -)
+  voxloc=$(echo ${loc} | std2imgcoord -img ${refvol} -std ${refvol} -vox -)
   #add '1' after each coordinate for the initial size, and 0 for time
-  fsl_coords=$(echo "$voxloc 0 " | sed -E 's/[[:space:]]+/ 1 /g')
+  fsl_coords=$(echo "${voxloc} 0 " | sed -E 's/[[:space:]]+/ 1 /g')
   #create a point in specified location
-  fslmaths $refvol -mul 0 -add 1 -roi $fsl_coords "point_$name" -odt float
+  fslmaths ${refvol} -mul 0 -add 1 -roi ${fsl_coords} "point_${name}" -odt float
   #expand it to a sphere with specified size
-  fslmaths "point_$name" -kernel sphere $size -fmean "roi_$name" -odt float
+  fslmaths "point_${name}" -kernel sphere ${size} -fmean "roi_${name}" -odt float
   #binarize it
-  fslmaths "roi_$name" -bin "roi_$name"
+  fslmaths "roi_${name}" -bin "roi_${name}"
   #optionally, mask it with grey matter //todo
   #fslmaths "roi_$name" -mas ../TPM_bin -bin "roi_$name"
   rm point_${name}*
-  echo "$label created: $name" | tee -a $logfile
+  echo "${label} created: ${nam}e" | tee -a ${logfile}
 
-done < $specfile
+done < ${specfile}
 
 popd > /dev/null
-echo "$label Done. $(date)" | tee -a $logfile
+echo "${label} DONE. $(date)" | tee -a ${logfile}
 

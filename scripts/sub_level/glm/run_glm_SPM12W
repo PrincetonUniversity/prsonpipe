@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 # 
 # May 8, 2017: Miriam Weaverdyck updated script to work with new filestructure/standards
 #
@@ -38,7 +38,7 @@ d="$(dirname -- "$(pwd)")"
 # source globals.par
 source "${d%scripts*}/scripts/globals.par"
 # source functions
-source ${SCRIPT_DIR_UTIL}/funcs
+source "${SCRIPT_DIR_UTIL}/funcs"
 
 ######################### SET UP & PARSE ARGUMENTS #############################
 function help_func () {
@@ -75,71 +75,71 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 
 #Parse flags other than help
 while getopts "p:i:o:l:d:" opt; do
-  case $opt in
+  case ${opt} in
     p)
       pfile=${SCRIPT_DIR}/sub_level/glm/$(basename $OPTARG)
-      if [ ! -f $pfile ]; then
-        echo "$label ERROR: pfile $pfile does not exist."
+      if [ ! -f ${pfile} ]; then
+        echo "${label} ERROR: pfile ${pfile} does not exist."
         exit 1
       fi
-      echo "$label Using pfile: $pfile"
+      echo "${label} Using pfile: ${pfile}"
       ;;
     i)
           input_dir=${PREP_DIR}/$OPTARG
       if ! $(isDIR ${input_dir}); then
-        echo "$label ERROR: input directory $input_dir is not a directory."
+        echo "${label} ERROR: input directory ${input_dir} is not a directory."
         exit 1
       fi
-      input_dir=$(full_dir $input_dir)
-      echo "$label input_dir: $input_dir"
+      input_dir=$(full_dir ${input_dir})
+      echo "${label} input_dir: ${input_dir}"
       ;;
     o)
-          output_dir=${PROJECT_DIR}/analysis/${USER}/glm/$OPTARG
-          mkdir -p $output_dir
+          output_dir="${PROJECT_DIR}/analysis/${USER}/glm/$OPTARG"
+          mkdir -p "${output_dir}"
       # if ! $(isDIR ${output_dir}); then
-      #   echo "$label ERROR: output directory $output_dir is not a directory."
+      #   echo "${label} ERROR: output directory $output_dir is not a directory."
       #   exit 1
       # fi
       # output_dir=$(full_dir $output_dir)
-      echo "$label output_dir: $output_dir"
+      echo "${label} output_dir: ${output_dir}"
       ;;
     l)
       flogfile=$OPTARG
-      logdir=$(dirname $flogfile)
-      if ! $(isDIR $logdir); then
-        echo "$label ERROR: $logdir is not a directory."
+      logdir=$(dirname ${flogfile})
+      if ! $(isDIR ${logdir}); then
+        echo "${label} ERROR: ${logdir} is not a directory."
         exit 1
       fi
-      logdir=$(full_dir $logdir)
-      flogfile=${logdir}/$(basename $flogfile)
-      touch $flogfile
-      echo "$label Using logfile: $flogfile instead of default" | tee -a $flogfile
+      logdir=$(full_dir ${logdir})
+      flogfile=${logdir}/$(basename ${flogfile})
+      touch ${flogfile}
+      echo "${label} Using logfile: ${flogfile} instead of default" | tee -a ${flogfile}
       ;;
     d)
       jobIDs=$OPTARG
       if [[ ${jobIDs:0:1} == d ]]; then
         dependency_flag=${jobIDs:16}
       elif [[ ${jobIDs:0:2} == '--' ]]; then
-        dependency_flag=$jobIDs
+        dependency_flag=${jobIDs}
       elif [[ ${jobIDs:0:5} == after ]]; then
-        dependency_flag='--dependency='$jobIDs
+        dependency_flag='--dependency='${jobIDs}
       elif $(isNUM ${jobIDs:0}); then
-        dependency_flag='--dependency=afterok:'$jobIDs
+        dependency_flag='--dependency=afterok:'${jobIDs}
       else
-        echo "${label} ERROR: $jobIDs is not a valid dependency arg. Use -h for help."
+        echo "${label} ERROR: ${jobIDs} is not a valid dependency arg. Use -h for help."
         exit 1
       fi
       ;;
     \?)
-      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
       ;;
     : ) #Catch options without arguments
-      echo "$label ERROR: -$OPTARG requires an argument. Use -h for help."
+      echo "${label} ERROR: -${OPTARG} requires an argument. Use -h for help."
       exit 1
     esac
 done
-[[ -z $pfile ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
+[[ -z ${pfile} ]] && echo "${label} ERROR: -p flag required. Use -h for help." && exit 1
 if [[ -z ${input_dir} ]]; then 
   glm_task=$(get_matlab_var 'tsk' "${pfile}")
   glm_wd=$(get_matlab_var 'wd' "${pfile}")
@@ -156,31 +156,31 @@ shift $((OPTIND -1))
 
 ############################## MAIN BODY OF SCRIPT #############################
 logfile_name=LOG_glm.txt
-[[ -z $flogfile ]] && logfile=${output_dir}/${logfile_name}
+[[ -z ${flogfile} ]] && logfile=${output_dir}/${logfile_name}
 
-pfile_name=$(basename $pfile)
+pfile_name=$(basename ${pfile})
 DATE=`date +%Y%m%d`
 cp ${pfile} ${output_dir}/${DATE}_${pfile_name}
 
 #check if there are remaining arguments, that have not yet been processed
 # if so, get subject IDs by calling get_subs
-get_subs $input_dir $output_dir "$@"
+get_subs ${input_dir} ${output_dir} "$@"
 run_subs=( "${SUBS[@]}" )
 
 unset all_jobs
 
 for sub in ${run_subs[@]}; do
-  echo "${label} Beginning level 1 GLM analysis of $sub for $TSK with pfile $pfile" | tee -a $logfile
-  subdir=${output_dir}/${sub}
+  echo "${label} Beginning level 1 GLM analysis of ${sub} for ${TSK} with pfile ${pfile}" | tee -a ${logfile}
+  subdir="${output_dir}/${sub}"
   mkdir -p ${subdir}
-  logfile_sub=${subdir}/${logfile_name}
+  logfile_sub="${subdir}/${logfile_name}"
 
-  jobname=glm_${sub}
+  jobname="glm_${sub}"
   flags="-o ${OUT_DIR}/${jobname}-%j.out --mail-user=$USER_EMAIL -J ${jobname} ${dependency_flag}"
-  prev_jobid=$(sbatch $flags sbatch_glm_SPM12W -p $pfile -l ${logfile_sub} $sub | grep -o '[0-9]*')
+  prev_jobid=$(sbatch ${flags} sbatch_glm_SPM12W -p ${pfile} -l ${logfile_sub} ${sub} | grep -o '[0-9]*')
   all_jobs+=":${prev_jobid}"
     
-  echo "${label} ${jobname} job ${prev_jobid} submitted for level 1 GLM for $subject with pfile $pfile" | tee -a ${logfile_sub} $logfile
+  echo "${label} ${jobname} job ${prev_jobid} submitted for level 1 GLM for $subject with pfile $pfile" | tee -a ${logfile_sub} ${logfile}
   echo ${label}
 done
 

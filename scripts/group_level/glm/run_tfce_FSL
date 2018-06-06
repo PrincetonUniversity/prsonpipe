@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# jmildner@princeton.edu, September 21 2017
+# September 21 2017: Judith Mildner (jmildner@princeton.edu)
 #
 # Run TFCE corrected second level (group) glm. Either one sample or two sample test.
 ################################################################################
