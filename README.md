@@ -54,12 +54,11 @@ This directory will contain all raw data, in nifti format, after it has been con
 * (TSK) (Again, one directory per task)
 
 ## scripts
-This is where the magic happens. Each package has its own directory
-* [[BXH_QA]] (Quality assurance scripts)
-* [[DARTEL]] (directory)
-* [[FSL]] (directory)
-* [[SPM12w]] (SPM12w)
+This contains all code. It's organized by function
+* [[BXH_QA]] (Quality assurance scripts, under construction)
+* [[group_level]] (2nd level analysis scripts)
+* [[preprocess]] (preprocessing scripts)
+* [[sub_level]] (1st level analysis scripts)
 * [[utils]] (directory contains conversion scripts, functions, logging scripts, etc)
-* [[init_project]]
-* [[preprocess]]
-* [[retrieve_dcm]]
+* [[init_project]] (set up your project after filling out parameters)
+* [[retrieve_dcm]] (get dicom files from the lab volume)
