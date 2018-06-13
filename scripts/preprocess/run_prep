@@ -32,7 +32,7 @@ label='[PREP]'
 
 function help_func () {
 cat << END
-sbatch_SPM12w_prep [-t <TSK>] [-p <parfile>] [-a <prepdir>] [-d <job(s)>] [-ch] [<subs>]
+run_prep [-t <TSK>] [-p <parfile>] [-a <prepdir>] [-d <job(s)>] [-ch] [<subs>]
 
   Description:
   ------------
