@@ -60,7 +60,7 @@ awk '/START_RO/{flag=1} flag; /END_RO/{flag=0}' ../${studyinfo_file} \
 
 # check if json is valid. python -mjson.tool will return error if it's not.
 # grab the error message but ignore stdout, and make sure exit code is 0 no matter what
-invalid_json_msg="$(python -mjson.tool scripts/import_data/par_import.json \
+invalid_json_msg="$(python -mjson.tool ${SCRIPT_DIR_IMPORT}/par_import.json \
                     2>&1 > /dev/null || true)"
 if [[ -n ${invalid_json_msg} ]]; then
   echo "${label} WARNING: import parameter json contains invalid syntax: "
@@ -106,10 +106,14 @@ fi
 if [[ $1 == 'overwrite' ]]; then rm -fr "${RAW_DIR}/*"; rm -fr "${PREP_DIR}/*"; rm -fr "${QA_DIR}/*"; fi
 
 #Create project dirs
-echo "${label} Running ${SCRIPT_DIR_UTIL}/setup_backup_dirs to make sure backup directories exist on lab volume"
-bash ${SCRIPT_DIR_UTIL}/setup_backup_dirs
+[[ ! -d "${BACKUP_DIR}" ]] && \
+  echo "${label} ${BACKUP_DIR} does not exist. Creating ${BACKUP_DIR}" && \
+  mkdir "${BACKUP_DIR}"
+
 echo "${label} Copying your file structure and scripts to your backup dir"
-rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* --exclude=.git ${PROJECT_DIR} ${BACKUP_DIR}
+rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* --exclude=.git \
+  "${PROJECT_DIR}" "${BACKUP_DIR}/"
+echo "${label} Setting up task subdirectories in raw and prep"
 for name in ${TASKS[@]}; do
   mkdir -p ${RAW_DIR}/${name}/
   mkdir -p ${PREP_DIR}/${name}/
