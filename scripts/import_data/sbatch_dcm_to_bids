@@ -1,0 +1,234 @@
+#!/usr/bin/env bash
+# sbatch_dcm_to_bids
+#
+# June 4, 2018: created by Judith Mildner (jmildner@)
+#
+# Convert data from dcm format to nifti according to BIDS file naming and
+# make sure all niftis are 32-bit using fslmaths.
+################################################################################----------
+# Packages used:
+#   fsl/5.0.9
+#   dcm2niix
+#   pigz
+# Files sourced:
+#   globals.par
+#   funcs
+# Flags:
+#  -i <input_dir>         : Directory containing raw dicoms
+#  [-o <output_dir>]      : Full path to bids data (default: ${BACKUP_DIR}/bids)
+#  [-p <par_import.json>] : Key to filename conversion in json format
+#                           (default ${SCRIPT_DIR_IMPORT}/par_import.json)
+#  [-l <path to logfile>] : Location for master log file
+#                           (will only write errors to master log file).
+#                           Detailed log file in subject's subdirectory in output_dir.
+# Arguments:
+#   <sub>                 : Subject ID (e.g. 's000')
+################################################################################----------
+#SBATCH -J dcm_to_bids
+#SBATCH -o dcm_to_bids-%j.out
+#SBATCH -t 61
+#SBATCH -D ./
+#SBATCH --mail-type=FAIL
+#SBATCH -p all
+
+set -e
+echo "on host: $(hostname)"
+label='[DCMTOBIDS]'
+
+module load fsl/5.0.9
+module load dcm2niix
+[[ $(hostname | grep della) ]] && module load pigz
+
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
+source "${SCRIPT_DIR_UTIL}/funcs"
+
+function help_func () {
+cat << END
+sbatch_dcm_to_bids -i <input_dir> -o <output_dir> [-p <par_import.json>]
+                   [-l <path to master logfile>] [-h] <subject ID>
+
+  Description:
+  ------------
+  Convert data from dcm format to nifti according to BIDS naming conventions.
+
+  Usage:
+  ------------
+  [-h | --help | -help]
+    Display this help
+  -i <input_dir>
+    Directory containing raw dicoms
+  -o <output_dir>
+    Full path to converted subject data
+    (default: ${BACKUP_DIR}/bids)
+  [-p <par_import.json>]
+    Key to filename conversion in json format (default ${SCRIPT_DIR_IMPORT}/par_import.json)
+  [-l <path to logfile>]
+    Location for master log file (will only write errors to master log file).
+    Keeps more detailed log file in subject's subdirectory in output_dir.
+  <sub>
+    Subject ID (e.g. 's000')
+END
+}
+if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
+################################################################################----------
+while getopts ":l:i:o:p:h" opt; do
+  case "${opt}" in
+    h)
+      help_func
+      exit
+    ;;
+    i)
+      input="${OPTARG}"
+      input_dir="$(full_dir "${input}" "${BACKUP_DIR}")"
+      # full_dir returns an error message if dir not found, so use that here
+      [[ ! -d ${input_dir} ]] && echo "${label} ${input_dir}" && exit 1
+    ;;
+    o)
+      output="${OPTARG%/}"
+      output_dir="$(full_dir "${output}" "${BACKUP_DIR}")"
+      # full_file returns an error message if dir not found, so use that here
+      if [[ ! -d ${output_dir} ]]; then
+        output_dir="$(full_dir "$(dirname "${output}")" "${BACKUP_DIR}")"
+        if [[ -d ${output_dir} ]]; then
+          output_dir="${output_dir}/bids"
+        else
+          echo "${label} ERROR: ${output_dir}"
+          exit 1
+        fi
+      fi
+    ;;
+    p)
+      key="${OPTARG}"
+      scan_key="$(full_file "${key}" "${SCRIPT_DIR}")"
+      [[ ! -f ${scan_key} ]] && echo "${label} ${scan_key}" && exit 1
+    ;;
+    l)
+      masterlog="${OPTARG}"
+      if [[ ! -d $(full_dir $(dirname "${masterlog}")) ]]; then
+        echo "${label} ERROR: directory for logfile ${masterlog} does not exist."
+        exit 1
+      fi
+    ;;
+    \?)
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+    ;;
+    : )
+      echo "${label} ERROR: $OPTARG requires an argument. Use -h for help."
+      exit 1
+    ;;
+  esac
+done
+# remove used input args
+shift $(( OPTIND - 1 ))
+
+# check if all required arguments are provided
+if [[ -z ${input_dir} ]]; then
+  echo "${label} ERROR: input directory argument (-i) required. Use -h for help."
+  exit 1
+fi
+if [[ -z ${output_dir} ]]; then
+  echo "${label} ERROR: output directory argument (-o) required. Use -h for help."
+  exit 1
+fi
+if [[ -z ${scan_key} ]]; then
+  if [[ -f ${SCRIPT_DIR_IMPORT}/par_import.json ]]; then
+    scan_key="${SCRIPT_DIR_IMPORT}/par_import.json"
+  else
+    echo "${label} ERROR: par file "${SCRIPT_DIR_IMPORT}/par_import.json" not found."
+    echo "${label} Specify a different location with -p. Use -h for help."
+    exit 1
+  fi
+fi
+if [[ $(isSUB $@) == false ]]; then
+  if [[ $@ =~ '[0-9]{3}' ]]; then
+    subj="s$@"
+  else
+    echo "${label} ERROR: no valid subject ID provided. Use -h for help."
+  fi
+else
+  subj=$@
+fi
+################################################################################----------
+echo "${label} converting dicoms in ${input_dir} to bids in ${output_dir}"
+
+temp_json_dir=$(mktemp -d -t tmp.XXXXXX)
+temp_bids_dir=$(mktemp -d -t tmp.XXXXXX)
+temp_sub_dir="${temp_bids_dir}/sub-${subj}"
+mkdir "${temp_sub_dir}"
+conversion_file="${temp_sub_dir}/conversion_data.csv"
+logfile="${temp_bids_dir}/logs/LOG_dcmToBids_${subj}.txt"
+mkdir -p $(dirname ${logfile})
+[ ! -d "${output_dir}/logs" ] && mkdir "${output_dir}/logs"
+
+echo "${label} Unpacking ${subj} at $(date)" | tee "${logfile}"
+
+function error() {
+  echo "${label} ERROR: an error occurred. Job: ${SLURM_JOB_ID}" \
+    | tee -a ${logfile}
+  echo "${label} cleaning up..." | tee -a ${logfile}
+  mv ${logfile} "${output_dir}/${logfile#${temp_bids_dir}/}"
+  rm -rf ${temp_json_dir}
+  rm -rf ${temp_bids_dir}
+  if [[ -f ${masterlog} ]];then
+    echo "${label} ERROR: an error occurred in subject ${subj}, job ${SLURM_JOB_ID}" \
+      | tee -a ${masterlog}
+  fi
+  # move current output file to output directory
+  bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"
+  exit 1
+}
+# make sure to run error function when exiting before script is finished
+trap 'error' EXIT
+
+echo "${label} Getting metadata for dicoms in ${input_dir} at $(date)" \
+        | tee -a "${logfile}"
+
+for file in "${input_dir}"/dcm/*.gz; do
+  STEM="$(basename "${file}" .gz)"
+  unpigz -c "${file}" > "${temp_json_dir}/${STEM}"
+done
+dcm2niix -b o "${temp_json_dir}" 1>/dev/null | tee -a "${logfile}"
+
+echo "${label} getting conversion data for ${subj} based on ${scan_key} at $(date)" \
+        | tee -a "${logfile}"
+python3 get_conversion_names.py -i "${temp_json_dir}" -t dcm-bids -k "${scan_key}" \
+-o "${conversion_file}" "${subj}" | tee -a "${logfile}"
+
+echo "${label} converting dicoms at $(date)" | tee -a "${logfile}"
+# get all dicom series numbers to convert
+all_series_numbers=( $(cat "${conversion_file}" | cut -d ',' -f1) )
+# dcm2niix can convert up to 16 specific series in one call. Do that if possible.
+if (( ${#all_series_numbers[@]} < 16 )); then loop=false; else loop=true; fi
+if [[ ${loop} == false ]]; then
+    n_flags=( "${all_series_numbers[@]/#/-n }" )
+    dcm2niix ${n_flags[@]} -i y -b y -ba y -z y \
+    -o "${temp_sub_dir}" "${temp_json_dir}" 1>${logfile} | tee -a "${logfile}"
+fi
+# loop through each line of the conversion data to get correct filenames
+while IFS=,$'\r' read -r series_number default_name bids_name damn_name; do
+    # convert one by one if there were too many scans to go at once
+    if [[ ${loop} == true ]]; then
+        dcm2niix -n "${series_number}" -i y -b y -ba y -z y -s y \
+        -o "${temp_sub_dir}" "${temp_json_dir}" 1>${logfile} | tee -a "${logfile}"
+    fi
+    echo "${label} moving ${default_name} to ${bids_name}" | tee -a "${logfile}"
+    mkdir -p "$(dirname "${temp_sub_dir}/${bids_name}")"
+    # make sure images are stored in 32 bit
+    fslmaths "${temp_sub_dir}/${default_name}" "${temp_sub_dir}/${bids_name}" -odt float
+    rm -f "${temp_sub_dir}/${default_name}"
+    mv "${temp_sub_dir}/${default_name%.nii.gz}.json" "${temp_sub_dir}/${bids_name%.nii.gz}.json"
+done < "${conversion_file}"
+
+cp -r "${temp_sub_dir}" "${output_dir}/"
+mv ${logfile} "${output_dir}/${logfile#${temp_bids_dir}/}"
+rm -rf ${temp_json_dir}
+rm -rf ${temp_bids_dir}
+echo "${label} DONE at $(date)"
+trap - EXIT
+# move current output file to output directory
+bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"

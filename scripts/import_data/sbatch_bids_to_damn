@@ -1,0 +1,226 @@
+#!/usr/bin/env bash
+# sbatch_bids_to_damn
+#
+# June 11, 2018: Judith Mildner
+#
+# convert data in bids format to DAMN pipeline format (i.e. change names)
+################################################################################----------
+# Files sourced:
+#   globals.par
+#   funcs
+# Flags:
+#   [-i <input_dir>]          : Directory containing bids formatted niftis.
+#                               (Default: "${BACKUP_DIR}/bids")
+#  [-o <output_dir>]          : Full path to output niftis with DAMN pipeline
+#                               naming conventions (default: ${RAW_DIR})
+#  [-p <conversion_data.csv>] : File containing bids to damn naming mapping
+#                               (output of get_conversion_names.py & sbatch_dcm_to_bids).
+#                               (Default: ${input_dir}/sub-<subject>/conversion_data.csv)
+#  [-m]                       : Make new bids to damn naming file at
+#                               ${input_dir}/sub-<subID>/damn_conversion.csv
+#  [-l <path to logfile>]     : Location for master log file
+#                               (will only write errors to master log file).
+#                               More detailed log file in output_dir.
+#  <sub>
+#    Subject ID (e.g. 's000')
+# Arguments:
+#
+################################################################################----------
+#SBATCH -J bids_to_damn
+#SBATCH -o bids_to_damn-%j.out
+#SBATCH -t 61
+#SBATCH -D ./
+#SBATCH --mail-type=FAIL
+#SBATCH -p all
+
+set -e
+echo "on host: $(hostname) "
+label="[BIDSTODAMN]"
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
+source "${SCRIPT_DIR_UTIL}/funcs"
+
+function help_func () {
+cat << END
+sbatch_bids_to_damn [-i <input_dir>] [-o <output_dir>] [-p <conversion_data.json>]
+                   [-l <path to master logfile>] [-m] [-h] <subject ID>
+
+  Description:
+  ------------
+  Move BIDS formatted nifti's to DAMN pipeline naming conventions.
+
+  Usage:
+  ------------
+  [-h | --help | -help]
+    Display this help
+  [-i <input_dir>]
+    Directory containing bids formatted nifti's. (Default: "${BACKUP_DIR}/bids")
+  [-o <output_dir>]
+    Full path to output nifti's with DAMN pipeline naming conventions
+    (default: ${RAW_DIR})
+  [-p <conversion_data.csv>]
+    File containing bids to damn naming mapping (output of get_conversion_names.py).
+    (Default: ${input_dir}/sub-<subject>/conversion_data.csv)
+  [-m]
+    Make new bids to damn naming file at ${input_dir}/sub-<subID>/damn_conversion.csv
+  [-l <path to logfile>]
+    Location for master log file (will only write errors to master log file).
+    Keeps more detailed log file in subject's subdirectory in output_dir.
+  <sub>
+    Subject ID (e.g. 's000')
+END
+}
+if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
+################################################################################----------
+while getopts ":l:i:o:p:mh" opt; do
+  case "${opt}" in
+    h)
+      help_func
+      exit
+    ;;
+    i)
+      input="${OPTARG}"
+      input_dir="$(full_dir "${input}" "${BACKUP_DIR}")"
+      # full_dir returns an error message if dir not found, so use that here
+      [[ ! -d ${input_dir} ]] && echo "${label} ${input_dir}" && exit 1
+    ;;
+    o)
+      output="${OPTARG%/}"
+      output_dir="$(full_dir "${output}" "${RAW_DIR}")"
+      # full_file returns an error message if dir not found, so use that here
+      if [[ ! -d ${output_dir} ]]; then
+        echo "${label} ERROR: ${output_dir}"
+        exit 1
+      fi
+    ;;
+    p)
+      key="${OPTARG}"
+      conversion_file="$(full_file "${key}")"
+      [[ ! -f ${scan_key} ]] && echo "${label} ${scan_key}" && exit 1
+    ;;
+    m)
+      make_conversion_file=true
+    ;;
+    l)
+      masterlog="${OPTARG}"
+      if [[ ! -d $(full_dir $(dirname "${masterlog}")) ]]; then
+        echo "${label} ERROR: directory for logfile ${masterlog} does not exist."
+        exit 1
+      fi
+    ;;
+    \?)
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+    ;;
+    : )
+      echo "${label} ERROR: $OPTARG requires an argument. Use -h for help."
+      exit 1
+    ;;
+  esac
+done
+# remove used input args
+shift $(( OPTIND - 1 ))
+
+# check if all required arguments are provided
+if [[ -z ${input_dir} ]]; then
+  input_dir="${BACKUP_DIR}/bids"
+fi
+if [[ -z ${output_dir} ]]; then
+  output_dir="${RAW_DIR}"
+fi
+if [[ $(isSUB $@) == false ]]; then
+  if [[ $@ =~ '[0-9]{3}' ]]; then
+    subj="s$@"
+  else
+    echo "${label} ERROR: no valid subject ID provided. Use -h for help."
+  fi
+else
+  subj=$@
+fi
+if [[ -z ${conversion_file} && (${make_conversion_file} != true) ]]; then
+  conversion_file="${input_dir}/sub-${subj}/conversion_data.csv"
+  if [[ ! -f ${conversion_file} ]]; then
+    echo "${label} ERROR: conversion file "${conversion_file}" not found."
+    echo "${label} Specify a different location with -p, or make a new one with -m."
+    echo "${label} Use -h for help."
+    exit 1
+  fi
+fi
+################################################################################----------
+temp_out_dir=$(mktemp -d -t tmp.XXXXXX)
+temp_log_dir="${temp_out_dir}/logs"
+mkdir "${temp_log_dir}"
+logfile="${temp_log_dir}/LOG_bidsToDamn_${subj}.txt"
+
+function error() {
+  echo "${label} ERROR: an error occurred. Job: ${SLURM_JOB_ID}" \
+    | tee -a ${logfile}
+  echo "${label} cleaning up..." | tee -a ${logfile}
+  mv ${logfile} "${output_dir}/${logfile#${temp_log_dir}/}"
+  rm -rf ${temp_out_dir}
+  if [[ -f ${masterlog} ]];then
+    echo "${label} ERROR: an error occurred in subject ${subj}, job ${SLURM_JOB_ID}" \
+      | tee -a ${masterlog}
+  fi
+  # move current output file to output directory
+  bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"
+}
+# make sure to run error function when exiting before script is finished
+trap 'error' EXIT
+
+if [[ -z ${conversion_file} && (${make_conversion_file} == true) ]]; then
+  conversion_file="${temp_out_dir}/${subj}_conversion_data.csv"
+  python3 get_conversion_names.py -i "${input_dir}" -t bids-damn \
+    -o "${conversion_file}" "${subj}"
+fi
+
+while IFS=,$'\r' read -r -a scan_data; do
+  n_fields="${#scan_data[@]}"
+  damn_name="${scan_data[(( ${n_fields} - 1 ))]}"
+  bids_name="${scan_data[(( ${n_fields} - 2 ))]}"
+  if [[ ! -f ${bids_name} ]]; then
+    if [[ -f ${input_dir}/${bids_name} ]]; then
+      bids_file="${input_dir}/${bids_name}"
+    elif [[ -f ${input_dir}/${subj}/${bids_name} ]]; then
+      bids_file="${input_dir}/${subj}/${bids_name}"
+    elif [[ -f ${input_dir}/sub-${subj}/${bids_name} ]] ; then
+      bids_file="${input_dir}/sub-${subj}/${bids_name}"
+    fi
+    if [[ ! -f ${bids_file} ]]; then
+    echo ${bids_file}
+      echo "${label} ERROR: file $(basename "${bids_name}") not found in ${input_dir}" \
+        | tee -a "${logfile}"
+      exit 1
+    fi
+    bids_name="${bids_file}"
+  fi
+  echo "${label} Copying $(basename "${bids_name}") to ${damn_name}" | tee -a "${logfile}"
+  temp_task_dir="${temp_out_dir}/$(dirname ${damn_name})"
+  [[ ! -d "${temp_task_dir}" ]] && mkdir -p "${temp_task_dir}"
+  cp "${bids_name}" "${temp_out_dir}/${damn_name}"
+  cp "${bids_name%.nii.gz}.json" "${temp_out_dir}/${damn_name%.nii.gz}.json"
+done < "${conversion_file}"
+
+# copy all files meant for all tasks to each task dir
+if [[ -d ${temp_out_dir}/ALL ]]; then
+  shopt -s nullglob
+  for tsk_dir in ${temp_out_dir}/*/; do
+    if [[ $(basename ${tsk_dir}) != 'ALL' && $(basename ${tsk_dir}) != 'logs' ]]; then
+      cp -r "${temp_out_dir}"/ALL/*/ "${tsk_dir}/"
+    fi
+  done
+  rm -rf "${temp_out_dir}/ALL"
+  shopt -u nullglob
+fi
+
+echo "${label} moving all DAMN files to ${output_dir}"
+cp -r "${temp_out_dir}"/* "${output_dir}/"
+rm -rf "${temp_out_dir}"
+echo "${label} DONE. at $(date)" \
+  | tee -a "${output_dir}/logs/${logfile#${temp_log_dir}}"
+trap - EXIT
+# move current output file to output directory
+bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"

@@ -1,0 +1,231 @@
+#!/usr/bin/env bash
+# run_import_from_labvol
+#
+# June 12, 2018: Judith Mildner
+#
+# Get raw data from lab volume into pipeline's raw directory. Can retrieve from
+# dicom and convert dicom to bids along the way, or retrieve from bids format files
+################################################################################----------
+# Note: this script uses associative arrays, available only in bash 4+
+# Files sourced:
+#   globals.par
+# Flags:
+#   -p <par_import.json>  : Json file with import settings for each scan
+#   [-i <input_dir>]      : Input directory. Default is BACKUP_DIR/raw
+#   [-l <logfile>]        : Custom path to logfile. Default is raw/LOG_import.txt
+#   [-f]                  : Force import. Overwrite if data already exists
+#   [-d <jobID(s)>]       : Job dependencies. Will wait for these job(s) to finish
+# Arguments:
+#   [<subs>]              : Subject to import. Default all. Accepted keywords: 'all'
+#
+################################################################################----------
+set -e
+label='[IMPORT]'
+
+function help_func () {
+cat << END
+run_import_from_labvol -p <scan_list.json> [-i <input_dir>] [-d <job dependencies>]
+                       [-l <custom path to logfile] [-fh] [<subs>]
+
+  Description:
+  ------------
+  Gets raw data from lab volume into raw directory. Can retrieve from dicom or
+  bids formats. Converts dicom to bids format by default.
+
+  Usage:
+  ------------
+  [-h | --help | -help]
+    Display this help message.
+  -p <par_import.json>
+    Required if importing from dicoms. Json file with mapping of scans to dicom vars.
+    (Default: ${SCRIPT_DIR_IMPORT}/par_import.json)
+  [-f]
+    Force import (overwrite raw if it already exists)
+  [-i <input_dir>]
+    Input directory. Default is BACKUP_DIR/raw from globals
+    (will also check BACKUP_DIR/raw/dcm and BACKUP_DIR/raw/dicom or BACKUP_DIR/raw/bids)
+  [-l <path to logfile>]
+    Custom path to logfile (default: raw/LOG_import.txt)
+  [-d <jobID(s)>]
+    jobIDs that jobs launched in this script should wait for.
+    Valid form: one dependency '1111111' or multiple '2222222:3333333'
+  [<subs>]
+    Subjects to run. Default all. Keywords: 'all'.
+END
+}
+if [[ $@ =~ --help|-help ]]; then help_func; exit; fi
+################################################################################----------
+#Get the name of the directory this script is in, to create full path to globals.par
+script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
+#Assuming the scripts dir is somewhere in the full path, this finds globals.par
+source "${script_dir%scripts/*}/scripts/globals.par"
+source "${SCRIPT_DIR_UTIL}/funcs"
+[[ ! -d "${RAW_DIR}/logs" ]] && mkdir "${RAW_DIR}/logs"
+logfile="${RAW_DIR}/logs/LOG_import.txt"
+
+while getopts ":l:d:p:i:fh" opt; do
+  case "${opt}" in
+    l)
+      logfile="${OPTARG}"
+      if [[ ! -d $(full_dir $(dirname "${logfile}")) ]]; then
+        echo "${label} ERROR: directory for logfile ${logfile} does not exist."
+        exit 1
+      fi
+    ;;
+    d)
+      init_dependency="${OPTARG}"
+      re_jobs='^[0-9]+[0-9:]+$'
+      if [[ ! ${init_dependency} =~ ${re_jobs} ]]; then
+        echo "${label} ERROR: ${OPTARG} is not a valid job ID (or multiple jobIDs)."
+        echo "${label} Use -h for help."
+        exit 1
+      fi
+    ;;
+    p)
+      pfile="${OPTARG}"
+      if [[ ! -f $(full_file ${pfile}) ]]; then
+        echo "${label} ERROR: file ${OPTARG} not found."
+        exit 1
+      fi
+    ;;
+    i)
+      input_dir="${OPTARG}"
+      if [[ ! -d $(full_dir "${input_dir}" "${BACKUP_DIR}") ]]; then
+        echo "${label} ERROR: input directory ${input_dir} not found."
+        echo $(full_dir "${input_dir}" "${BACKUP_DIR}")
+        exit 1
+      fi
+    ;;
+    f)
+      force=true
+    ;;
+    h)
+      help_func
+      exit
+    ;;
+    \?)
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+    ;;
+    : )
+      echo "${label} ERROR: $OPTARG requires an argument. Use -h for help."
+      exit 1
+    ;;
+  esac
+done
+# remove used input args
+shift $((OPTIND - 1))
+# Set up standard sbatch flags
+mflag="--mail-user=${USER_EMAIL}" # Email address
+
+if [[ -z ${pfile} ]]; then
+  pfile="${SCRIPT_DIR_IMPORT}/par_import.json"
+  if [[ ! -f ${pfile} ]]; then
+    echo "${label} ERROR: pfile argument (-p) required. Use -h for help."
+    exit 1
+  fi
+fi
+#set up the log file (after arg processing, to avoid deleting on -h call)
+[[ -f ${logfile} ]] && mv "${logfile}" "${logfile}_archivedOn$(date +%y%m%d-%H%M)"
+echo "${label} running convert on $(date)" | tee -a ${logfile}
+if [[ -n ${init_dependency} ]]; then
+  echo "${label} Using initial dependency ${init_dependency}" | tee -a ${logfile}
+  dependency_flag="--dependency=afterok:${init_dependency}"
+fi
+
+#check if there are remaining arguments that have not yet been processed
+if [[ ! -z $@ ]]; then
+  if [[ $@ != all ]]; then
+    convert_subs=( "$@" )
+    num2subID ${convert_subs[@]}
+    convert_subs=( "${SUBIDS[@]}" )
+    echo "${label} Converting only subjects ${convert_subs[@]}." | tee -a ${logfile}
+  fi
+fi
+
+# get all subjects to convert
+if [[ -z ${input_dir} ]]; then
+  if [[ -d ${BACKUP_DIR}/raw/dcm ]]; then
+    input_dir="${BACKUP_DIR}/raw/dcm"
+  elif [[ -d ${BACKUP_DIR}/raw/dicom ]]; then
+    input_dir="${BACKUP_DIR}/raw/dicom"
+  elif [[ -d ${BACKUP_DIR}/raw ]]; then
+    input_dir="${BACKUP_DIR}/raw"
+  else
+    echo "${label} ERROR: raw data directory ${BACKUP_DIR}/raw not found." \
+      | tee -a "${logfile}"
+    exit 1
+  fi
+fi
+# get list of all subdirectories in input_dir that follow raw subject naming pattern
+full_subdir_re='^[^ ]*/[0-9]+[a-zA-Z_]+[0-9][0-9][0-9]'
+raw_data_dirs=( $(find "${input_dir}" -maxdepth 1 -regex "${full_subdir_re}") )
+declare -A raw_data_locations
+# create an associative array with sub IDs as keys and full paths as values
+for sub_dir in "${raw_data_dirs[@]}"; do
+  # match last 3 digits after _ in file name as subject ID
+  find_subnum_re='^[^ ]*/[0-9]+[a-zA-Z_]+_([0-9][0-9][0-9])'
+  if [[ ${sub_dir} =~ ${find_subnum_re} ]]; then
+    # use the if statement to get the regex match into the BASH_REMATCH variable
+    raw_data_locations["${BASH_REMATCH[1]}"]="${sub_dir}"
+  fi
+done
+
+# if no specific subjects provided, go through all raw data subjects (keys of array)
+[[ -z ${convert_subs} ]] && convert_subs=( ${!raw_data_locations[@]} )
+# find already imported data, if any
+shopt -s nullglob
+existing_data_dirs=( ${RAW_DIR}/*/s* )
+if (( ${#existing_data_dirs[@]} > 0 )); then
+  existing_data_subs_all=( "${existing_data_dirs[@]##*/}" )
+  existing_data_subs=( $(printf "%s\n" "${existing_data_subs_all[@]#s}" | sort -u) )
+else
+  existing_data_subs=( )
+fi
+
+for subject in ${convert_subs[@]#s}; do
+  if [[ $(element_in_array "${subject}" "${existing_data_subs[@]}") == 'false' ]] \
+    || [[ force == 'true' ]]; then
+    echo "${label} Importing subject ${subject}" | tee -a "${logfile}"
+    skip_dcm_convert=false
+    raw_sub_data="${raw_data_locations["${subject}"]}"
+    bids_data="${BACKUP_DIR}/bids"
+    [[ ! -d "${bids_data}" ]] && mkdir "${bids_data}"
+    bids_sub_data="${bids_data}/sub-s${subject}"
+    if [[ -d "${bids_sub_data}" ]]; then
+      bids_sub_files=$(shopt -s nullglob dotglob; echo "${bids_sub_data}/*")
+      (( ${#bids_sub_files} )) && skip_dcm_convert=true
+    fi
+
+    if [[ ${skip_dcm_convert} == 'true' ]]; then
+      echo "${label} s${subject}: Found BIDS formatted niftis in ${bids_sub_data}" \
+        | tee -a "${logfile}"
+      echo "${label} s${subject}: skipping dcm to bids conversion" | tee -a "${logfile}"
+      convert_job_id=1
+    else
+      echo "${label} s${subject}: Converting raw dicoms to BIDS formatted niftis" \
+        | tee -a "${logfile}"
+      convert_job_id=$(sbatch "${mflag}" ${dependency_flag} sbatch_dcm_to_bids \
+                       -i "${raw_sub_data}" -o "${bids_data}" -p "${pfile}" \
+                       -l "${logfile}" "s${subject}" | grep -o '[0-9]*')
+    fi
+    echo "${label} s${subject}: Importing BIDS niftis to project dir" \
+        | tee -a "${logfile}"
+    if [[ -n ${dependency_flag} ]]; then
+      import_dependency="${dependency_flag},afterok:${convert_job_id}"
+    else
+      import_dependency="--dependency=afterok:${convert_job_id}"
+    fi
+    import_job_id=$(sbatch "${mflag}" "${import_dependency}" sbatch_bids_to_damn \
+                    -l ${logfile} s${subject} | grep -o '[0-9]*')
+    # add this job to list of job arrays to wait for before writing "DONE" to log
+    all_job_ids+=( "${import_job_id}" )
+  else
+    echo "${label} Skipping subject ${subject}. Subject's data already exists." \
+      | tee -a "${logfile}"
+  fi
+done
+all_job_dep=$(printf ':%s' ${all_job_ids[@]})
+sbatch --output=/dev/null --error=/dev/null --dependency="afterok${all_job_dep}" \
+       --export=logfile,label -J finish_import -t 61 \
+       --wrap='echo "${label} DONE. at $(date)" | tee -a ${logfile}'

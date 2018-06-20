@@ -1,0 +1,40 @@
+{
+  "default": {
+    "TSK": {
+      "type": "task",
+      "protocol_name": "(partial)_name_of_scanner_sequence",
+      "nruns": 1,
+      "ntrs": 150,
+      "useMoCo": "no"
+    },
+    "anat": {
+      "type": "anat",
+      "protocol_name": "mprage",
+      "useMoCo": "no",
+      "modality": "PD"
+    },
+    "ALL_SE": {
+      "type": "fieldmap",
+      "protocol_name": {
+        "AP": "se_AP_task",
+        "PA": "se_PA_task"
+      },
+      "useMoCo": "no"
+    }
+  },
+  "s999s000": {
+    "TSK": {
+      "type": "task",
+      "protocol_name": "(partial)_name_of_scanner_sequence",
+      "nruns": 1,
+      "ntrs": 150,
+      "useMoCo": "no"
+    },
+    "anat": {
+      "type": "anat",
+      "protocol_name": "mprage",
+      "useMoCo": "no",
+      "modality": "PD"
+    }
+  }
+}
