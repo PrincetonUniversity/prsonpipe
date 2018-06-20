@@ -54,6 +54,8 @@ cat << END
   ------
     [-h | --help | -help]
       Display this help
+    [-i <input directory>]
+      Directory to look in
 END
 }
 
@@ -62,22 +64,22 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 
 #Parse flags other than help
 while getopts "i:" opt; do
-  case $opt in
+  case ${opt} in
     i)
-      input_dir=$OPTARG
+      input_dir=${OPTARG}
       if ! $(isDIR ${input_dir}); then
-        echo "$label ERROR: -i $input_dir is not a directory."
+        echo "${label} ERROR: -i ${input_dir} is not a directory."
         exit 1
       fi
-      input_dir=$(full_dir $input_dir)
-      echo "$label -i $input_dir"
+      input_dir=$(full_dir ${input_dir})
+      echo "${label} -i ${input_dir}"
       ;;
     \?)
-      echo "$label ERROR: unknown flag specified: ${opt}. Use --help for help."
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use --help for help."
       exit 1
       ;;
     : ) #Catch options without arguments
-      echo "$label ERROR: $OPTARG requires an argument. Use --help for help."
+      echo "${label} ERROR: ${OPTARG} requires an argument. Use --help for help."
       exit 1
     esac
 done
@@ -93,21 +95,24 @@ echo "${label} $(date) beginning cleanup_output"
 if [[ ${jobIDs} == 'all' ]]; then 
   unset jobIDs
 	all=$(find ${SCRIPT_DIR} -name *[1-9][1-9][1-9][1-9][1-9][1-9][1-9].out)
-  IFS=' ' read -r -a jobIDs <<< $all
+  IFS=' ' read -r -a jobIDs <<< ${all}
 fi
 
 for j in "${jobIDs[@]}"; do
-	#[[ ${#j} -ne 7 ]] && echo "$label $j does not have 7 digits. Skipping..." && continue
+	#[[ ${#j} -lt 7 ]] && echo "${label} ${j} does not have 7 digits. Skipping..." && continue
 	#! $(isNUM $j) && echo "$label $j must be a number. Skipping..." && continue
-	if [[ ! -z $input_dir ]]; then fname=$(echo ${input_dir}/*$j*)
-  elif $(isDIR $(dirname $j)); then 
-    fdir=$(full_dir $(dirname $j))
-    fname=${fdir}/$(basename $j)
-	else fname=$(find ${SCRIPT_DIR} -name *$j*); fi	
+	if [[ ! -z ${input_dir} ]]; then
+	  fname=$(echo ${input_dir}/*${j}*)
+  elif [[ $(isDIR $(dirname ${j})) == 'true' && $(dirname ${j}) != '.' ]]; then
+    fdir=$(full_dir "$(dirname "${j}")")
+    fname="${fdir}/$(basename "${j}")"
+	else
+	  fname=$(find "${SCRIPT_DIR}" -name *${j}*)
+	fi
 	#
-	[[ ! -f $fname ]] && echo "$label Cannot find $j ($fname). Skipping..." && continue
-	mv $fname ${PROJECT_DIR}/output/
-	echo "$label $(date) Moved $fname to output directory"
+	[[ ! -f ${fname} ]] && echo "${label} Cannot find ${j} (${fname}). Skipping..." && continue
+	mv ${fname} ${PROJECT_DIR}/output/
+	echo "${label} $(date) Moved ${fname} to output directory"
 done
 
 echo "${label} DONE. $(date) cleanup_output"
