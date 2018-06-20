@@ -57,7 +57,7 @@ mv globals.par.bak .globals.par.bak
 source "${PROJECT_DIR}/scripts/globals.par"
 
 par_import_file="${SCRIPT_DIR_IMPORT}/${par_import_filename}"
-echo "${label} Putting raw data parameters from ${studyinfo_file} into ${par_info_file}"
+echo "${label} Putting raw data parameters from ${studyinfo_file} into ${par_import_file}"
 #same for runorders, but overwrite instead of append
 awk '/START_RO/{flag=1} flag; /END_RO/{flag=0}' ../${studyinfo_file} \
   | grep -o '^[^#]*' > "${par_import_file}"
