@@ -11,7 +11,6 @@ NRUNS=1
 ##############################---PREPROCESSING----##############################
 ### Field map from opposing direction spin echos (topup)?
 FIELDMAP='none' # 'none' or 'TOPUP'
-    no_fieldmap_subs=('s000' 's999') #array of subject IDs without spin echos
 
 ### Slice time correction: 'SPM12W', 'none'
 SLICE_TIME='none'
@@ -23,7 +22,9 @@ REALIGN='none'
 # NOTE: If you are using spin echos, this should be the same as REALIGN
 #       If you have no fieldmap, you should choose 'none' or 'SPM12W'
 UNWARP='none'
-    ## DARTEL (=actually SPM12) unwarp settings (should be fine with defaults)##
+    ## DARTEL (=actually SPM12) unwarp settings
+    # subjects without spin echos. Use keyword 'all' if no spin echos were collected
+    no_fieldmap_subs=('s000' 's999')
     # direction of blips along y (1 = PA, -1 = AP)
     blipdir=-1 #only change this if unwarped epis look worse than raw epis
     # fieldmap parent directory(expects subject dirs in here)
@@ -51,7 +52,7 @@ NORM='none'
   ## SPM12W normalization parameters ##
     # SPM12W normalization options: 'epi', 'spm12', ('dartel' - not currently working)
     NORMTYPE='spm12'
-  ## FSL normalization parameters ##
+  ## FSL normalization parameters (deprecated) ##
     anat_bet_flag='-R -f 0.2' #flags added to anat skull stripping (bet)
     epi_bet_flag='-F' #flags added to functional skull stripping (bet)
     # More info on bet: http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET
