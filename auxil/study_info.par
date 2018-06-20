@@ -30,7 +30,7 @@ USER_EMAIL=<netid>@princeton.edu
 # ENTER THE SCANNER NAME: Prisma or Skyra
 SCANNER=Prisma
 
-# ENTER TASK NAMES. Must be 3 letters, unique, in parentheses, separated by a space
+# ENTER TASK NAMES: 3 letters, unique, in parentheses, separated by a space (e.g. (TSK RST))
 TASKS=(TSK)
 
 # Run each task with different preprocessing parameters? 1=yes, 0=no
