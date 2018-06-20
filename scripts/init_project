@@ -26,7 +26,7 @@ runorder_file=scripts/import_data/par_import.json
 pars_dir=scripts/preprocess
 
 
-if [[ -z $1 ]] && [[ -s ../${runorder_file} || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
+if [[ -z $1 ]] && [[ -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
   echo "${label} This project has already been initialized."
   echo "${label} If you really want to proceed, and overwrite your previous work, run init_project overwrite"
   if [[ ! -f .globals.par.bak ]]; then
