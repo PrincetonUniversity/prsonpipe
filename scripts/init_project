@@ -57,7 +57,7 @@ mv globals.par.bak .globals.par.bak
 #same for runorders, but overwrite instead of append
 awk '/START_RO/{flag=1} flag; /END_RO/{flag=0}' ../${studyinfo_file} \
   | grep -o '^[^#]*' > ${PROJECT_DIR}/${runorder_file}
-  
+
 # check if json is valid. python -mjson.tool will return error if it's not.
 # grab the error message but ignore stdout, and make sure exit code is 0 no matter what
 invalid_json_msg="$(python -mjson.tool scripts/import_data/par_import.json \
