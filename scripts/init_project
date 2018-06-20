@@ -22,7 +22,7 @@ if [[ -n $1 && $1 != 'overwrite' ]]; then
 fi
 
 studyinfo_file=auxil/study_info.par
-runorder_file=auxil/runorders/run-order.txt
+runorder_file=scripts/import_data/par_import.json
 pars_dir=scripts/preprocess
 
 
@@ -39,28 +39,29 @@ if [[ $1 == 'overwrite' ]]; then
   mv .globals.par.bak globals.par
 fi
 
-
-
 #Source the project settings lines of study_info
 source /dev/stdin <<EOF
-$(sed -n '/-\ 1\.\ PROJECT\ SETTINGS\ -/,/-\ 2\.\ RUN\ ORDER\ TEMPLATE\ -/p' ../${studyinfo_file} \
-  | head -n -1 | tail -n +2)
+$(awk '/START_VARS/{flag=1} flag; /END_VARS/{flag=0}' ../${studyinfo_file} \
+  | grep -o '^[^#]*')
 EOF
 
 
 #append all the text between the vars delimiters to globals.pr (excluding the first and last 2 lines containing comments)
-cat ${PROJECT_DIR}/${studyinfo_file} | sed -n '/<<START_VARS>>/,/<<END_VARS>>/p' | head -n -2 \
-  | tail -n +3 >> ${PROJECT_DIR}/scripts/temp.txt
-sed --in-place='.bak' -e '/<<STUDY_INFO_VARS_HERE>>/{r temp.txt' -e 'd}' "${PROJECT_DIR}/scripts/globals.par"
+awk '/START_VARS/{flag=1} flag; /END_VARS/{flag=0}' "${PROJECT_DIR}/${studyinfo_file}" \
+  | grep -o '^[^#]*' >> "${PROJECT_DIR}/scripts/temp.txt"
+sed --in-place='.bak' -e '/<<STUDY_INFO_VARS_HERE>>/{r temp.txt' -e 'd}' \
+  "${PROJECT_DIR}/scripts/globals.par"
 rm ${PROJECT_DIR}/scripts/temp.txt
 mv globals.par.bak .globals.par.bak
 
 #same for runorders, but overwrite instead of append
-cat ${PROJECT_DIR}/${studyinfo_file} | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 \
-  | tail -n +3 > ${PROJECT_DIR}/${runorder_file}
-
+awk '/START_RO/{flag=1} flag; /END_RO/{flag=0}' ../${studyinfo_file} \
+  | grep -o '^[^#]*' > ${PROJECT_DIR}/${runorder_file}
+  
+# check if json is valid. python -mjson.tool will return error if it's not.
+# grab the error message but ignore stdout, and make sure exit code is 0 no matter what
 invalid_json_msg="$(python -mjson.tool scripts/import_data/par_import.json \
-                    2>&1 > /dev/null || :)"
+                    2>&1 > /dev/null || true)"
 if [[ -n ${invalid_json_msg} ]]; then
   echo "${label} WARNING: import parameter json contains invalid syntax: "
   echo "${label} ${invalid_json_msg}"
