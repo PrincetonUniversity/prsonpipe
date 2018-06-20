@@ -22,7 +22,7 @@ if [[ -n $1 && $1 != 'overwrite' ]]; then
 fi
 
 studyinfo_file=auxil/study_info.par
-runorder_file=scripts/import_data/par_import.json
+par_import_filename=par_import.json
 pars_dir=scripts/preprocess
 
 
@@ -46,7 +46,7 @@ $(awk '/START_VARS/{flag=1} flag; /END_VARS/{flag=0}' ../${studyinfo_file} \
 EOF
 
 
-#append all the text between the vars delimiters to globals.pr (excluding the first and last 2 lines containing comments)
+#append all the text between the vars delimiters to globals.par w/o comments
 awk '/START_VARS/{flag=1} flag; /END_VARS/{flag=0}' "${PROJECT_DIR}/${studyinfo_file}" \
   | grep -o '^[^#]*' >> "${PROJECT_DIR}/scripts/temp.txt"
 sed --in-place='.bak' -e '/<<STUDY_INFO_VARS_HERE>>/{r temp.txt' -e 'd}' \
@@ -54,21 +54,24 @@ sed --in-place='.bak' -e '/<<STUDY_INFO_VARS_HERE>>/{r temp.txt' -e 'd}' \
 rm ${PROJECT_DIR}/scripts/temp.txt
 mv globals.par.bak .globals.par.bak
 
+source "${PROJECT_DIR}/scripts/globals.par"
+
+par_import_file="${SCRIPT_DIR_IMPORT}/${par_import_filename}"
 #same for runorders, but overwrite instead of append
 awk '/START_RO/{flag=1} flag; /END_RO/{flag=0}' ../${studyinfo_file} \
-  | grep -o '^[^#]*' > ${PROJECT_DIR}/${runorder_file}
+  | grep -o '^[^#]*' > "${par_import_file}"
 
 # check if json is valid. python -mjson.tool will return error if it's not.
 # grab the error message but ignore stdout, and make sure exit code is 0 no matter what
-invalid_json_msg="$(python -mjson.tool ${SCRIPT_DIR_IMPORT}/par_import.json \
+invalid_json_msg="$(python -mjson.tool "${par_import_file}" \
                     2>&1 > /dev/null || true)"
 if [[ -n ${invalid_json_msg} ]]; then
   echo "${label} WARNING: import parameter json contains invalid syntax: "
   echo "${label} ${invalid_json_msg}"
-  echo "${label} Fix syntax in ${PROJECT_DIR}/${runorder_file}, then re-test using: "
-  echo "       python -mjson.tool ${PROJECT_DIR}/${runorder_file}"
+  echo "${label} Fix syntax in "${par_import_file}", then re-test using:"
+  echo "       python -mjson.tool ${par_import_file}"
 fi
-source "${PROJECT_DIR}/scripts/globals.par"
+
 
 #check task names
 if [[ ${#TASKS[@]} -eq 0 ]]; then
