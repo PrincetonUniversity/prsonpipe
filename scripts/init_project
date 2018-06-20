@@ -3,8 +3,11 @@
 # This script sets up all the necessary paths and files to initialize a new project.
 # Run it from the scripts dir after filling out notes/study_info
 # JNM August 11, 2016
-# JNM August 23, 2016 copying prep.par for each task. Check number of task names (if empty add TSK, if not matching # of tasks error)
+# JNM August 23, 2016 copying prep.par for each task.
+#    Check number of task names (if empty add TSK, if not matching # of tasks error)
 #    Create backup of globals.par when entering study_info vars (.bak_globals.par) use this backup when overwriting.
+# JNM June 20, 2018: Update to work with json formatted import pars, instead of runorder
+#    Use awk to read from study_info between tags, and strip comments
 ###########################################
 #  Arguments:
 #    None or overwrite      #To overwrite and delete previous setup in the project dir. 
@@ -12,6 +15,7 @@
 ############################################
 set -e 
 
+label='[INIT]'
 if [[ -n $1 && $1 != 'overwrite' ]]; then
   echo "Unknown input argument $1"
   exit 1
@@ -23,8 +27,8 @@ pars_dir=scripts/preprocess
 
 
 if [[ -z $1 ]] && [[ -s ../${runorder_file} || -z $(grep '<<STUDY_INFO_VARS_HERE>>' globals.par) ]]; then
-  echo "[INIT] This project has already been initialized." 
-  echo "[INIT] If you really want to proceed, and overwrite your previous work, run init_project overwrite"
+  echo "${label} This project has already been initialized."
+  echo "${label} If you really want to proceed, and overwrite your previous work, run init_project overwrite"
   if [[ ! -f .globals.par.bak ]]; then
     cp globals.par .globals.par.bak
   fi
@@ -55,33 +59,34 @@ mv globals.par.bak .globals.par.bak
 cat ${PROJECT_DIR}/${studyinfo_file} | sed -n '/<<START_RO>>/,/<<END_RO>>/p' | head -n -2 \
   | tail -n +3 > ${PROJECT_DIR}/${runorder_file}
 
-source ${PROJECT_DIR}/scripts/globals.par
+invalid_json_msg="$(python -mjson.tool scripts/import_data/par_import.json \
+                    2>&1 > /dev/null || :)"
+if [[ -n ${invalid_json_msg} ]]; then
+  echo "${label} WARNING: import parameter json contains invalid syntax: "
+  echo "${label} ${invalid_json_msg}"
+  echo "${label} Fix syntax in ${PROJECT_DIR}/${runorder_file}, then re-test using: "
+  echo "       python -mjson.tool ${PROJECT_DIR}/${runorder_file}"
+fi
+source "${PROJECT_DIR}/scripts/globals.par"
 
 #check task names
 if [[ ${#TASKS[@]} -eq 0 ]]; then
   TASKS[0]=TSK
 fi
 
-#Check if the number of tasks (NUM_TASKS) matches task names
-#if [[ $NUM_TASKS -ne ${#TASKS[@]} ]]; then
-#  echo "Number of tasks does not match number of task names. Aborting." >&2
-#  exit 1
-#fi
-# 3 letters & allcaps?
-
 i=0
 for name in ${TASKS[@]}; do
-  if ! [[ $name == [A-Z][A-Z][A-Z] ]]; then
-    echo "[INIT] Task ${name} does not follow the correct naming convention (3 uppercase letters). Converting."
+  if ! [[ ${name} == [A-Z][A-Z][A-Z] ]]; then
+    echo "${label} Task ${name} does not follow the correct naming convention (3 uppercase letters). Converting."
     newname=$(echo ${name} | sed 's/[0-9]*//g') #strip digits from name
     newname=${newname:0:3} #cut to three chars if longer
-    newname=$(echo $newname | tr [a-z] [A-Z]) #convert to uppercase if lower
+    newname=$(echo ${newname} | tr [a-z] [A-Z]) #convert to uppercase if lower
     while [[ ${#newname} -lt 3 ]]; do newname=${newname}X; done #Append X's if too short until it's 3 chars
-    if [[ $newname == [A-Z][A-Z][A-Z] ]]; then
-      TASKS[$i]=$newname
-      echo "[INIT] Changed $name to $newname"
+    if [[ ${newname} == [A-Z][A-Z][A-Z] ]]; then
+      TASKS[$i]=${newname}
+      echo "${label} Changed ${name} to ${newname}"
     else
-      echo "[INIT] Could not convert task name $name. Please change it in notes/study_info.par"
+      echo "${label} Could not convert task name ${name}. Please change it in study_info.par"
       exit 1
     fi      	
     ((i+=1))
@@ -92,7 +97,7 @@ done
 
 # Unique?
 if printf '%s\n' "${TASKS[@]}" | sort | uniq -c | grep -q [2-9]; then 
-  echo "[INIT] Check your task names. They are not unique: ${TASKS[@]}"
+  echo "${label} Check your task names. They are not unique: ${TASKS[@]}"
   exit 1 
 fi
 #############################################################
@@ -100,16 +105,16 @@ fi
 if [[ $1 == 'overwrite' ]]; then rm -fr "${RAW_DIR}/*"; rm -fr "${PREP_DIR}/*"; rm -fr "${QA_DIR}/*"; fi
 
 #Create project dirs
-echo "[INIT] Running ${SCRIPT_DIR_UTIL}/setup_backup_dirs to make sure backup directories exist on lab volume"
+echo "${label} Running ${SCRIPT_DIR_UTIL}/setup_backup_dirs to make sure backup directories exist on lab volume"
 bash ${SCRIPT_DIR_UTIL}/setup_backup_dirs
-echo "[INIT] Copying your file structure and scripts to your backup dir"
+echo "${label} Copying your file structure and scripts to your backup dir"
 rsync -qav --exclude=*.gz --exclude=*.nii --exclude=*.bxh* --exclude=.git ${PROJECT_DIR} ${BACKUP_DIR}
 for name in ${TASKS[@]}; do
   mkdir -p ${RAW_DIR}/${name}/
   mkdir -p ${PREP_DIR}/${name}/
-  if [[ $PREP_SEP -eq 1 ]]; then
+  if [[ ${PREP_SEP} -eq 1 ]]; then
   cp "${PROJECT_DIR}/${pars_dir}/prep.par" "${PROJECT_DIR}/${pars_dir}/prep_${name}.par"
   fi
 done
 
-echo "[INIT] Completed."
+echo "${label} DONE."

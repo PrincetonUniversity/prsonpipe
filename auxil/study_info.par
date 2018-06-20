@@ -46,15 +46,61 @@ MATLAB_PKG_DIR=/tigress/TAMIR/pkg/matlab
                    ####-DON'T TOUCH THIS-####
                    ###<<END_VARS>>        ###
                    ##########################
-###########----------------------- 2. RUN ORDER TEMPLATE -----------------------##########
+###########------------------- 2. RAW DATA PARAMS -------------------###########
                    ####-DON'T TOUCH THIS-####
                    ###<<START_RO>>        ###
                    ##########################
-
-# ENTER RUN ORDER: the order of scans typically used (see github wiki for examples)
-
-
-
+# For each task, fieldmap (spin echos), and anatomical, provide some parameters
+# These parameters are necessary to import your raw data into the scanner
+# They should be entered in json format. Comments starting with # will be stripped
+{
+  # The parameters under 'default' will be used for all subjects, unless custom pars are found
+  "default": {
+    # List tasks by their 3 letter all caps task ID. Provide an object for each.
+    "TSK": {
+      "type": "task", # type of scan
+      "protocol_name": "(partial)_name_of_scanner_sequence", # name of protocol used in scanner
+      "nruns": 1, # number of runs (i.e. number of scans)
+      "ntrs": 150, # number of TRs per scan (i.e. number of volumes)
+      "useMoCo": "no" # use scanner's motion corrected version of this scan, if available?
+    },
+    "anat": {
+      "type": "anat",
+      "protocol_name": "mprage",
+      "useMoCo": "no",
+      "modality": "T1" # modality of anatomical scan (e.g. T1, PD, etc)
+    },
+    "ALL_SE": {
+      "type": "fieldmap",
+      "protocol_name": { # Provide an object with both AP and PA protocol names
+        "AP": "se_AP_task",
+        "PA": "se_PA_task"
+      },
+      "useMoCo": "no"
+    }
+  },
+  # You can add subject IDs (s followed by 3 digits) with parameters different
+  # from default.
+  # For multiple subjects with the same custom parameters, just list all of their
+  # subject IDs
+  "s999s000": {
+    "TSK": {
+      "type": "task",
+      "protocol_name": "(partial)_name_of_scanner_sequence",
+      "nruns": 1,
+      "ntrs": 150,
+      "useMoCo": "no"
+    },
+    "anat": {
+      "type": "anat",
+      "protocol_name": "mprage",
+      "useMoCo": "no",
+      "modality": "PD"
+    }
+  }
+ # You can add a comma to the } above this line if you need more than 1 custom parameter set
+ # You can add as many as you need.
+}
 
                    ####-DON'T TOUCH THIS-####
                    ###<<END_RO>>          ### 
