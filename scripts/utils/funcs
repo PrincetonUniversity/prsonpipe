@@ -1,4 +1,4 @@
-#!/bin/bash -e/
+#!/usr/bin/env bash -e
 # author: Miriam Weaverdyck 8/10/16
 # update: Judith Mildner 09/2017
 # 8/11/16 updated to look in taskdirs
