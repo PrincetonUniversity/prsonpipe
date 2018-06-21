@@ -193,11 +193,13 @@ for file in "${input_dir}"/dcm/*.gz; do
   unpigz -c "${file}" > "${temp_json_dir}/${STEM}"
 done
 dcm2niix -b o "${temp_json_dir}" 1>/dev/null | tee -a "${logfile}"
+(( ${PIPESTATUS[0]} == 1 )) && exit 1
 
 echo "${label} getting conversion data for ${subj} based on ${scan_key} at $(date)" \
         | tee -a "${logfile}"
 python3 get_conversion_names.py -i "${temp_json_dir}" -t dcm-bids -k "${scan_key}" \
 -o "${conversion_file}" "${subj}" | tee -a "${logfile}"
+(( ${PIPESTATUS[0]} == 1 )) && exit 1
 
 echo "${label} converting dicoms at $(date)" | tee -a "${logfile}"
 # get all dicom series numbers to convert
@@ -207,14 +209,16 @@ if (( ${#all_series_numbers[@]} < 16 )); then loop=false; else loop=true; fi
 if [[ ${loop} == false ]]; then
     n_flags=( "${all_series_numbers[@]/#/-n }" )
     dcm2niix ${n_flags[@]} -i y -b y -ba y -z y \
-    -o "${temp_sub_dir}" "${temp_json_dir}" 1>${logfile} | tee -a "${logfile}"
+      -o "${temp_sub_dir}" "${temp_json_dir}" 1>${logfile} | tee -a "${logfile}"
+    (( ${PIPESTATUS[0]} == 1 )) && exit 1
 fi
 # loop through each line of the conversion data to get correct filenames
 while IFS=,$'\r' read -r series_number default_name bids_name damn_name; do
     # convert one by one if there were too many scans to go at once
     if [[ ${loop} == true ]]; then
         dcm2niix -n "${series_number}" -i y -b y -ba y -z y -s y \
-        -o "${temp_sub_dir}" "${temp_json_dir}" 1>${logfile} | tee -a "${logfile}"
+          -o "${temp_sub_dir}" "${temp_json_dir}" 1>${logfile} | tee -a "${logfile}"
+        (( ${PIPESTATUS[0]} == 1 )) && exit 1
     fi
     echo "${label} moving ${default_name} to ${bids_name}" | tee -a "${logfile}"
     mkdir -p "$(dirname "${temp_sub_dir}/${bids_name}")"
