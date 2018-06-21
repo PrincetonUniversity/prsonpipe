@@ -72,7 +72,7 @@ source "${d%scripts*}/scripts/globals.par"
 # source functions
 source "${SCRIPT_DIR_UTIL}/funcs"
 
-convert=true
+convert=false
 keep_prep=false
 
 ######################### SET UP & PARSE ARGUMENTS #############################
@@ -89,7 +89,7 @@ while getopts "ct:p:d:a:" opt; do
       echo "${label} Using pfile: ${parsfile}"
       ;;
     c)
-      convert=false
+      convert=true
       echo "${label} Skipping conversion."
       ;;
     t)
