@@ -213,7 +213,7 @@ all_series_numbers=( $(cat "${conversion_file}" | cut -d ',' -f1) )
 if (( ${#all_series_numbers[@]} < 16 )); then loop=false; else loop=true; fi
 if [[ ${loop} == false ]]; then
     n_flags=( "${all_series_numbers[@]/#/-n }" )
-    dcm2niix ${n_flags[@]} -i y -b y -ba y -z y \
+    dcm2niix ${n_flags[@]} -i y -b y -ba y -z y -f 'scan_%2s' \
       -o "${temp_sub_dir}" "${temp_json_dir}" 1>${logfile} | tee -a "${logfile}"
     (( ${PIPESTATUS[0]} == 1 )) && exit 1
 fi
@@ -221,7 +221,7 @@ fi
 while IFS=,$'\r' read -r series_number default_name bids_name damn_name; do
     # convert one by one if there were too many scans to go at once
     if [[ ${loop} == true ]]; then
-        dcm2niix -n "${series_number}" -i y -b y -ba y -z y -s y \
+        dcm2niix -n "${series_number}" -i y -b y -ba y -z y -s y -f 'scan_%2s' \
           -o "${temp_sub_dir}" "${temp_json_dir}" 1>${logfile} | tee -a "${logfile}"
         (( ${PIPESTATUS[0]} == 1 )) && exit 1
     fi
