@@ -215,7 +215,7 @@ tmpnm="${topup_dir}/$(basename $(tmpnam))"
 maskim="${tmpnm}_tmp_mask"
 outfile="${topup_dir}/topup_fout_processed"
 cp "${topup_dir}/topup_fout.nii.gz" "${topup_dir}/topup_fout_processed.nii.gz"
-fslmaths "${topup_dir}/magnitude_brain" -thr 0.00000001 -bin $maskim
+fslmaths "${topup_dir}/magnitude_brain" -thr 0.00000001 -bin ${maskim}
 
 # Demean to avoid gross shifting
 demean_image ${outfile} ${maskim} ${tmpnm}

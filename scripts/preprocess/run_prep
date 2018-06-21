@@ -143,17 +143,20 @@ input_subjects="$@"
 #set directory with parameters to globals.par's SCRIPT_DIR_PREP
 #pars_dir=${SCRIPT_DIR_PREP}
 # If no job dependency is specified, set it to 1 to start immediately
-[[ -z "$first_jobid" ]] && first_jobid=':1'
+[[ -z "${first_jobid}" ]] && first_jobid=':1'
 # Set up standard sbatch flags
 mflag="--mail-user=${USER_EMAIL}" # Email address
 ##############################***  SCRIPT BODY ***##############################
 #***** CONVERT NEW DATA *****#
 if "${convert}"; then
+  # get inputted subjects
+  num2subID ${input_subjects}
   # Convert new data from arch/dicom/*tar.gz to raw/TSK/s000/*nii.gz (if not done yet)
-  convert_log="${PROJECT_DIR}/raw/LOG_convert.txt"
-  echo "$label $(date) -- Converting all dcm files to nii --" | tee -a "${convert_log}"
-  bash "${SCRIPT_DIR_UTIL}/run_convert" -l "${convert_log}"
-  wait_for_it '[CONVERT]' "$convert_log"
+  convert_log="${PROJECT_DIR}/raw/LOG_import.txt"
+  echo "$label $(date) -- Importing data from dicom --" | tee -a "${convert_log}"
+  bash "${SCRIPT_DIR_IMPORT}/run_import_from_labvol" -l "${convert_log}" ${SUBIDS[@]}
+  wait_for_it '[IMPORT]' "${convert_log}"
+  unset SUBIDS
 fi
 ########################### DEFINE LOCAL FUNCTIONS ############################
 #***** add_run_steps function definition *****#
@@ -359,7 +362,7 @@ for task in "${tasks[@]}"; do
 
   # CREATE LIST OF SUBJECT IDS
   get_subs "${task}" "${RAW_DIR}/${task}" "${wd_dir_full}" "${input_subjects}"
-  if [[ -z $SUBS ]]; then
+  if [[ -z ${SUBS} ]]; then
     echo "${label} No subjects found for task ${task}. Moving on to next task...";
     continue;
   fi
