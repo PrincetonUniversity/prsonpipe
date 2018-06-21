@@ -1,64 +1,63 @@
-Welcome to Data Analysis Modules for Neuroimaging:  
-Princeton Social Neuroscience Lab's fMRI analysis pipeline.
+Welcome to Data Analysis Modules for Neuroimaging (DAMN):  
+[Princeton Social Neuroscience Lab](psnlab.princeton.edu)'s fMRI analysis pipeline.
 =========================================== 
 
-README.txt's are still under construction.
-
-See the wiki for usage instructions: https://github.com/PrincetonUniversity/prsonlab/wiki
+See the [wiki](https://github.com/PrincetonUniversity/prsonlab/wiki) for usage instructions.
 
 # Overview
 
-Below is a tree of all the files in the DAMN pipeline package per directory, with short descriptions. Scripts link to their own wiki pages.
+This pipeline is meant to help run your analyses smoothly on the clusters, even 
+if you need to use various different software packages. The DAMN pipeline currently
+includes scripts for preprocessing, first level glm, and second level glm.
 
-{} indicates the file is created by the init_project script.
+## Available options and packages
+There are tools from [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki), 
+[SPM12w](https://github.com/wagner-lab/spm12w), 
+and [SPM12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/)'s DARTEL toolbox available.
 
-## analysis
-This directory is empty at first, but will contain all results from first and second level analyses once run.
+For preprocessing, the pipeline currently offers the following options:
 
-## auxil
-This directory contains auxiliary files, like onset times, rois, run orders, and an archive of the original dicom files for all your subjects.
-* onsets (directory with onset time files)
-    - The onset files must be created by the user. See [[page_under_construction]]
-* archive (directory with an archive of the original dicom files for all of your subjects)
-* {runorders}
-    - Contains your run order template, and the custom run order files for each subject.
-* subid_list.txt
-    - Contains the key to your subject IDs (from yymmdd_projectname_subject to s000 format (e.g. 161206_socdep_045 s045).
+- Slice timing
+  * SPM12W
+- Motion correction
+  * SPM12W
+  * DARTEL*
+- Unwarping
+  * SPM12W (unwarping without a field map)
+  * TOPUP + DARTEL* (opposing direction spin echos as field map)
+  * DARTEL* (no field map) 
+- Normalization
+  * SPM12W (regular spm12 normalization)
+  * DARTEL (generates study specific template, normalizes to that, 
+  then to MNI space. Can run with standard template as well if you don't have 
+  enough subjects yet for a common template or just want to save time)
+- Smoothing 
+  * SPM12W 
+  * DARTEL (requires normalization in Dartel as well)
+- High pass filtering
+  * FSL
 
-## notes << should we change this name to parameters or something? >>
-This directory is the one containing all the files you have to edit when you start a project.
-* study_info.par (start here)
-    - This file contains everything about your project. Edit it to include the right tasks, settings, run orders, etcetera.
-    - After you create this file, you run init_project to set everything up
-    - See [[Getting Started|Getting-Started]]
-* pars.par
-    - this file is where you set all of your default preprocessing and analysis parameters. Once initialized, you will have a general pars.par, plus one per task (pars_TSK.par), if you have different preprocessing streams
-* step.par
-    - this file is used by preprocess to change parameters per preprocessing step. You should not change anything in here.
+*Note: DARTEL here really means SPM12 and its fieldmap toolbox. These are included 
+in the same script as the DARTEL normalization + smoothing. To avoid confusion with
+SPM12W, the name DARTEL is used throughout to refer to these SPM12 functions.
 
-## output
-Once you start running scripts, all output from sbatch jobs will be stored in this directory. The format of the output files is <script_name>-<jobID#>.out (e.g. convert-328450.out).
+There are first level (subject level) glm scripts available based on SPM12W, 
+ROI analysis scripts based on FSL, and second level (group level) glm scripts based
+on SPM12W and FSL's randomise.
 
-## prep
-This directory contains the preprocessing output for each subject, once preprocessing starts to run.
-* (TSK) (One subdirectory per task specified in study_info will be created by init_project)
-        * (preprocessing stream directory) (subdirectory of TSK)
-            - This will be created by preprocess. The directory name has the format of each preprocessing step's SPM prefix (a=slice timing, r = motion correction, u = unwarping (field map), w = coregistration, s = smoothing), followed by the package it was done in (N = none, F = FSL, S = SPM12w, D = DARTEL), for example 'aNrFuFwDsD'.
 
-## qa
-This directory will contain all Quality Assurance output for your data
-* (TSK) (Like in prep, one directory per task will be created)
+## Structure
+The basic file structure is based on [SPM12w](https://github.com/wagner-lab/spm12w), 
+and looks like this:
+```
+|-- analysis (for analyzed data)
+|-- auxil (for study parameters, onset times, roi masks, etc.)
+    |-- archive (for subject list, raw data, run orders) 
+|-- output (for slurm job logs)
+|-- prep (for preprocessed data)
+|-- qa (for quality assurance output)
+|-- raw (for raw data, in gzipped nifti format)
+|-- scripts (contains all scripts)
+```
 
-## raw
-This directory will contain all raw data, in nifti format, after it has been converted to meet file and naming standards during preprocessing.
-* (TSK) (Again, one directory per task)
-
-## scripts
-This contains all code. It's organized by function
-* [[BXH_QA]] (Quality assurance scripts, under construction)
-* [[group_level]] (2nd level analysis scripts)
-* [[preprocess]] (preprocessing scripts)
-* [[sub_level]] (1st level analysis scripts)
-* [[utils]] (directory contains conversion scripts, functions, logging scripts, etc)
-* [[init_project]] (set up your project after filling out parameters)
-* [[retrieve_dcm]] (get dicom files from the lab volume)
+06/21/2018 JNM

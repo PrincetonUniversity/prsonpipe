@@ -70,3 +70,5 @@ SCRIPT_DIR_GRPLVL   = strrep(fstr,sprintf('\n'),'');
 SCRIPT_DIR_UTIL     = strrep(fstr,sprintf('\n'),'');
 [~, fstr]           = system('source $globals; echo $SCRIPT_DIR_ROI');
 SCRIPT_DIR_ROI      = strrep(fstr,sprintf('\n'),'');
+[~, fstr]           = system('source $globals; echo $SCRIPT_DIR_IMPORT');
+SCRIPT_DIR_IMPORT      = strrep(fstr,sprintf('\n'),'');
