@@ -192,7 +192,7 @@ for subject in ${convert_subs[@]#s}; do
     bids_data="${BACKUP_DIR}/bids"
     [[ ! -d "${bids_data}" ]] && mkdir "${bids_data}"
     bids_sub_data="${bids_data}/sub-s${subject}"
-    if [[ -d "${bids_sub_data}" ]] && [[ force != 'true' ]]; then
+    if [[ -d "${bids_sub_data}" ]] && [[ ${force} != 'true' ]]; then
       bids_sub_files=$(shopt -s nullglob dotglob; echo "${bids_sub_data}/*")
       (( ${#bids_sub_files} )) && skip_dcm_convert=true
     fi
