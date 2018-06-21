@@ -149,13 +149,14 @@ def task_dcm_to_bids(scan, scan_params, scan_data, input_dir, subject):
         ntrs = len(glob.glob(input_dir + '/' + str(found_scan) + '-*.dcm'))
         if ntrs == scan_params['ntrs']:
             full_ntrs_scans.append(found_scan)
-        else:
-            raise RuntimeWarning('dcm series ' + str(found_scan)
-                                 + ' contains ' + str(ntrs)
-                                 + 'TRs, but expected '
-                                 + str(scan_params['ntrs'])
-                                 + ' TRs for task ' + scan
-                                 + ' based on scan list json file.')
+
+    if not full_ntrs_scans:
+        raise RuntimeWarning('dcm series ' + str(found_scan)
+                             + ' contains ' + str(ntrs)
+                             + 'TRs, but expected '
+                             + str(scan_params['ntrs'])
+                             + ' TRs for task ' + scan
+                             + ' based on scan list json file.')
 
     # make sure we have the correct number of runs remaining
     if len(full_ntrs_scans) != scan_params['nruns']:
@@ -197,7 +198,9 @@ def anat_dcm_to_bids(scan_params, scan_data, subject):
     return [[series_number, default_converted_name, bids_name, damn_name]]
 
 
-def fieldmap_dcm_to_bids(scan, scan_params, scan_data, subject):
+def fieldmap_dcm_to_bids(scan, scan_params, scan_data, input_dir, subject):
+    if 'ntrs' not in scan_params:
+        scan_params['ntrs'] = 3
     spin_echo = dict()
     spin_echo['AP'] = scan_params.copy()
     spin_echo['AP'].update({'protocol_name': scan_params['protocol_name']['AP']})
@@ -208,7 +211,12 @@ def fieldmap_dcm_to_bids(scan, scan_params, scan_data, subject):
     se_data = []
     for se_dir, se_params in spin_echo.items():
         convert_scans = se_params['scans']
-        if len(convert_scans) > 1:
+        full_ntrs_scans = []
+        for found_scan in convert_scans:
+            ntrs = len(glob.glob(input_dir + '/' + str(found_scan) + '-*.dcm'))
+            if ntrs == scan_params['ntrs']:
+                full_ntrs_scans.append(found_scan)
+        if len(full_ntrs_scans) > 1:
             raise RuntimeError('found ' + str(len(convert_scans))
                                + ' scans for spin echo ' + scan
                                + '(matching protocol name '
@@ -238,7 +246,7 @@ def dcm_to_bids(protocol, scan_data, input_dir, subject):
             conversion_data += anat_dcm_to_bids(scan_params, scan_data, subject)
         elif scan_params['type'] == 'fieldmap':
             conversion_data += fieldmap_dcm_to_bids(scan, scan_params,
-                                                    scan_data, subject)
+                                                    scan_data, input_dir, subject)
     return conversion_data
 
 
