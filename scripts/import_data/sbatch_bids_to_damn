@@ -55,16 +55,16 @@ sbatch_bids_to_damn [-i <input_dir>] [-o <output_dir>] [-p <conversion_data.json
 
   Description:
   ------------
-  Move BIDS formatted nifti's to DAMN pipeline naming conventions.
+  Move BIDS formatted niftis to DAMN pipeline naming conventions.
 
   Usage:
   ------------
   [-h | --help | -help]
     Display this help
   [-i <input_dir>]
-    Directory containing bids formatted nifti's. (Default: "${BACKUP_DIR}/bids")
+    Directory containing bids formatted niftis. (Default: "${BACKUP_DIR}/bids")
   [-o <output_dir>]
-    Full path to output nifti's with DAMN pipeline naming conventions
+    Full path to output niftis with DAMN pipeline naming conventions
     (default: ${RAW_DIR})
   [-p <conversion_data.csv>]
     File containing bids to damn naming mapping (output of get_conversion_names.py).

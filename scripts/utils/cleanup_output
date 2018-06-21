@@ -2,7 +2,7 @@
 # cleanup_output
 # 
 # May 2, 2017: Miriam Weaverdyck (miriamw@princeton.edu)
-#
+# June 21, 2018 Judith Mildner: fix input idr handling
 # Moves slurm output from specified job IDs to output directory
 #
 ################################## 80 characters ###############################--- 90 ---
@@ -67,11 +67,13 @@ while getopts "i:" opt; do
   case ${opt} in
     i)
       input_dir=${OPTARG}
-      if ! $(isDIR ${input_dir}); then
+      if [[ ! -d $(full_dir "${input_dir}") ]]; then
         echo "${label} ERROR: -i ${input_dir} is not a directory."
         exit 1
       fi
       input_dir=$(full_dir ${input_dir})
+      input_dir=${input_dir%./}
+      input_dir=${input_dir%.}
       echo "${label} -i ${input_dir}"
       ;;
     \?)
@@ -94,25 +96,32 @@ echo "${label} $(date) beginning cleanup_output"
 
 if [[ ${jobIDs} == 'all' ]]; then 
   unset jobIDs
-	all=$(find ${SCRIPT_DIR} -name *[1-9][1-9][1-9][1-9][1-9][1-9][1-9].out)
+  [[ -z ${input_dir} ]] && input_dir=${SCRIPT_DIR}
+  all=$(find ${input_dir} -name '*[0-9][0-9][0-9][0-9][0-9][0-9][0-9].out')
   IFS=' ' read -r -a jobIDs <<< ${all}
 fi
 
 for j in "${jobIDs[@]}"; do
-	#[[ ${#j} -lt 7 ]] && echo "${label} ${j} does not have 7 digits. Skipping..." && continue
-	#! $(isNUM $j) && echo "$label $j must be a number. Skipping..." && continue
-	if [[ ! -z ${input_dir} ]]; then
-	  fname=$(echo ${input_dir}/*${j}*)
+  #[[ ${#j} -lt 7 ]] && echo "${label} ${j} does not have 7 digits. Skipping..." && continue
+  #! $(isNUM $j) && echo "$label $j must be a number. Skipping..." && continue
+  if [[ -f $(full_file "${j}") ]]; then
+    fname=$(full_file "${j}")
+  elif [[ ! -z ${input_dir} ]]; then
+    if [[ -f $(full_file "${input_dir}/${j}") ]]; then
+      fname=$(full_file "${input_dir}/${j}")
+    else
+      fname=$(echo ${input_dir}/*${j}*)
+    fi
   elif [[ $(isDIR $(dirname ${j})) == 'true' && $(dirname ${j}) != '.' ]]; then
     fdir=$(full_dir "$(dirname "${j}")")
     fname="${fdir}/$(basename "${j}")"
-	else
-	  fname=$(find "${SCRIPT_DIR}" -name *${j}*)
-	fi
-	#
-	[[ ! -f ${fname} ]] && echo "${label} Cannot find ${j} (${fname}). Skipping..." && continue
-	mv ${fname} ${PROJECT_DIR}/output/
-	echo "${label} $(date) Moved ${fname} to output directory"
+  else
+    fname=$(find "${SCRIPT_DIR}" -name *${j}*)
+  fi
+  #
+  [[ ! -f ${fname} ]] && echo "${label} Cannot find ${j} (${fname}). Skipping..." && continue
+  mv ${fname} ${PROJECT_DIR}/output/
+  echo "${label} $(date) Moved ${fname} to output directory"
 done
 
 echo "${label} DONE. $(date) cleanup_output"
