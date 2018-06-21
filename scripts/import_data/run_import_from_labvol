@@ -185,7 +185,7 @@ fi
 
 for subject in ${convert_subs[@]#s}; do
   if [[ $(element_in_array "${subject}" "${existing_data_subs[@]}") == 'false' ]] \
-    || [[ force == 'true' ]]; then
+    || [[ ${force} == 'true' ]]; then
     echo "${label} Importing subject ${subject}" | tee -a "${logfile}"
     skip_dcm_convert=false
     raw_sub_data="${raw_data_locations["${subject}"]}"
