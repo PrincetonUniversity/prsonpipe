@@ -130,7 +130,7 @@ fi
 echo "${label} running convert on $(date)" | tee -a ${logfile}
 if [[ -n ${init_dependency} ]]; then
   echo "${label} Using initial dependency ${init_dependency}" | tee -a ${logfile}
-  dependency_flag="--dependency=afterok:${init_dependency}"
+  depend_flag="--dependency=afterok:${init_dependency}"
 fi
 
 #check if there are remaining arguments that have not yet been processed
@@ -206,20 +206,20 @@ for subject in ${convert_subs[@]#s}; do
       echo "${label} s${subject}: Converting raw dicoms to BIDS formatted niftis" \
         | tee -a "${logfile}"
       job_name="dcm_to_bids_${subject}"
-      flags="-J ${job_name} -o ${job_name}_%j.out ${mflag} ${dependency_flag}"
+      flags="-J ${job_name} -o "${OUT_DIR}/${job_name}_%j.out" ${mflag} ${depend_flag}"
       convert_job_id=$(sbatch ${flags} sbatch_dcm_to_bids \
                        -i "${raw_sub_data}" -o "${bids_data}" -p "${pfile}" \
                        -l "${logfile}" "s${subject}" | grep -o '[0-9]*')
     fi
     echo "${label} s${subject}: Importing BIDS niftis to project dir" \
         | tee -a "${logfile}"
-    if [[ -n ${dependency_flag} ]]; then
-      import_dependency="${dependency_flag},afterok:${convert_job_id}"
+    if [[ -n ${depend_flag} ]]; then
+      import_depend="${depend_flag},afterok:${convert_job_id}"
     else
-      import_dependency="--dependency=afterok:${convert_job_id}"
+      import_depend="--dependency=afterok:${convert_job_id}"
     fi
     job_name="bids_to_damn_${subject}"
-    flags="-J ${job_name} -o ${job_name}_%j.out ${mflag} ${import_dependency}"
+    flags="-J ${job_name} -o "${OUT_DIR}/${job_name}_%j.out" ${mflag} ${import_depend}"
     import_job_id=$(sbatch ${flags} sbatch_bids_to_damn -l ${logfile} s${subject} \
                     | grep -o '[0-9]*')
     # add this job to list of job arrays to wait for before writing "DONE" to log
