@@ -46,7 +46,7 @@ def make_epi_name(name_type, subject, tsk, run):
         name = ('sub-' + subject + '_task-' + tsk
                 + '_run-' + str(run).zfill(2) + '_bold.nii.gz')
     elif name_type == 'damn':
-        name = (tsk + '/' + subject + '/epi_' + tsk + '_r' +
+        name = (tsk + '/' + subject + '/epi_r' +
                 str(run).zfill(2) + '.nii.gz')
     else:
         raise RuntimeError("unknown name type " + name_type + " given.")
