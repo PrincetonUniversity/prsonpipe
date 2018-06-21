@@ -125,7 +125,9 @@ def find_matching_scans(scan_params, scan_data):
                   if 'MoCoSeries' in scan_data[number]['series_desc']]
     # use motion corrected scans or discard them, depending on the value
     # set for 'useMoCo'
-    if (str(scan_params["useMoCo"]).lower() == 'no') \
+    if 'useMoCo' not in scan_params:
+        scan_params['useMoCo'] = 'no'
+    if (str(scan_params["useMoCo"]).lower() in ('no', 'n')) \
             | (not bool(scan_params["useMoCo"])):
         convert_scans = [scan for scan in matching_scans
                          if scan not in moco_scans]
