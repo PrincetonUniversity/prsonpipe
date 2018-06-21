@@ -28,7 +28,7 @@
 ################################################################################----------
 #SBATCH -J bids_to_damn
 #SBATCH -o bids_to_damn-%j.out
-#SBATCH -t 61
+#SBATCH -t 70
 #SBATCH -D ./
 #SBATCH --mail-type=FAIL
 #SBATCH -p all
@@ -42,6 +42,11 @@ d="$(dirname -- "$(pwd)")"
 source "${d%scripts*}/scripts/globals.par"
 # source functions
 source "${SCRIPT_DIR_UTIL}/funcs"
+
+function clean_sbatch_log () {
+  bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"
+}
+trap 'clean_sbatch_log' EXIT
 
 function help_func () {
 cat << END

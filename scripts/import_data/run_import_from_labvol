@@ -205,7 +205,9 @@ for subject in ${convert_subs[@]#s}; do
     else
       echo "${label} s${subject}: Converting raw dicoms to BIDS formatted niftis" \
         | tee -a "${logfile}"
-      convert_job_id=$(sbatch "${mflag}" ${dependency_flag} sbatch_dcm_to_bids \
+      job_name="dcm_to_bids_${subject}"
+      flags="-J ${job_name} -o ${job_name}_%j.out ${mflag} ${dependency_flag}"
+      convert_job_id=$(sbatch ${flags} sbatch_dcm_to_bids \
                        -i "${raw_sub_data}" -o "${bids_data}" -p "${pfile}" \
                        -l "${logfile}" "s${subject}" | grep -o '[0-9]*')
     fi
@@ -216,8 +218,10 @@ for subject in ${convert_subs[@]#s}; do
     else
       import_dependency="--dependency=afterok:${convert_job_id}"
     fi
-    import_job_id=$(sbatch "${mflag}" "${import_dependency}" sbatch_bids_to_damn \
-                    -l ${logfile} s${subject} | grep -o '[0-9]*')
+    job_name="bids_to_damn_${subject}"
+    flags="-J ${job_name} -o ${job_name}_%j.out ${mflag} ${import_dependency}"
+    import_job_id=$(sbatch ${flags} sbatch_bids_to_damn -l ${logfile} s${subject} \
+                    | grep -o '[0-9]*')
     # add this job to list of job arrays to wait for before writing "DONE" to log
     all_job_ids+=( "${import_job_id}" )
   else
