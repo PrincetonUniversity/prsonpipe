@@ -767,8 +767,8 @@ end
 if ~startsWith(template_dir, pkg_dir)
   feval(gzip_nii, template_dir, label)
 end
-fprintf('%s %s: Finished DARTEL preprocessing for subjects %s \n', label, ...
-    datestr(now), strjoin(subnames(subs_index)))
+fprintf('%s %s: Finished DARTEL preprocessing \n', label, ...
+    datestr(now))
 %% Clean up Matlab's output
 % Stop the parallel pool
 delete(gcp('nocreate'))
