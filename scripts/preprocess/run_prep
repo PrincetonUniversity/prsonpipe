@@ -251,7 +251,7 @@ function write_pfile {
     esac
   done
   # Write a pfile
-  pfile_name="p_${run_program}_${task}${run_exts}.m"
+  pfile_name="p_${run_program}_${task}${run_exts}_$(date +%y%m%d-%H%M%S).m"
   pfile="${SCRIPT_DIR_PREP}/${pfile_name}"
   # Replace all variables in template pfile with their values and save
   eval "cat << EOF  > "${pfile}"
@@ -543,7 +543,7 @@ EOM
               dflag="--dependency=afterok${dependencies}"
               flags="${tflag} ${oflag} ${jflag} ${mflag} ${dflag}"
               # run it
-              jobid=$(sbatch ${flags} "${run_script}" -p "$pfile" "$subject" \
+              jobid=$(sbatch ${flags} "${run_script}" -p "${pfile}" "${subject}" \
                 | grep -o '[0-9]*')
               sub_jobid[${sub_index}]="${sub_jobid[${sub_index}]}:${jobid}"
               # save/print jobid number
