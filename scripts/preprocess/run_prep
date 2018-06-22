@@ -251,7 +251,7 @@ function write_pfile {
     esac
   done
   # Write a pfile
-  pfile_name="p_${run_program}_${task}${run_exts}_$(date +%y%m%d-%H%M%S).m"
+  pfile_name="p_${run_program}_${task}${run_exts}_$(date +%y%m%dx%H%M%S).m"
   pfile="${SCRIPT_DIR_PREP}/${pfile_name}"
   # Replace all variables in template pfile with their values and save
   eval "cat << EOF  > "${pfile}"
