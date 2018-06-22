@@ -114,5 +114,6 @@ fi
 echo ${sub}
 module load matlab/R2016b
 matlab -nosplash -nodisplay -nodesktop -r \
-   "try; run('${pfile}'); spm12w_glm_rfx('sids', ${sub}, 'glm_file', '${pfile}'); catch me; fprintf('%s / %s\n', \
-   me.identifier, me.message); end; exit" | tee -a "${logfile}"
+   "try; run('${pfile}'); spm12w_glm_rfx('sids', ${sub}, 'glm_file', '${pfile}'); \
+   catch me; fprintf('%s / %s\n', \
+   me.identifier, me.message); exit(1); end; exit" | tee -a "${logfile}"
