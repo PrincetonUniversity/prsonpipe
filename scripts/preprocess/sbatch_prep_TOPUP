@@ -119,8 +119,8 @@ trap 'error' EXIT
 
 # Check if the spin echoes are for multiple tasks
 SE_AP="${prep_dir}/${TSK}_SE_AP.nii*"
-if [ ! -f $SE_AP ]; then
-  SE_AP="$(dirname $SE_AP)/ALL_SE_AP.nii*"
+if [ ! -f ${SE_AP} ]; then
+  SE_AP="$(dirname ${SE_AP})/ALL_SE_AP.nii*"
   # if the 'ALL' spin echo also does not exist, we have a problem
   if [ ! -f ${SE_AP} ]; then 
     echo "${label} ERROR: no spin echo found in ${prep_dir}" | tee -a "${logfile}"
@@ -131,7 +131,7 @@ if [ ! -f $SE_AP ]; then
     all_topup_dir="${PREP_DIR}/topup/${subject}"
     all_logfile="${all_topup_dir}/LOG.txt"
     # If a general topup dir already exists, wait for it to finish (if necessary)
-    if [ -d $all_topup_dir ]; then
+    if [ -d ${all_topup_dir} ]; then
       wait_for_it ${label} ${all_logfile}
       # When it's done, copy the contents over to this task's topup
       echo "${label} Topup output from these spin echos already exists. Copying.." \
@@ -194,7 +194,8 @@ clean_up_edge() {
     outfile=$1
     maskim=$2
     tmpnm=$3
-    fugue --loadfmap=${outfile} --savefmap=${tmpnm}_tmp_fmapfilt --mask=${maskim} --despike --despikethreshold=2.1
+    fugue --loadfmap=${outfile} --savefmap=${tmpnm}_tmp_fmapfilt --mask=${maskim} \
+      --despike --despikethreshold=2.1
     fslmaths ${maskim} -kernel 2D -ero ${tmpnm}_tmp_eromask
     fslmaths ${maskim} -sub ${tmpnm}_tmp_eromask -thr 0.5 -bin ${tmpnm}_tmp_edgemask
     fslmaths ${tmpnm}_tmp_fmapfilt -mas ${tmpnm}_tmp_edgemask ${tmpnm}_tmp_fmapfiltedge
@@ -207,8 +208,9 @@ demean_image() {
   outim=$1
   maskim=$2
   tmpnm=$3
-  $FSLDIR/bin/fslmaths ${outim} -mas ${maskim} ${tmpnm}_tmp_fmapmasked
-  $FSLDIR/bin/fslmaths ${outim} -sub `$FSLDIR/bin/fslstats ${tmpnm}_tmp_fmapmasked -k ${maskim} -P 50` -mas ${maskim} ${outim} -odt float
+  ${FSLDIR}/bin/fslmaths ${outim} -mas ${maskim} ${tmpnm}_tmp_fmapmasked
+  ${FSLDIR}/bin/fslmaths ${outim} -sub $(${FSLDIR}/bin/fslstats ${tmpnm}_tmp_fmapmasked \
+    -k ${maskim} -P 50) -mas ${maskim} ${outim} -odt float
 }
 # make brain mask
 tmpnm="${topup_dir}/$(basename $(tmpnam))"

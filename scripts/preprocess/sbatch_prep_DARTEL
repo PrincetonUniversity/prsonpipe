@@ -165,6 +165,7 @@ echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} w
 matlab -nosplash -nodisplay -nodesktop \
   -r "try; matlab_prep_DARTEL(${matlab_array},'${pfile}'); catch me; fprintf('%s / %s\n',me.identifier,me.message); end; exit" \
 | tee >(grep --line-buffered ${matlab_label} >> "${logfile}")
+(( ${PIPESTATUS[0]} == 1 )) && exit 1
 [[ -z ${oldtz} ]] && unset TZ || TZ="${oldtz}"
 echo "${label} DONE. $(date)" | tee -a "${logfile_wd}"
 
