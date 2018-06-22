@@ -6,21 +6,19 @@
 #
 #################################################################################----------
 # Packages used:
-#  spm12
-#  spm12w
-#
+#   spm12
+#   spm12w
+# Modules:
+#   matlab/R2016b
 # Files sourced:
-#  globals.par
-#  funcs
-#  pfile
-#
+#   globals.par
+#   funcs
 # Flags:
-#  [-h]         : help
-#  -p           : pfile to be sourced
-#  [-l]         : logfile (full path, overrides default)
-#
+#   [-h]         : help
+#   -p           : pfile to be sourced
+#   [-l]         : logfile (full path, overrides default)
 # Arguments (1):
-#  sub ID       : subject to run
+#   sub ID       : subject to run
 ################################################################################----------
 
 #SBATCH -J SPMw_glm			# Job name
@@ -46,10 +44,10 @@ source "${SCRIPT_DIR_UTIL}/funcs"
 ######################### SET UP & PARSE ARGUMENTS #############################
 function help_func () {
 cat << END
-  sbatch_SPM12w_prep [-lh] -p <pfile> [-i <input_dir>] [-o <output_dir>] [-l <logfile>]
+  sbatch_glm_SPM12W [-lh] -p <pfile> [-l <logfile>] <subject>
   Description:
   ------------
-    Launches preprocessing in matlab using SPM12w based on specified parameters in pfile
+    Run first level GLM using SPM12W based on specified parameters in pfile
   Usage:
   ------
     [-h | --help | -help]
@@ -59,6 +57,8 @@ cat << END
     [-l <filename>]
       Overrides the default log file location with a different file.
       Default is LOG_spmw.txt in prep directory specified in pfile
+    <subject ID>
+       Subject to run (only one subject at a time)
 END
 }
 #First, check for help flag (multi-character flags not supported by getopts)
@@ -87,6 +87,10 @@ while getopts "p:l:" opt; do
       touch ${flogfile}
       echo "${label} Using logfile: ${flogfile} instead of default" | tee -a ${flogfile}
       ;;
+    h)
+      help_func
+      exit
+    ;;
     \?)
       echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
@@ -108,7 +112,7 @@ subject=$1; shift
 num2subID "${subject}"
 sub=${SUBIDS}
 
-module load matlab
+module load matlab/R2016b
 matlab -nosplash -nodisplay -nodesktop -r \
    "try; matlab_glm_SPM12W('${sub}','${pfile}'); catch me; fprintf('%s / %s\n', \
    me.identifier, me.message); exit(1); end; exit" | tee -a "${logfile}"

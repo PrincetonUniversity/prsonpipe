@@ -3,27 +3,28 @@
 #
 # May 1, 2017: Miriam Weaverdyck updated script to work with new filestructure
 #
-# Launches preprocessing in matlab using SPM8's DARTEL based on specified 
+# Launches preprocessing in matlab using SPM12 and DARTEL based on specified
 # parameters in pfile
 #
 ################################################################################----------
 # Packages used:
-#  spm8
-#
+#   spm12
+# Modules:
+#   matlab/R2016b
 # Files sourced:
-#  globals.par
-#  funcs
-#  pfile
+#   globals.par
+#   funcs
+#   pfile
 #
 # Flags:
-#  [-h]		: help
-#  -p 		: pfile to be sourced
-#  [-l]		: logfile (full path, overrides default)
-#  [-i] 	: where to look for full list of subjects (e.g. raw/TSK/)
-#  [-o] 	: where to look for already-run subjects (e.g. prep/TSK/aNrNuNwNsN)
+#   [-h]		: help
+#   -p 		: pfile to be sourced
+#   [-l]		: logfile (full path, overrides default)
+#   [-i] 	: where to look for full list of subjects (e.g. raw/TSK/)
+#   [-o] 	: where to look for already-run subjects (e.g. prep/TSK/aNrNuNwNsN)
 #
 # Arguments (0+):
-#  subs		: subjects to run
+#   subs		: subjects to run
 ################################################################################----------
 #SBATCH -J dartel_prep              # Job name
 #SBATCH --workdir=./                # Working directory
@@ -53,10 +54,11 @@ source ${SCRIPT_DIR_UTIL}/funcs
 ######################### SET UP & PARSE ARGUMENTS #############################
 function help_func () {
 cat << END
-  sbatch_DARTEL_prep [-h] -p <pfile> [-i <input_dir>] [-o <output_dir>] [-l <logfile>]
+  sbatch_prep_DARTEL [-h] -p <pfile> [-i <input_dir>] [-o <output_dir>]
+                     [-l <logfile>] <subjects>
   Description:
   ------------
-    Launches preprocessing in matlab using SPM8 DARTEL based on specified 
+    Launches preprocessing in matlab using SPM12 and DARTEL based on specified
     parameters in pfile
   Usage:
   ------
@@ -73,6 +75,8 @@ cat << END
     [-l <filename>]
       Overrides the default log file location with a different file.
       Default is LOG_spmw.txt in prep directory specified in pfile
+    <subs>
+      Subjects to run.
 END
 }
 #First, check for help flag (multi-character flags not supported by getopts)
@@ -80,55 +84,55 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 
 #Parse flags other than help
 while getopts "p:i:o:l:" opt; do
-  case $opt in
+  case ${opt} in
     p)
-      pfile=${SCRIPT_DIR_PREP}/$(basename $OPTARG)
-      if [ ! -f $pfile ]; then
-        echo "$label ERROR: pfile $pfile does not exist."
+      pfile=${SCRIPT_DIR_PREP}/$(basename ${OPTARG})
+      if [ ! -f ${pfile} ]; then
+        echo "${label} ERROR: pfile ${pfile} does not exist."
         exit 1
       fi
-      echo "$label Using pfile: $pfile"
+      echo "${label} Using pfile: ${pfile}"
       ;;
     i)
-	  input_dir=$OPTARG
+	  input_dir=${OPTARG}
       if ! $(isDIR ${input_dir}); then
-        echo "$label ERROR: input directory $input_dir is not a directory."
+        echo "${label} ERROR: input directory ${input_dir} is not a directory."
         exit 1
       fi
-      input_dir=$(full_dir $input_dir)
-      echo "$label input_dir: $input_dir"
+      input_dir=$(full_dir ${input_dir})
+      echo "${label} input_dir: ${input_dir}"
       ;;
     o)
-	  output_dir=$OPTARG
+	  output_dir=${OPTARG}
       if ! $(isDIR ${output_dir}); then
-        echo "$label ERROR: output directory $output_dir is not a directory."
+        echo "${label} ERROR: output directory ${output_dir} is not a directory."
         exit 1
       fi
-      output_dir=$(full_dir $output_dir)
-      echo "$label output_dir: $output_dir"
+      output_dir=$(full_dir ${output_dir})
+      echo "${label} output_dir: ${output_dir}"
       ;;
     l)
-      logfile=$OPTARG
-      logdir=$(dirname $logfile)
-      if ! $(isDIR $logdir); then
-        echo "$label ERROR: $logdir is not a directory."
+      logfile=${OPTARG}
+      logdir=$(dirname ${logfile})
+      if ! $(isDIR ${logdir}); then
+        echo "${label} ERROR: ${logdir} is not a directory."
         exit 1
       fi
-      logdir=$(full_dir $logdir)
-      logfile=${logdir}/$(basename $logfile)
-      touch $logfile
-      echo "$label Using logfile: $logfile instead of default" | tee -a $logfile
+      logdir=$(full_dir ${logdir})
+      logfile=${logdir}/$(basename ${logfile})
+      touch ${logfile}
+      echo "${label} Using logfile: ${logfile} instead of default" | tee -a ${logfile}
       ;;
-    \?)
-      echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
+    \? )
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
       ;;
     : ) #Catch options without arguments
-      echo "$label ERROR: -$OPTARG requires an argument. Use -h for help."
+      echo "${label} ERROR: -${OPTARG} requires an argument. Use -h for help."
       exit 1
     esac
 done
-[[ -z $pfile ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
+[[ -z ${pfile} ]] && echo "$label ERROR: -p flag required. Use -h for help." && exit 1
 #remove used input args
 shift $((OPTIND -1))
 
@@ -145,7 +149,7 @@ tsk=${tsk_dir: -3}
 # if output_dir doesn't exist, use default from pfile
 [[ -z ${output_dir} ]] && output_dir="${wd_dir}"
 # if logfile doesn't exist, use default from pfile
-[[ -z $logfile ]] && logfile="${wd_dir}/LOG_dartel.txt"
+[[ -z ${logfile} ]] && logfile="${wd_dir}/LOG_dartel.txt"
 
 #check if there are remaining arguments, that have not yet been processed
 # if so, get subject IDs by calling get_subs

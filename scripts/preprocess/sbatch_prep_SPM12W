@@ -7,23 +7,23 @@
 #
 ################################################################################----------
 # Packages used:
-#  spm12
-#  spm12w
-#
+#   spm12
+#   spm12w
+# Modules:
+#   matlab/R2016b
 # Files sourced:
-#  globals.par
-#  funcs
-#  pfile
+#   globals.par
+#   funcs
 #
 # Flags:
-#  [-h]		: help
-#  -p 		: pfile to be sourced
-#  [-l]		: logfile (full path, overrides default)
-#  [-i] 	: where to look for full list of subjects (e.g. raw/TSK/)
-#  [-o] 	: where to look for already-run subjects (e.g. prep/TSK/aNrNuNwNsN)
+#   [-h]		: help
+#   -p 		: pfile to be sourced
+#   [-l]		: logfile (full path, overrides default)
+#   [-i] 	: where to look for full list of subjects (e.g. raw/TSK/)
+#   [-o] 	: where to look for already-run subjects (e.g. prep/TSK/aNrNuNwNsN)
 #
 # Arguments (0+):
-#  subs		: subjects to run
+#   subs		: subjects to run
 ################################################################################----------
 
 #SBATCH -J SPMw_prep							# Job name
@@ -51,7 +51,8 @@ source "${SCRIPT_DIR_UTIL}/funcs"
 ######################### SET UP & PARSE ARGUMENTS #############################
 function help_func () {
 cat << END
-  sbatch_SPM12w_prep [-lh] -p <pfile> [-i <input_dir>] [-o <output_dir>] [-l <logfile>]
+  sbatch_prep_SPM12W [-lh] -p <pfile> [-i <input_dir>] [-o <output_dir>]
+                     [-l <logfile>] <subjects>
   Description:
   ------------
     Launches preprocessing in matlab using SPM12w based on specified parameters in pfile
@@ -70,6 +71,8 @@ cat << END
     [-l <filename>]
       Overrides the default log file location with a different file.
       Default is LOG_spmw.txt in prep directory specified in pfile
+    <subjects>
+      Subjects to run
 END
 }
 #First, check for help flag (multi-character flags not supported by getopts)

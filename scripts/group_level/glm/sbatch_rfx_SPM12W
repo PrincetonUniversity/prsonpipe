@@ -2,27 +2,24 @@
 #
 # May 8, 2017: Miriam Weaverdyck updated script to work with new filestructure and standards
 #
-# Runs level 1 GLM in matlab using SPM12w based on specified parameters in pfile
+# Runs level 2 glm (rfx) in SPM12W
 #
 #################################################################################----------
 # Packages used:
-#  spm12
-#  spm12w
-#
+#   spm12
+#   spm12w
+# Modules:
+#   matlab/R2016b
 # Files sourced:
-#  globals.par
-#  funcs
-#  pfile
-#
+#   globals.par
+#   funcs
 # Flags:
-#  [-h]         : help
-#  -p           : pfile to be sourced
-#  [-l]         : logfile (full path, overrides default)
-#
+#   [-h]         : help
+#   -p           : pfile to be sourced
+#   [-l]         : logfile (full path, overrides default)
 # Arguments (1):
-#  sub ID       : subject to run
+#   subjects       : subjects to run
 ################################################################################----------
-
 #SBATCH -J SPMw_glm			# Job name
 #SBATCH --workdir=./			# Working directory
 #SBATCH -o SPMw_glm-%j.out		# Output file
@@ -46,10 +43,11 @@ source "${SCRIPT_DIR_UTIL}/funcs"
 ######################### SET UP & PARSE ARGUMENTS #############################
 function help_func () {
 cat << END
-  sbatch_SPM12w_prep [-lh] -p <pfile> [-i <input_dir>] [-o <output_dir>] [-l <logfile>]
+  sbatch_rfx_SPM12W [-lh] -p <pfile> [-l <logfile>] <subjects>
+
   Description:
   ------------
-    Launches preprocessing in matlab using SPM12w based on specified parameters in pfile
+    Runs level 2 glm (rfx) in SPM12W
   Usage:
   ------
     [-h | --help | -help]
@@ -59,6 +57,8 @@ cat << END
     [-l <filename>]
       Overrides the default log file location with a different file.
       Default is LOG_spmw.txt in prep directory specified in pfile
+    <subjects>
+      Subjects to run (default all).
 END
 }
 #First, check for help flag (multi-character flags not supported by getopts)
@@ -87,6 +87,10 @@ while getopts "p:l:" opt; do
       touch ${flogfile}
       echo "${label} Using logfile: ${flogfile} instead of default" | tee -a ${flogfile}
       ;;
+    h)
+      help_func
+      exit
+    ;;
     \?)
       echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
