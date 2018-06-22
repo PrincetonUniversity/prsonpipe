@@ -144,6 +144,12 @@ wd_dir=$(grep -oP 'p.prepdir\s*=\s\K'.*?'(?=;)' ${pfile} | tr -d \')
 tsk_dir=$(dirname ${wd_dir})
 tsk=${tsk_dir: -3}
 
+function cleanup () {
+  # move current output file to output directory
+  bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"
+}
+trap 'cleanup' EXIT
+
 # if input_dir doesn't exist, use default from pfile
 [[ -z ${input_dir} ]] && input_dir="${RAW_DIR}/${tsk}/"
 # if output_dir doesn't exist, use default from pfile
@@ -173,6 +179,3 @@ matlab -nosplash -nodisplay -nodesktop \
 (( ${PIPESTATUS[0]} == 1 )) && exit 1
 [[ -z ${oldtz} ]] && unset TZ || TZ="${oldtz}"
 echo "${label} DONE. $(date)" | tee -a "${logfile_wd}"
-
-# move current output file to output directory
-bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"
