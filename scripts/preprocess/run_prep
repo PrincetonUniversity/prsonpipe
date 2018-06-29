@@ -56,6 +56,8 @@ run_prep [-t <TSK>] [-p <parfile>] [-a <prepdir>] [-d <job(s)>] [-ch] [<subs>]
   [-d <jobIDs>]
     jobIDs that these jobs will be dependent on.
     Valid form: one dependency '1111111' or multiple '2222222:3333333'
+  [-f]
+    Force topup to run, even if output already exists
   [<subs>]
     Subjects to run
     Keywords: 'all', 'new'
@@ -127,6 +129,9 @@ while getopts "ct:p:d:a:" opt; do
       fi
       echo "${label} Using ${prev_wd_dir} as prep directory. WARNING: Using preprocessed data, not raw."
       ;;
+    f)
+      force_topup=true
+    ;;
     \?)
       echo "$label ERROR: unknown flag specified: ${opt}. Use -h for help."
       exit 1
@@ -421,10 +426,16 @@ EOM
     #**** Run topup first if it's on and the subject is not in no_fieldmap_subs *****#
     if [[ "${FIELDMAP}" == "${TOPUP}" ]]; then
       if [[ $(element_in_array "${subject}" "${no_fieldmap_subs[@]}") == 'false' ]]; then
-        jobid=$(sbatch --dependency="afterok${first_jobid}" "${mflag}" -D "${OUT_DIR}" \
-          sbatch_prep_TOPUP "${wd_dir_sub}" | grep -o '[0-9]*')
+        sbatch_name="FSL_topup_${subject}"
+        jflag="-J ${sbatch_name}"
+        oflag="--output=${OUT_DIR}/${sbatch_name}_%j.out"
+        sbatch_flags="${jflag} ${oflag} --dependency=afterok${first_jobid} ${mflag}"
+        [[ ${force_topup} == true ]] && force_flag='-f'
+        jobid=$(sbatch ${sbatch_flags} -D "${OUT_DIR}" \
+        sbatch_prep_TOPUP "${force_flag}" "${wd_dir_sub}" | grep -o '[0-9]*')
         sub_jobid["${sub_index}"]="${sub_jobid[${sub_index}]}:${jobid}"
-        echo "${label} $(date) Started topup job ${jobid} for ${subject} on task ${task}"
+        echo "${label} $(date) Started topup job ${jobid} for ${subject} on task ${task}" \
+          tee -a "${logfile_wd}" "${logfile}"
       fi
     fi
   done

@@ -110,7 +110,7 @@ elif [ -d ${topup_dir} ] && [[ ${overwrite} == 1 ]]; then
 fi
 
 mkdir -p ${topup_dir}
-echo "${label} Preparing topup for ${prep_dir} at $(date)" | tee -a ${logfile}
+echo "${label} Preparing topup for ${prep_dir} at $(date)" | tee -a "${logfile}"
 
 function error() {
   echo "${label} ERROR: in subject ${subject}, job ${SLURM_JOB_ID}" | tee -a "${logfile}"
