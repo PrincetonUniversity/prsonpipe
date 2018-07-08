@@ -59,16 +59,16 @@ function whatisit {
   isTSK=TSK   # whatisit x -> x is a task according to TASKS[@] (TSK)
   isIDK=IDK   # whatisit x -> does not know what x is
 
-  if [[ -z $var ]]; then echo ${return_opts[0]}; return 0; fi
+  if [[ -z ${var} ]]; then echo ${return_opts[0]}; return 0; fi
 
   # test if var is a task
   for t in "${TASKS[@]}"; do
-    if [[ $var == $t ]]; then echo $isTSK; return 0; fi # TASK
+    if [[ ${var} == ${t} ]]; then echo ${isTSK}; return 0; fi # TASK
   done
 
   # test if var is a directory
   if [[ -d "${var}" ]] || [[ -d "${PROJECT_DIR}/${var}" ]]; then
-    echo $isDIR # DIRECTORY
+    echo ${isDIR} # DIRECTORY
     return 0
   fi
 
@@ -76,22 +76,22 @@ function whatisit {
   re_sub='^s[0-9]{3}$'
   re_num='^[0-9]+$'
   if [[ "$var" =~ ${re_sub} ]]; then
-    echo $isSUB # SUBJECT ID
+    echo ${isSUB} # SUBJECT ID
     return 0
     # test if var is a number
-  elif [[ $var =~ $re_num ]]; then
-    echo $isNUM # NUMBER
+  elif [[ ${var} =~ $re_num ]]; then
+    echo ${isNUM} # NUMBER
     return 0
   fi
 
-  echo $isIDK
+  echo ${isIDK}
   return 0
 }
-function isTSK { if [[ $(whatisit $1) == $isTSK ]]; then echo true; else echo false; fi }
-function isDIR { if [[ $(whatisit $1) == $isDIR ]]; then echo true; else echo false; fi }
-function isSUB { if [[ $(whatisit $1) == $isSUB ]]; then echo true; else echo false; fi }
-function isNUM { if [[ $(whatisit $1) == $isNUM ]]; then echo true; else echo false; fi }
-function isIDK { if [[ $(whatisit $1) == $isIDK ]]; then echo true; else echo false; fi }
+function isTSK { if [[ $(whatisit $1) == ${isTSK} ]]; then echo true; else echo false; fi }
+function isDIR { if [[ $(whatisit $1) == ${isDIR} ]]; then echo true; else echo false; fi }
+function isSUB { if [[ $(whatisit $1) == ${isSUB} ]]; then echo true; else echo false; fi }
+function isNUM { if [[ $(whatisit $1) == ${isNUM} ]]; then echo true; else echo false; fi }
+function isIDK { if [[ $(whatisit $1) == ${isIDK} ]]; then echo true; else echo false; fi }
 
 ################################################################################----------
 # 2)
@@ -113,10 +113,10 @@ function num2subID {
   for snum in "${snums[@]}"; do
     # check current format
     form=$(whatisit "$snum")
-    if [[ $form == ${isSUB} ]]; then
+    if [[ ${form} == ${isSUB} ]]; then
       #correct format (s000)
       SUBIDS[$i]="${snums[$i]}"
-    elif [[ $form == ${isNUM} ]]; then
+    elif [[ ${form} == ${isNUM} ]]; then
       # is number
       # convert to form s000
       if [[ "${#snum}" -eq 3 ]]; then
@@ -162,8 +162,8 @@ function get_subs {
   # task was inputted
   $(isTSK $1) && tsk=$1 && shift
   # if only one task in study
-  [[ ${NUM_TASKS} -eq 1 ]] && tsk=$TASKS
-  if [[ $PREP_SEP -eq 0 ]]; then parsfile=${PARS_DIR}/prep.par; else parsfile=${PARS_DIR}/prep_${t}.par; fi
+  [[ ${NUM_TASKS} -eq 1 ]] && tsk=${TASKS}
+  if [[ ${PREP_SEP} -eq 0 ]]; then parsfile=${PARS_DIR}/prep.par; else parsfile=${PARS_DIR}/prep_${t}.par; fi
 
   # INPUT DIRECTORY
   if $(isDIR $1); then
@@ -172,7 +172,7 @@ function get_subs {
     shift
   else
     # default is raw directory
-    inputdir=${PROJECT_DIR}/raw/$tsk
+    inputdir=${PROJECT_DIR}/raw/${tsk}
   fi
 
   # OUTPUT DIRECTORY
@@ -182,14 +182,14 @@ function get_subs {
     shift
   else
     # default is prep directory
-    outputdir=${PROJECT_DIR}/prep/$tsk/${wd_dir}
+    outputdir=${PROJECT_DIR}/prep/${tsk}/${wd_dir}
   fi
 
   input_subs=( "$@" )
 
   # find all possible subjects
   i=0; for s in $(ls -d ${inputdir}/s*/ | xargs -n 1 basename); do
-    subs_all[$i]=$s
+    subs_all[$i]=${s}
     i=$(($i + 1))
   done
 
@@ -197,12 +197,12 @@ function get_subs {
   if [[ -z ${input_subs} ]] || [[ ${input_subs} == 'new' ]]; then # zero input arguments
     # delete old subjects
     i=0; for s in "${subs_all[@]}"; do
-      $(isDIR ${outputdir}/${s}) && unset subs_all[$i]
+      $(isDIR ${outputdir}/${s}) && unset subs_all[${i}]
       i=$(($i + 1))
     done
     # Make list of all new subjects, ignoring the empty elements
     i=0; for s in "${subs_all[@]}"; do
-      [[ ! -z $s ]] && SUBS[$i]=$s && i=$(($i + 1))
+      [[ ! -z ${s} ]] && SUBS[$i]=${s} && i=$(($i + 1))
     done
     # SUBS now contains an array of new subjects that have not been preprocessed
     echo "${label_func} No subjects given. Selecting all NEW subjects for task ${tsk}"
@@ -242,7 +242,7 @@ function get_subs {
 
 function reset_step_par () {
 cat <<EOT > ${PARS_DIR}/step.par
-wd_dir=$wd_dir
+wd_dir=${wd_dir}
 # turn off everything
 QA='none'
 SLICE_TIME='none'
@@ -250,9 +250,9 @@ REALIGN='none'
 UNWARP='none'
 NORM='none'
 FILTER='none'
-VOX_SIZE=$VOX_SIZE
+VOX_SIZE=${VOX_SIZE}
 SMOOTH_SOFT='none'
-SMOOTH=$SMOOTH
+SMOOTH=${SMOOTH}
 SNR='none'
 SLICES=0
 # turn on these steps:
@@ -285,13 +285,13 @@ function wait_for_it {
     fi
     # still running...
     printf "${label_func} Waiting for ${step_label_func}.    \r"
-    sleep $load_interval
+    sleep ${load_interval}
     printf "${label_func} Waiting for ${step_label_func}..   \r"
-    sleep $load_interval
+    sleep ${load_interval}
     printf "${label_func} Waiting for ${step_label_func}...  \r"
-    sleep $load_interval
+    sleep ${load_interval}
     printf "${label_func} Waiting for ${step_label_func}.... \r"
-    sleep $load_interval
+    sleep ${load_interval}
     printf "${label_func} Waiting for ${step_label_func}.....\r"
     sleep ${load_interval}
   done
@@ -353,7 +353,7 @@ function update_nii {
     num_runs="$(find ./ -type f -name 'epi_r*.nii.gz' | wc -l)";
     # go through and store each of those filenames in array runs[@]
     for ((i=1; i<=${num_runs}; i++)); do
-      runs[$i]="$(find ./ -type f -name 'epi_r*.nii.gz' | head -$i | tail -1 | xargs -n 1 basename)";
+      runs[$i]="$(find ./ -type f -name 'epi_r*.nii.gz' | head -${i} | tail -1 | xargs -n 1 basename)";
     done
     # go through runs[@] and find the corresponding epis with prefixes, then update original file
     for r in "${runs[@]}"; do
@@ -429,11 +429,11 @@ function make_smatlab_array {
       # go through each character, determine if number
       for ((j=0; j<$len; j++)); do
         c=${s:${j}:1}
-        if [[ $c =~ ${re_num} ]] || [[ $c == 's' ]]; then
+        if [[ ${c} =~ ${re_num} ]] || [[ ${c} == 's' ]]; then
           num=${num}${c}
         else
           # reached non-number character, convert num to subID format and add to matlab_array
-          if [[ ! -z $num ]]; then
+          if [[ ! -z ${num} ]]; then
             num2subID ${num[@]}; matlab_array="${matlab_array}'${SUBIDS}'${c}"
         else matlab_array="${matlab_array}${c}"; fi
           unset num
@@ -537,7 +537,7 @@ function full_dir {
     echo "${label_func} You must provide a directory as input," \
     " (optionally) followed by a path to search"
     exit 1
-  elif [[ -d $input ]]; then
+  elif [[ -d ${input} ]]; then
     # absolute path
     if [[ ${input:0:1} == '/' ]]; then echo "$input"
       # relative path from current directory
@@ -574,7 +574,7 @@ function full_file {
     exit 1
   elif [[ ! -z ${search_path} ]] && [[ -f ${search_path}/${input} ]]; then
     echo ${search_path}/${input}
-  elif [[ -f $input ]]; then
+  elif [[ -f ${input} ]]; then
     # absolute path
     if [[ ${input:0:1} == '/' ]]; then echo "$input"
       # relative path from current directory
@@ -609,18 +609,18 @@ function read_json_value {
   fi
   key=$1
   jsonfile=$2
-  if [[ ! -f $jsonfile ]]; then
+  if [[ ! -f ${jsonfile} ]]; then
     jsondir=$(full_dir $(dirname ${jsonfile}))
     jsonfilename=$(basename ${jsonfile})
     jsonfile="${jsondir}/${jsonfilename}"
-    if [[ ! -f $jsonfile ]]; then
+    if [[ ! -f ${jsonfile} ]]; then
       echo "${func_label} Can't find json file ${jsonfile}."
       exit 1
     fi
   fi
 
   cat ${jsonfile} | \
-  python2 -c "import sys, json; print json.load(sys.stdin)[sys.argv[1]]" $key
+  python2 -c "import sys, json; print json.load(sys.stdin)[sys.argv[1]]" ${key}
 
 }
 
