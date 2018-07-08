@@ -169,6 +169,9 @@ matlab_array=$(make_matlab_array ${run_subs[@]})
 
 echo "${label} $(date) Beginning DARTEL analysis of subject(s) ${matlab_array} with pfile ${pfile}" \
   | tee -a "${logfile_wd}"
+if [[ ! -z ${SLURM_JOB_ID} ]]; then
+  echo "${label} Job ID: ${SLURM_JOB_ID}" | tee -a "${logfile_wd}"
+fi
 # make sure matlab finds the timezone in the right format ('America/New_York' vs Linux's old 'US/Eastern')
 [[ $(echo 'EDT EST') =~ $(date +"%Z") ]] && oldtz="${TZ}" && export TZ='America/New_York'
 # Run the matlab script and pipe only the lines with the matlab label to the log file

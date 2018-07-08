@@ -113,6 +113,7 @@ mkdir -p ${topup_dir}
 echo "${label} Preparing topup for ${prep_dir} at $(date)" | tee -a "${logfile}"
 
 function error() {
+  rm -rf "${topup_dir}"
   echo "${label} ERROR: in subject ${subject}, job ${SLURM_JOB_ID}" | tee -a "${logfile}"
 }
 trap 'error' EXIT
