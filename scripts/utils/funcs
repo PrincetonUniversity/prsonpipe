@@ -341,13 +341,13 @@ function update_nii {
     log=LOG.txt
     echo "${label_func} $(date) updating $s epi runs with prefix '${prefix}'" | tee -a "${log}" "${log_wd}"
 
-    for n in $(ls *.nii); do
-      if [[ -f ${n}.gz ]]; then
-        echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
-      else
+    for n in *.nii; do
+      #if [[ -f ${n}.gz ]]; then
+      #  echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
+      #else
         pigz ${n} 	# zip all niftis in folder
         echo "${label_func} $(date) ${s}/${n} nifti zipped using pigz." | tee -a "${log}"
-      fi
+      #fi
     done
     # count number of original epi_r##.nii.gz files there are
     num_runs="$(find ./ -type f -name 'epi_r*.nii.gz' | wc -l)";
