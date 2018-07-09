@@ -177,7 +177,7 @@ unset all_jobs
 echo "${label} Beginning level 2 GLM analysis of ${run_subs[@]} for ${TSK} with pfile ${pfile}" \
   | tee -a ${logfile}
 
-jobname=glm_lvl2
+jobname=SPM12W_rfx
 flags="-o ${OUT_DIR}/${jobname}-%j.out --mail-user=${USER_EMAIL} -J ${jobname} ${dependency_flag}"
 prev_jobid=$(sbatch ${flags} sbatch_rfx_SPM12W -p "${pfile}" -l "${logfile}" ${run_subs[@]} \
   | grep -o '[0-9]*')

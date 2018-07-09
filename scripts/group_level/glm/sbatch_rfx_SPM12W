@@ -20,9 +20,9 @@
 # Arguments (1):
 #   subjects       : subjects to run
 ################################################################################----------
-#SBATCH -J SPMw_glm			# Job name
+#SBATCH -J SPM12W_rfx			# Job name
 #SBATCH --workdir=./			# Working directory
-#SBATCH -o SPMw_glm-%j.out		# Output file
+#SBATCH -o SPM12W_rfx-%j.out		# Output file
 #SBATCH --mem-per-cpu=10240		# Amount of memory in MB (1GB = 1024 MB)
 #SBATCH --mail-type=FAIL		# Type of emails to send
 #SBATCH -t 1440				# Run time : Default = 24 hours (2880 min)

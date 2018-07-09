@@ -28,7 +28,7 @@ cat << END
     -p <pfile> : .par file (full path or rel. from here, group_level/glm, or sub_level/glm)
     [-c <file>]: list of contrast filenames and contrast names to process 
                    (space delimited, w header; req'd if not provided in pfile)
-    [-g <file>]: space delimited file with subject groups 
+    [-g <file>]: space delimited file with subject groups
                   (no header, req'd if test is twosample and not provided in pfile)
 END
 }
