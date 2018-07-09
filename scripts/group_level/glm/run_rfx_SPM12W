@@ -150,8 +150,8 @@ if [[ -z ${input_dir} ]]; then
   [[ ! -d ${input_dir} ]] && echo "${label} ERROR: ${input_dir} not found" && exit 1
 fi
 if [[ -z ${output_dir} ]]; then 
-  glm_output=$(get_matlab_var 'glm.glm_name' "${pfile}")
-  output_dir="${ANALYSIS_DIR}/${USER}/glm/glm_${glm_task}"
+  glm_output=$(get_matlab_var 'glm.rfx_name' "${pfile}")
+  output_dir="${ANALYSIS_DIR}/${USER}/rfx/${glm_output}"
 fi
 #remove used input args
 shift $((OPTIND -1))
@@ -174,12 +174,13 @@ fi
 
 unset all_jobs
 
-echo "${label} Beginning level 2 GLM analysis of ${run_subs[@]} for $TSK with pfile ${pfile}" \
+echo "${label} Beginning level 2 GLM analysis of ${run_subs[@]} for ${TSK} with pfile ${pfile}" \
   | tee -a ${logfile}
 
 jobname=glm_lvl2
 flags="-o ${OUT_DIR}/${jobname}-%j.out --mail-user=${USER_EMAIL} -J ${jobname} ${dependency_flag}"
-prev_jobid=$(sbatch ${flags} sbatch_rfx_SPM12W -p ${pfile} ${run_subs[@]} | grep -o '[0-9]*')
+prev_jobid=$(sbatch ${flags} sbatch_rfx_SPM12W -p "${pfile}" -l "${logfile}" ${run_subs[@]} \
+  | grep -o '[0-9]*')
 all_jobs+=":${prev_jobid}"
     
 echo "${label} ${jobname} job ${prev_jobid} submitted for level 2 GLM  with pfile ${pfile}" \
