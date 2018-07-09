@@ -3,7 +3,7 @@
 test_type='onesample' #choose 'onesample' or 'twosample' for type of test
 task=TSK #which task?
 glm_dir="${ANALYSIS_DIR}/jmildner/glm/glm_TSK" #Where are the 1st level glm subject dirs?
-tfce_name='tfce_OTH' # Analysis name (output dir: ${ANALYSIS_DIR}/<user>/tfce/<tfce_name>)
+tfce_name='tfce_TSK' # Analysis name (output dir: ${ANALYSIS_DIR}/<user>/tfce/<tfce_name>)
 contrast_list='contrasts_TSK.txt' # space delimited file w header (filename contrast_name)
 group_list='sub_condition_list.txt' # list of subs with condition for twosample test
 n_permutations=5000 # Number of permutations for TFCE

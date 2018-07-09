@@ -71,12 +71,12 @@ while getopts ":hc:p:g:" opt; do
     esac
 done
 shift $((OPTIND-1))
-# override constrast list from pfile if -c was used, group list if -g was used
+# override contrast list from pfile if -c was used, group list if -g was used
 [[ -n "${contrast_list_in}" ]] && contrast_list="${contrast_list_in}"
 [[ -n "${group_list_in}" ]] && group_list="${group_list_in}"
 # Do the files we need exist?
 contrast_list="$(full_file "${contrast_list}" "${SCRIPT_DIR_GRPLVL}")"
-if [ ! -f ${contrast_list} ]; then
+if [[ ! -f ${contrast_list} ]]; then
   echo "${label} ERROR: contrast file does not exist. Use -h for help."
   echo -e "${contrast_list}"
   exit 1
