@@ -82,13 +82,13 @@ keep_prep=false
 while getopts "ct:p:d:a:" opt; do
   case "$opt" in
     p)
-      parsfile="$(full_file "${OPTARG}" "${SCRIPT_DIR_PREP}")"
-      if [ ! -f "${parsfile}" ]; then
+      in_parsfile="$(full_file "${OPTARG}" "${SCRIPT_DIR_PREP}")"
+      if [ ! -f "${in_parsfile}" ]; then
         echo "${label} ERROR: pfile does not exist. Use -h for help."
-        echo -e "$parsfile"
+        echo -e "${in_parsfile}"
         exit 1
       fi
-      echo "${label} Using pfile: ${parsfile}"
+      echo "${label} Using pfile: ${in_parsfile}"
       ;;
     c)
       convert=true
@@ -276,8 +276,8 @@ for task in "${tasks[@]}"; do
   echo "${label} $(date) >>> Starting task ${task} <<<"
 
   # Get parameters from prep.par or prep_TSK.par
-  if [[ ! -z "${parsfile}" ]]; then
-    parsfile="${parsfile}"
+  if [[ ! -z "${in_parsfile}" ]]; then
+    parsfile="${in_parsfile}"
   elif [[ "${PREP_SEP}" -eq 0 ]]; then
     parsfile="${SCRIPT_DIR_PREP}/prep.par"
   else
@@ -576,6 +576,7 @@ EOM
         unset current_program
       done
     fi
+    unset parsfile sub_jobid
   done
 
   # Write Done. to task logfile
