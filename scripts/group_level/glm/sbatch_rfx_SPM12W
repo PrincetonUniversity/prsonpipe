@@ -111,7 +111,7 @@ subjects=( "$@" )
 
 if [[ "${subjects}" == 'all' ]] || [[ -z "${subjects}" ]] || \
                                 [[ "${subjects}" == 'allsids' ]]; then
-  sub='allsids'
+  sub="'allsids'"
 else
   sub=$(make_smatlab_array ${subjects[@]})
 fi
