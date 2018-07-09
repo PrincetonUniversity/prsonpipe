@@ -278,7 +278,7 @@ for task in "${tasks[@]}"; do
   # Get parameters from prep.par or prep_TSK.par
   if [[ ! -z "${parsfile}" ]]; then
     parsfile="${parsfile}"
-  elif [[ "$PREP_SEP" -eq 0 ]]; then
+  elif [[ "${PREP_SEP}" -eq 0 ]]; then
     parsfile="${SCRIPT_DIR_PREP}/prep.par"
   else
     parsfile="${SCRIPT_DIR_PREP}/prep_${task}.par"
@@ -327,7 +327,7 @@ for task in "${tasks[@]}"; do
         exit
     fi
     # check if choices are correct (e.g. unwarp and realign in the same software)
-    case "$program" in
+    case "${program}" in
       # For DARTEL, normalization should be on, unwarp requires topup
       "${DARTEL}")
       if [[ "${NORM}" != "${DARTEL}" ]]; then
@@ -377,13 +377,13 @@ for task in "${tasks[@]}"; do
   cat <<- EOM | tee "${logfile_wd}"
 ${label}
 ${label} $(date) *** Running subjects ${SUBS[@]} in task ${task} ***
-${label} Slice Time Correction = $SLICE_TIME
-${label} Motion Correction     = $REALIGN
-${label} Unwarping             = $UNWARP
-        with FIELDMAP = $FIELDMAP
-${label} Normalization         = $NORM (DARTEL template: ${temp})
-${label} Smoothing             = $SMOOTH_SOFT (kernel size: $SMOOTH)
-${label} Bandpass Filter       = $FILTER (hpf: $hFilter, lpf: $lFilter)
+${label} Slice Time Correction = ${SLICE_TIME}
+${label} Motion Correction     = ${REALIGN}
+${label} Unwarping             = ${UNWARP}
+        with FIELDMAP = ${FIELDMAP}
+${label} Normalization         = ${NORM} (DARTEL template: ${temp})
+${label} Smoothing             = ${SMOOTH_SOFT} (kernel size: ${SMOOTH})
+${label} Bandpass Filter       = ${FILTER} (hpf: ${hFilter}, lpf: ${lFilter})
 ${label}
 ${label} Writing prep files to ${wd_dir_full}
 EOM
