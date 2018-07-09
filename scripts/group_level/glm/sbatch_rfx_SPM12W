@@ -30,7 +30,7 @@
 
 set -e
 echo "on host: $(hostname)"
-label='[GLM]'
+label='[RFX.SBATCH]'
 
 ######################### SOURCE FILES ########################################
 # Get the name of the directory this script is in to create full path to globals.par
@@ -68,21 +68,28 @@ if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
 while getopts "p:l:" opt; do
   case ${opt} in
     p)
-      pfile=$(full_file "${OPTARG}")
+      pfilename="${OPTARG}"
+      pfile=$(full_file "${pfilename}" "${SCRIPT_DIR_GRPLVL}")
       if [[ ! -f ${pfile} ]]; then
-        echo "${label} ERROR: pfile ${pfile} does not exist."
-        exit 1
+        sub_pfile=$(full_file "${pfilename}" "${SCRIPT_DIR_SUBLVL}")
+        if [[ ! -f ${sub_pfile} ]]; then
+          sub_pfile=$(full_file "${pfilename}" "${SCRIPT_DIR_SUBLVL}/glm")
+          if [[ ! -f ${sub_pfile} ]]; then
+            echo "${label} ERROR: pfile ${pfile} does not exist."
+            exit 1
+          fi
+        fi
+        pfile="${sub_pfile}"
       fi
       echo "${label} Using pfile: ${pfile}"
       ;;
     l)
-      flogfile=$OPTARG
-      logdir=$(dirname ${flogfile})
-      if [[ $(isDIR ${logdir}) != true ]]; then
+      flogfile=${OPTARG}
+      logdir=$(full_dir $(dirname ${flogfile}))
+      if [[ ! -d ${logdir} ]]; then
         echo "${label} ERROR: ${logdir} is not a directory."
         exit 1
       fi
-      logdir=$(full_dir ${logdir})
       flogfile=${logdir}/$(basename ${flogfile})
       touch ${flogfile}
       echo "${label} Using logfile: ${flogfile} instead of default" | tee -a ${flogfile}
@@ -107,6 +114,7 @@ shift $((OPTIND -1))
 ############################## MAIN BODY OF SCRIPT #############################
 
 logfile=${flogfile}
+[[ -z ${logfile} ]] && logfile='-'
 subjects=( "$@" )
 
 if [[ "${subjects}" == 'all' ]] || [[ -z "${subjects}" ]] || \
@@ -115,12 +123,12 @@ if [[ "${subjects}" == 'all' ]] || [[ -z "${subjects}" ]] || \
 else
   sub=$(make_smatlab_array ${subjects[@]})
 fi
-echo ${sub}
+
 module load matlab/R2016b
 matlab -nosplash -nodisplay -nodesktop -r \
    "try; run('${pfile}'); spm12w_glm_rfx('sids', ${sub}, 'glm_file', '${pfile}'); \
    catch me; fprintf('%s / %s\n', \
    me.identifier, me.message); exit(1); end; exit" | tee -a "${logfile}"
-(( ${PIPESTATUS[0]} == 1 )) && exit 1
+(( ${PIPESTATUS[0]} == 1 )) &&  exit 1
 
 echo "${label} DONE. at $(date)" | tee -a "${logfile}"

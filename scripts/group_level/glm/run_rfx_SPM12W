@@ -29,7 +29,7 @@
 ###############################################################################----------
 
 set -e
-label='[GLM]'
+label='[RFX]'
 
 ######################### SOURCE FILES ########################################
 # Get the name of the directory this script is in to create full path to globals.par
@@ -105,23 +105,17 @@ while getopts "p:i:o:l:d:" opt; do
     o)
       output_dir="${PROJECT_DIR}/analysis/${USER}/glm/${OPTARG}"
       mkdir -p ${output_dir}
-      # if ! $(isDIR ${output_dir}); then
-      #   echo "$label ERROR: output directory $output_dir is not a directory."
-      #   exit 1
-      # fi
-      # output_dir=$(full_dir $output_dir)
       echo "${label} output_dir: ${output_dir}"
       ;;
     l)
       flogfile=${OPTARG}
-      logdir=$(dirname ${flogfile})
-      if ! $(isDIR ${logdir}); then
+      logdir=$(full_dir $(dirname ${flogfile}))
+      if [[ ! -d ${logdir} ]]; then
         echo "${label} ERROR: ${logdir} is not a directory."
         exit 1
       fi
-      logdir=$(full_dir ${logdir})
-      flogfile="${logdir}/$(basename ${flogfile})"
-      touch "${flogfile}"
+      flogfile=${logdir}/$(basename ${flogfile})
+      touch ${flogfile}
       echo "${label} Using logfile: ${flogfile} instead of default" | tee -a ${flogfile}
       ;;
     d)
@@ -164,7 +158,8 @@ shift $((OPTIND -1))
 
 ############################## MAIN BODY OF SCRIPT #############################
 logfile_name=LOG_rfx.txt
-[[ -z ${flogfile} ]] && logfile="${output_dir}/${logfile_name}"
+logfile="${flogfile}"
+[[ -z ${logfile} ]] && logfile="${output_dir}/${logfile_name}"
 
 pfile_name=$(basename ${pfile})
 DATE=$(date +%Y%m%d)
