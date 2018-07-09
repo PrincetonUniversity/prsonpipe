@@ -69,7 +69,7 @@ while getopts "p:l:" opt; do
   case ${opt} in
     p)
       pfile=$(full_file "${OPTARG}")
-      if [ ! -f ${pfile} ]; then
+      if [[ ! -f ${pfile} ]]; then
         echo "${label} ERROR: pfile ${pfile} does not exist."
         exit 1
       fi
@@ -78,7 +78,7 @@ while getopts "p:l:" opt; do
     l)
       flogfile=$OPTARG
       logdir=$(dirname ${flogfile})
-      if ! $(isDIR ${logdir}); then
+      if [[ $(isDIR ${logdir}) != true ]]; then
         echo "${label} ERROR: ${logdir} is not a directory."
         exit 1
       fi
@@ -121,3 +121,6 @@ matlab -nosplash -nodisplay -nodesktop -r \
    "try; run('${pfile}'); spm12w_glm_rfx('sids', ${sub}, 'glm_file', '${pfile}'); \
    catch me; fprintf('%s / %s\n', \
    me.identifier, me.message); exit(1); end; exit" | tee -a "${logfile}"
+(( ${PIPESTATUS[0]} == 1 )) && exit 1
+
+echo "${label} DONE. at $(date)" | tee -a "${logfile}"
