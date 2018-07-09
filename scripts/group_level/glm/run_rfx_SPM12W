@@ -163,6 +163,7 @@ logfile="${flogfile}"
 
 pfile_name=$(basename ${pfile})
 DATE=$(date +%Y%m%d)
+[[ ! -d ${output_dir} ]] && mkdir -p "${output_dir}"
 cp "${pfile}" "${output_dir}/${DATE}_${pfile_name}"
 
 #check if there are remaining arguments, that have not yet been processed
