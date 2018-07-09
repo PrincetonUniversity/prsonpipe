@@ -18,7 +18,7 @@ label='[TFCE]'
 
 function help_func () {
 cat << END
-  sbatch_tfce_FSL -p <pfile> [-c <contrast list>] [-g <group_file>]
+  run_tfce_FSL -p <pfile> [-c <contrast list>] [-g <group_file>]
 
   Description:
   ------------
@@ -28,7 +28,8 @@ cat << END
     -p <pfile> : .par file (full path or rel. from here, group_level/glm, or sub_level/glm)
     [-c <file>]: list of contrast filenames and contrast names to process 
                    (space delimited, w header; req'd if not provided in pfile)
-    [-g <file>]: space delimited file with subject groups (req'd if test is twosample)
+    [-g <file>]: space delimited file with subject groups 
+                  (no header, req'd if test is twosample and not provided in pfile)
 END
 }
 # First, check for help flag (multi-character flags not supported by getopts)
