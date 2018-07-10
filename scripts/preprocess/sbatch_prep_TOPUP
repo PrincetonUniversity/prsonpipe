@@ -102,8 +102,10 @@ topup_dir="${PREP_DIR}/${TSK}/topup/${subject}"
 logfile="${topup_dir}/LOG_topup.txt"
 # If topup directory already exists, we don't have to run this again
 if [ -d ${topup_dir} ] && [[ ${overwrite} != 1 ]]; then
-  echo "${label} Topup output already exists. Skipping topup."
-  exit
+  echo "${label} Topup output already exists."
+  echo "${label} Checking if existing process has finished..."
+  wait_for_it ${label} ${logfile}
+  exit $?
 elif [ -d ${topup_dir} ] && [[ ${overwrite} == 1 ]]; then
   echo "${label} Topup output already exists. Overwriting..."
   rm -r ${topup_dir}
