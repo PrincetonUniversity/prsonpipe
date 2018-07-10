@@ -1,0 +1,87 @@
+#!/bin/usr/env bash
+#
+# jmildner@princeton.edu, Oct 5 2017
+#
+# Run spm12w's roitool roi analysis on subject level glm output data.
+################################################################################
+# Packages used:
+#   matlab/R2016b
+#   spm12 (r6906)
+#   spm12w (07/2017)
+#
+# Files sourced:
+#  globals.par
+#  funcs
+#  pfile
+#
+# Arguments:
+#  [-h]        : help
+#  -p <pfile>  : pfile to be sourced
+################################################################################----------
+
+set -e
+
+echo "on host: $(hostname) "
+label='[ROI_SPM12W]'
+
+# load matlab
+module load matlab/R2016b
+
+######################### SOURCE FILES ########################################
+# Get the name of the directory this script is in to create full path to globals.par
+d="$(dirname -- "$(pwd)")"
+# source globals.par
+source "${d%scripts*}/scripts/globals.par"
+# source functions
+source ${SCRIPT_DIR_UTIL}/funcs
+
+######################### SET UP & PARSE ARGUMENTS #############################
+function help_func () {
+cat << END
+  run_roi_SPM12W [-h] -p <pfile>
+  Description:
+  ------------
+    Runs SPM12W roi analysis based on parameters in pfile
+  Usage:
+  ------
+    [-h | --help | -help]
+      Display this help
+    -p <filename>
+      filename of pfile
+END
+}
+#First, check for help flag (multi-character flags not supported by getopts)
+if [[ $@ =~ -h|--help|-help ]]; then help_func; exit; fi
+
+#Parse flags other than help
+while getopts ":p:" opt; do
+  case $opt in
+    p)
+      pfile="$(full_file "${OPTARG}" "${SCRIPT_DIR_ROI}")"
+      if [ ! -f ${pfile} ]; then
+        echo "${label} ERROR: parameter file does not exist. Use -h for help."
+        echo -e "${pfile}"
+        exit 1
+      fi
+      echo "${label} Using pfile: ${pfile}"
+      ;;
+    \?)
+      echo "${label} ERROR: unknown flag specified: ${opt}. Use -h for help."
+      exit 1
+      ;;
+    : ) #Catch options without arguments
+      echo "${label} ERROR: -${OPTARG} requires an argument. Use -h for help."
+      exit 1
+    esac
+done
+[[ -z $pfile ]] && echo "${label} ERROR: -p flag required. Use -h for help." && exit 1
+#remove used input args
+shift $((OPTIND -1))
+[[ -n "${@}" ]] && echo "${label} ERROR: too many input arguments: ${@}" && exit 1
+
+echo "${label} starting analysis at $(date)"
+## Run script
+sbatch -t 65 -J roi_SPM12W -o "${OUT_DIR}/roi_SPM12W-%j.out" --mail-type=FAIL \
+  --wrap="matlab -nodisplay -nosplash -r \
+   \"addpath('${MATLAB_PKG_DIR}/spm12');addpath('${MATLAB_PKG_DIR}/spm12w'); \
+   spm12w_roitool('roi_file','${pfile}','sids','allsids')\""
