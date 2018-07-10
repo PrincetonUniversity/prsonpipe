@@ -202,15 +202,17 @@ function write_pfile {
   if [[ "${run_program}" == "${SPMW}" ]]; then
     norm='none'
     [[ "${#run_steps[@]}" < 2 ]] && cleanup=0 || cleanup=3
-  fi
   # Set more defaults for DARTEL
-  if [[ "${run_program}" == "${DARTEL}" ]]; then
+  elif [[ "${run_program}" == "${DARTEL}" ]]; then
     if [[ -z "${epi_readout_time}" ]]; then
       bppe=$(read_json_value 'BandwidthPerPixelPhaseEncode' \
         "${wd_dir_sub}/epi_r01.json")
+      if [[ ${bppe} =~ 'ERROR:' ]]; then
+        echo -e "${bppe}"
+        exit 1
+      fi
        # spm definition of readout time
        epi_readout_time=$( echo "(1/${bppe})*1000" | bc -l)
-    echo 'bppe done'
     fi
     if [[ $(element_in_array 'all' ${no_fieldmap_subs[@]}) == true ]]; then
       no_fieldmap_subs="{'all'}"
@@ -224,6 +226,10 @@ function write_pfile {
     #fsl definition of readout time
     [[ -z "${epi_readout_time}" ]] && epi_readout_time=$(read_json_value \
       'TotalReadoutTime' "${wd_dir_sub}/epi_r01.json")
+    if [[ ${epi_readout_time} =~ 'ERROR:' ]]; then
+        echo -e "${epi_readout_time}"
+        exit 1
+    fi
     #directory in bash format
     [[ -z "${fieldmap_dir}" ]] && fieldmap_dir="${PREP_DIR}/${task}/topup"
   fi

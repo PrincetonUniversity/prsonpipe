@@ -609,14 +609,16 @@ function read_json_value {
   label_func='[JSON]'
   if [[ $# != 2 ]]; then
     echo "${label_func} ERROR: provide both a key and file."
+    return
   fi
   key=$1
   jsonfile=$2
   if [[ ! -f ${jsonfile} ]]; then
     jsonfile=$(full_file ${jsonfile})
     if [[ ! -f ${jsonfile} ]]; then
-      echo "${label_func} ERROR: Can't find json file."
+      echo "${label_func} ERROR: Can't find json file. \n"
       echo  "${jsonfile}"
+      return
     fi
   fi
 
