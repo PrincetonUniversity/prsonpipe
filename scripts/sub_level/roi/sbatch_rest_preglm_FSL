@@ -241,6 +241,10 @@ for epi in ${prep_dir}/epi_r*.nii.gz; do
     hp=-1
     lp=-1
     TR=$( read_json_value "RepetitionTime" "${prep_dir}/${epi%.nii*}.json" )
+    if [[ ${TR} =~ 'ERROR:' ]]; then
+        echo -e "${TR}"
+        exit 1
+    fi
     if [[ ${hFilter} != -1 ]]; then
       hp=$(echo "${hFilter}/(${TR}*2)" | bc -l )
       echo "${label} high pass filter is ${hFilter} seconds, sigma ${hp}" \

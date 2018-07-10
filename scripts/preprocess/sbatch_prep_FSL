@@ -194,10 +194,11 @@ with pfile ${pfile}" | tee -a "${logfile}"
     normalize_file="${fsl_prep}/w${epi_name}"
     filter_file="${fsl_prep}/f${epi_name}"
     # Get the TR from json file, or from fsl if that doesn't work
-    TR=$(read_json_value 'RepetitionTime' "${epi_name%.nii*}.json") || \
-        TR=$( fslval "${epi}" "pixdim4" )
+    TR=$(read_json_value 'RepetitionTime' "${epi_name%.nii*}.json")
+    if [[ ${TR} =~ 'ERROR:' ]]; then
+      TR=$( fslval "${epi}" "pixdim4" )
+    fi
 
-    
     if [[ ${SLICETIME} == 1 ]]; then
       echo "${label} $(date) Running slice timing $epi" | tee -a "${logfile}"
       slicetimer -i "$epi" -o "$time_file" --odd -r ${TR}

@@ -143,6 +143,10 @@ echo "${label} Using template ${template} with output dir ${glm_dir}" \
   | tee -a "${logfile}"
 
 TR=$( read_json_value "RepetitionTime" "$(dirname ${prep_dir})/${epi%.nii*}.json" )
+if [[ ${TR} =~ 'ERROR:' ]]; then
+        echo -e "${TR}"
+        exit 1
+fi
 NVOLS=$( fslnvols "${prep_dir}/${epi}" )
 moco_dir="${prep_dir}/mc_${epi%.nii.gz}"
 

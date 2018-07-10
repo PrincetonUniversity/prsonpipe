@@ -588,7 +588,7 @@ function full_file {
     # relative path from project directory
     echo "${PROJECT_DIR}/${input}"
   else
-    echo "$label_func ERROR: ${input} could not be found in: \n" \
+    echo "$label_func ERROR: ${input} could not be found. Searched in: \n" \
     "$(pwd), \n ${PROJECT_DIR}, or \n ${search_path}."
   fi
 }

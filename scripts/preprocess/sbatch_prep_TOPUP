@@ -167,6 +167,10 @@ echo "${label} generating ${topup_dir}/acqparams.txt" | tee -a "${logfile}" ${al
 #Read the readout time from the first epi json file
 epi_json="${prep_dir}/epi_r01.json"
 readout_time=$(read_json_value TotalReadoutTime "${epi_json}")
+if [[ ${readout_time} =~ 'ERROR:' ]]; then
+        echo -e "${readout_time}"
+        exit 1
+fi
 #Create the acqparams file by adding one line per volume in the spin echoes
 for ((i=1;i<=$(fslnvols ${SE_AP});i++)); do
   echo "0 -1 0 ${readout_time}" >> "${topup_dir}/acqparams.txt"
