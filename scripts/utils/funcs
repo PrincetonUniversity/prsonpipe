@@ -315,7 +315,9 @@ function update_nii {
   label_f='[UPDATE_NII]'
   unset prefix;
   if [[ ! $# -ge 3 ]]; then
-    echo "${label_func} Please specify a prep working directory (that contains subdirs), the steps to update to, and an array of subs to update. Aborting..."; exit;
+    echo "${label_func} Please specify a prep working directory (that contains subdirs), \
+the steps to update to, and an array of subs to update. Aborting..."
+    exit
   fi
   wd=$1; shift # directory of sdirs
   steps=$1; shift # list of prefixes
@@ -337,6 +339,7 @@ function update_nii {
   # for every subject
   for s in "${SUBIDS[@]}"; do
     pushd ${wd}/${s} > /dev/null # move into subject folder, quietly
+    trap 'popd > /dev/null' ERR
     # select their logfile
     log=LOG.txt
     echo "${label_func} $(date) updating $s epi runs with prefix '${prefix}'" | tee -a "${log}" "${log_wd}"
@@ -345,7 +348,7 @@ function update_nii {
       #if [[ -f ${n}.gz ]]; then
       #  echo "${label_func} ${s}/${n}.gz already exists, not zipping ${n}" | tee -a "${log}";
       #else
-        pigz ${n} 	# zip all niftis in folder
+        pigz -f ${n} 	# zip all niftis in folder
         echo "${label_func} $(date) ${s}/${n} nifti zipped using pigz." | tee -a "${log}"
       #fi
     done
@@ -368,6 +371,7 @@ function update_nii {
     fi
     echo "${label_func} Done. $(date)" | tee -a "${log}"
     popd > /dev/null # move out of subject folder, quietly
+    trap - ERR
   done
 }
 
@@ -604,18 +608,15 @@ function full_file {
 function read_json_value {
   label_func='[JSON]'
   if [[ $# != 2 ]]; then
-    echo "${label_func} provide both a key and file."
-    exit 1
+    echo "${label_func} ERROR: provide both a key and file."
   fi
   key=$1
   jsonfile=$2
   if [[ ! -f ${jsonfile} ]]; then
-    jsondir=$(full_dir $(dirname ${jsonfile}))
-    jsonfilename=$(basename ${jsonfile})
-    jsonfile="${jsondir}/${jsonfilename}"
+    jsonfile=$(full_file ${jsonfile})
     if [[ ! -f ${jsonfile} ]]; then
-      echo "${func_label} Can't find json file ${jsonfile}."
-      exit 1
+      echo "${label_func} ERROR: Can't find json file."
+      echo  "${jsonfile}"
     fi
   fi
 
