@@ -142,7 +142,9 @@ tsk="${tsk_dir: -3}"
 
 function cleanup () {
   # move current output file to output directory
-  bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"
+  if [[ -z $(shopt -s nullglob; echo "${OUT_DIR}"/*"${SLURM_JOB_ID}"*) ]]; then
+    bash "${SCRIPT_DIR_UTIL}/cleanup_output" "${SLURM_JOB_ID}"
+  fi
 }
 trap 'cleanup' EXIT
 
@@ -159,7 +161,7 @@ get_subs ${input_dir} ${output_dir} "$@"
 run_subs=( "${SUBS[@]}" )
 
 # extract prefix list from parameters file by finding the string between 3 uppercase letters and .m
-steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K[a-z]?(?=.*.m)')
+steps=$(echo "${pfile}" | grep -Po '.*\_[A-Z][A-Z][A-Z]\K[a-z]*(?=.*.m)')
 
 # cycle through subjects since SPM12w can't run more than one subject at a time
 for subid in "${run_subs[@]}"; do 
