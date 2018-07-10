@@ -24,46 +24,58 @@ function matlab_prep_SPM12W(sub,pfile)
 
     disp([label 'running spm12w_preprocess...'])
     % run spm12w_preprocess
-    spm12w_preprocess('sid',sub,'para_file',pfile);
-    
+    try
+      spm12w_preprocess('sid',sub,'para_file',pfile);
+    catch me
+      fprintf('%sAn error occuring during SPM12W processing.\n', label)
+      fprintf('%sMoving original prep files back to prep directory\n', label)
+      clean_up_temp(tmp_rawdir, p.datadir, label)
+      exit(1)
+    end
     % ONCE SPM12W PREPROCESS IS DONE, MOVE OLD AND NEW FILES BACK FROM TEMP_RAW TO SDIR
     disp([label 'Done running spm12w_preprocess. Moving original files back to subs folder'])
-    % move files (except for ./ and ../) from tmp_raw back to subject folder
-    files=dir(tmp_rawdir);
-    for i = 1:length(files)
-    	fname=files(i).name;
-        % check if file already exists in sdir
-    	if exist([p.datadir fname])
-            % so, rename with an 'x' in front and still move
-    		new_fname=['x' fname];
-	        disp([label p.datadir fname 'already exists. Renaming to ' new_fname])
-	    else 
-	    	new_fname=fname;
-	    end
-        % if not ./ or ../, move to sdir with new_fname
-	    d=regexp(fname,'\.');
-	    if (isempty(d) || d(1) ~= 1)
-	        movefile(fullfile(tmp_rawdir,fname),fullfile(p.datadir,new_fname));
-	    end
-    end
-    del=1;
-    if isempty(dir([p.datadir '/anat.nii*']))
-        disp([label 'Warning: no anat.nii* found in ' p.datadir '. Check ' tmp_rawdir ' for original anat.nii*'])
-        del=0;
-    end
-    if isempty(dir([p.datadir '/epi_r*']))
-        disp([label 'Warning: no epi_r* found in ' p.datadir '. Check ' tmp_rawdir ' for original epi_r*.nii*'])
-        del=0;
-    end
-    if del == 1
-        disp([label 'Deleting temp directory ' tmp_rawdir '...'])
-        rmdir(tmp_rawdir)
-    end
-    disp([label 'Done moving files from ' tmp_rawdir ' to ' p.datadir])
-    if length(dir([tmpdir '*'])) <= 2
-         rmdir(tmpdir)
-         disp([label 'Deleted ' tmpdir])
-    else
-        disp([label 'WARNING: ' tmpdir ' is not empty:'])
-        %disp(dir(tmpdir))
-    end
+    clean_up_temp(tmp_rawdir, p.datadir, label)
+    return
+
+    %%%%% Function to clean up temp directory %%%%%
+    function clean_up_temp(tmp_rawdir, datadir, label)
+      % move files (except for ./ and ../) from tmp_raw back to subject folder
+      files=dir(tmp_rawdir);
+      for i = 1:length(files)
+    	    fname=files(i).name;
+          % check if file already exists in sdir
+    	    if exist([datadir fname], 'file')
+              % so, rename with an 'x' in front and still move
+    		      new_fname=['x' fname];
+	            disp([label datadir fname 'already exists. Renaming to ' new_fname])
+	        else
+	    	      new_fname=fname;
+	        end
+          % if not ./ or ../, move to sdir with new_fname
+	        d=regexp(fname,'\.');
+	        if (isempty(d) || d(1) ~= 1)
+	          movefile(fullfile(tmp_rawdir,fname),fullfile(datadir,new_fname));
+	        end
+      end
+      del=1;
+      if isempty(dir([datadir '/anat.nii*']))
+          disp([label 'Warning: no anat.nii* found in ' datadir '. Check ' tmp_rawdir ' for original anat.nii*'])
+          del=0;
+      end
+      if isempty(dir([datadir '/epi_r*']))
+          disp([label 'Warning: no epi_r* found in ' datadir '. Check ' tmp_rawdir ' for original epi_r*.nii*'])
+          del=0;
+      end
+      disp([label 'Done moving files from ' tmp_rawdir ' to ' datadir])
+      if del == 1
+          disp([label 'Deleting temp directory ' tmp_rawdir '...'])      
+        if length(dir([tmp_rawdir '*'])) <= 2
+           rmdir(tmp_rawdir)
+           disp([label 'Deleted ' tmp_rawdir])
+        else
+          disp([label 'WARNING: ' tmp_rawdir ' is not empty:'])
+          disp(dir(tmp_rawdir))
+        end
+      end
+
+      return
