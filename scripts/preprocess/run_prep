@@ -438,10 +438,10 @@ EOM
         sbatch_flags="${jflag} ${oflag} --dependency=afterok${first_jobid} ${mflag}"
         [[ ${force_topup} == true ]] && force_flag='-f'
         jobid=$(sbatch ${sbatch_flags} -D "${OUT_DIR}" \
-        sbatch_prep_TOPUP "${force_flag}" "${wd_dir_sub}" | grep -o '[0-9]*')
+          sbatch_prep_TOPUP "${force_flag} ${wd_dir_sub}" | grep -o '[0-9]*')
         sub_jobid["${sub_index}"]="${sub_jobid[${sub_index}]}:${jobid}"
         echo "${label} $(date) Started topup job ${jobid} for ${subject} on task ${task}" \
-          tee -a "${logfile_wd}" "${logfile}"
+         | tee -a "${logfile_wd}" "${logfile}"
       fi
     fi
   done
