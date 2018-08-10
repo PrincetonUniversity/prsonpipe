@@ -160,7 +160,8 @@ else
 fi
 ################################################################################----------
 echo "${label} converting dicoms in ${input_dir} to bids in ${output_dir}"
-
+# If on spock, make temporary directory in project dir because /tmp can be unreliable
+[[ $(hostname | grep spock) ]] && TMPDIR="${PROJECT_DIR}"
 temp_json_dir=$(mktemp -d -t tmp.XXXXXX)
 temp_bids_dir=$(mktemp -d -t tmp.XXXXXX)
 temp_sub_dir="${temp_bids_dir}/sub-${subj}"
