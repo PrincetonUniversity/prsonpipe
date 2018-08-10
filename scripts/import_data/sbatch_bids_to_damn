@@ -155,6 +155,8 @@ if [[ -z ${conversion_file} && (${make_conversion_file} != true) ]]; then
   fi
 fi
 ################################################################################----------
+# If on spock, make temporary directory in project dir because /tmp can be unreliable
+[[ $(hostname | grep spock) ]] && TMPDIR="${PROJECT_DIR}"
 temp_out_dir=$(mktemp -d -t tmp.XXXXXX)
 temp_log_dir="${temp_out_dir}/logs"
 mkdir "${temp_log_dir}"
