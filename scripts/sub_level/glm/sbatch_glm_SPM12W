@@ -116,6 +116,6 @@ module load matlab/R2016b
 matlab -nosplash -nodisplay -nodesktop -r \
    "try; matlab_glm_SPM12W('${sub}','${pfile}'); catch me; fprintf('%s / %s\n', \
    me.identifier, me.message); exit(1); end; exit" | tee -a "${logfile}"
-(( ${PIPESTATUS[0]} == 1 )) && exit 1
+(( ${PIPESTATUS[0]} != 0 )) && exit 1
 
 echo "${label} DONE. at $(date)" | tee -a "${logfile}"

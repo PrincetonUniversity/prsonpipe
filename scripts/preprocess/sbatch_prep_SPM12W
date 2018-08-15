@@ -176,7 +176,7 @@ ${pfile}" | tee -a "${logfile}"
 	matlab_prep_SPM12W('${subid}', '${pfile}'); catch me; \
 	fprintf('%s / %s\n',me.identifier,me.message); exit(1); end; exit" \
 	| tee -a "${logfile}"
-	(( ${PIPESTATUS[0]} == 1 )) && exit 1
+	(( ${PIPESTATUS[0]} != 0 )) && exit 1
 
 	# if unwarp AND normalization are on, skip 'r' prefix (not written out if both of these steps are included)
   if [[ $(echo ${steps} | grep -o 'uw') ]]; then
