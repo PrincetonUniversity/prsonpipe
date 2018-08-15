@@ -199,7 +199,7 @@ for file in "${input_dir}"/dcm/*.gz; do
   unpigz -c "${file}" > "${temp_json_dir}/${STEM}"
 done
 dcm2niix -b o "${temp_json_dir}" 1>/dev/null | tee -a "${logfile}"
-(( ${PIPESTATUS[0]} != 0 )) && exit 1
+(( ${PIPESTATUS[0]} == 1 )) && exit 1
 
 echo "${label} getting conversion data for ${subj} based on ${scan_key} at $(date)" \
         | tee -a "${logfile}"
@@ -216,7 +216,7 @@ if [[ ${loop} == false ]]; then
     n_flags=( "${all_series_numbers[@]/#/-n }" )
     dcm2niix ${n_flags[@]} -i y -b y -ba y -z y -f 'scan_%2s' \
       -o "${temp_sub_dir}" "${temp_json_dir}" 1>${logfile} | tee -a "${logfile}"
-    (( ${PIPESTATUS[0]} != 0 )) && exit 1
+    (( ${PIPESTATUS[0]} == 1 )) && exit 1
 fi
 # loop through each line of the conversion data to get correct filenames
 while IFS=,$'\r' read -r series_number default_name bids_name damn_name; do
@@ -224,7 +224,7 @@ while IFS=,$'\r' read -r series_number default_name bids_name damn_name; do
     if [[ ${loop} == true ]]; then
         dcm2niix -n "${series_number}" -i y -b y -ba y -z y -s y -f 'scan_%2s' \
           -o "${temp_sub_dir}" "${temp_json_dir}" 1>${logfile} | tee -a "${logfile}"
-        (( ${PIPESTATUS[0]} != 0 )) && exit 1
+        (( ${PIPESTATUS[0]} == 1 )) && exit 1
     fi
     echo "${label} moving ${default_name} to ${bids_name}" | tee -a "${logfile}"
     mkdir -p "$(dirname "${temp_sub_dir}/${bids_name}")"
