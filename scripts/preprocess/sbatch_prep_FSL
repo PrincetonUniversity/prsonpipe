@@ -28,7 +28,7 @@
 #SBATCH -J FSL_prep               # Job name
 #SBATCH --workdir=./              # Working directory
 #SBATCH -o FSL_prep-%j.out     # Output file
-#SBATCH --mem-per-cpu=10240       # Amount of memory in MB (1GB = 1024 MB)
+#SBATCH --mem=10G       # Amount of memory in MB (1GB = 1024 MB)
 #SBATCH --mail-type=FAIL          # Type of emails to send
 #SBATCH -t 1440                   # Run time : Default = 24 hours (2880 min)
 #SBATCH -p all                    # DON'T CHANGE
