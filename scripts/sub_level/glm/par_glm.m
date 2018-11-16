@@ -77,8 +77,8 @@ glm.rfx_name 		= 'rfx_mvpa';
 glm.rfx_conds 		= {'allVSbaseline'};
 
 % add packages
-addpath(fullfile(PKG_DIR, 'PSNL_funcs'))
-addpath(fullfile(PKG_DIR, 'spm12'))
-addpath(fullfile(PKG_DIR, 'catstruct'))
-addpath(fullfile(PKG_DIR, 'spm12w_1702'))
-addpath(fullfile(PKG_DIR, 'NIfTI'))
+addpath(fullfile(MATLAB_PKG_DIR, 'PSNL_funcs'))
+addpath(fullfile(MATLAB_PKG_DIR, 'spm12'))
+addpath(fullfile(MATLAB_PKG_DIR, 'catstruct'))
+addpath(fullfile(MATLAB_PKG_DIR, 'spm12w_1702'))
+addpath(fullfile(MATLAB_PKG_DIR, 'NIfTI'))
