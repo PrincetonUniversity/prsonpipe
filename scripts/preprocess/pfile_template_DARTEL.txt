@@ -10,7 +10,7 @@ run(fullfile(scripts_dir{1}, 'globals.m'))
 
 % take the three uppercase letters after a '_' (_[A-Z]{3}) that come before
 % one or more lowercase letters ([a-z]*) before the end of the filename ($)
-p.task = regexp(pfile_dir, '_([A-Z]{3})[a-z]*$', 'tokens');
+p.task = regexp(pfile_dir, '_([A-Z]{3})[a-z]*_[0-9x]*$', 'tokens');
 % turn this into a string
 p.task = char(p.task{:});
 % If you pfile does not end in the task and steps (e.g. ..._TSKruws.m),
