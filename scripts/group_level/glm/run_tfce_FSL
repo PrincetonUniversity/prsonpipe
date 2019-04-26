@@ -147,7 +147,7 @@ for con_index in ${!contrast_filenames[@]}; do
   
     echo "${label} Running TFCE for positive activation"
     randomise_parallel -i "${all_con_file}" -o "${out_dir}/onesample/positive" \
-      -m "${mask_file}" -1 -T -n "${n_permutations}"
+      -m "${mask_file}" -1 -T -n "${n_permutations}" --uncorrp -R
     echo "${label} Running TFCE for negative activation"
     fslmaths  "${all_con_file}" -mul -1 "${all_con_file_neg}"
     randomise_parallel -i "${all_con_file_neg}" -o "${out_dir}/onesample/negative" \
