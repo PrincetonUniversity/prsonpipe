@@ -581,10 +581,9 @@ EOM
         # reset current_program for the next subject
         unset current_program
       done
-    fi
-    unset parsfile sub_jobid
+    fi  
   done
-
+  unset parsfile sub_jobid
   # Write Done. to task logfile
   echo "${label}" | tee -a "${logfile_wd}"
   echo "${label} DONE. $(date)" | tee -a "${logfile_wd}"
