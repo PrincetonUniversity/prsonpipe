@@ -583,7 +583,7 @@ EOM
       done
     fi  
   done
-  unset parsfile sub_jobid
+  unset parsfile sub_jobid group_jobid
   # Write Done. to task logfile
   echo "${label}" | tee -a "${logfile_wd}"
   echo "${label} DONE. $(date)" | tee -a "${logfile_wd}"
