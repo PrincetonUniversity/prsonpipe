@@ -143,6 +143,8 @@ if [ ! -f ${SE_AP} ]; then
       cp -r ${all_topup_dir}/* ${topup_dir}
       echo "${label} DONE. $(date) Copied ${all_topup_dir} to ${topup_dir}." \
             | tee -a "${logfile}" "${all_logfile}"
+      # Cancel the error trap
+      trap - EXIT
       exit 0 
     else
       # make the 'all' directory now, to make sure subsequent topups just wait for this one
